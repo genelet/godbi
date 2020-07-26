@@ -1,6 +1,5 @@
-go mod init github.com/genelet/godbi
 # godbi
-An abstract interface class to access relational system in GO. Check *godoc* from [here](https://godoc.org/github.com/genelet/godbi)
+An abstract interface class (DBi) to access relational dabtase system in GO. Check *godoc* from [here](https://godoc.org/github.com/genelet/godbi)
 
 [![GoDoc](https://godoc.org/github.com/genelet/godbi?status.svg)](https://godoc.org/github.com/genelet/godbi)
 
