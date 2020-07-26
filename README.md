@@ -157,12 +157,6 @@ err = dbi.QuerySQLTypeLabel(&lists, []string{"string", "int", "string", "int8", 
 They are similar to *QuerySQL*, *QuerySQLType* and *QuerySQLTypeLabel*, respectively, based on *prepared* statement.
 
 
-### 1.6) Function *Quote*
-
-This static function escape a string for unsafe characters *[';]*. You don't need to call it in the above *ExecSQL* and *QuerySQL* because we already do it.
-
-
-
 ## Chapter 2. MAP USAGE
 
 

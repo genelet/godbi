@@ -6,7 +6,7 @@ import (
 
 func TestUtils(t *testing.T) {
 	str := "abcdefg_+hijk=="
-	newStr := Stripchars("df+=", str)
+	newStr := stripchars("df+=", str)
 	if "abceg_hijk" != newStr {
 		t.Errorf("%s %s wanted", str, newStr)
 	}

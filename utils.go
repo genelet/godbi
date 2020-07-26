@@ -47,7 +47,7 @@ func Interface2String(v interface{}) string {
 	}
 }
 
-func Stripchars(chr, str string) string {
+func stripchars(chr, str string) string {
 	return strings.Map(func(r rune) rune {
 		if strings.IndexRune(chr, r) < 0 {
 			return r
@@ -56,7 +56,7 @@ func Stripchars(chr, str string) string {
 	}, str)
 }
 
-func Filtering(vs []string, f func(string) bool) []string {
+func filtering(vs []string, f func(string) bool) []string {
 	vsf := make([]string, 0)
 	for _, v := range vs {
 		if f(v) {
@@ -66,7 +66,7 @@ func Filtering(vs []string, f func(string) bool) []string {
 	return vsf
 }
 
-func Map(vs []string, f func(string) string) []string {
+func mapping(vs []string, f func(string) string) []string {
 	vsm := make([]string, len(vs))
 	for i, v := range vs {
 		vsm[i] = f(v)
@@ -74,7 +74,7 @@ func Map(vs []string, f func(string) string) []string {
 	return vsm
 }
 
-func Index(vs []string, t string) int {
+func index(vs []string, t string) int {
 	for i, v := range vs {
 		if v == t {
 			return i
@@ -84,5 +84,5 @@ func Index(vs []string, t string) int {
 }
 
 func Grep(vs []string, t string) bool {
-	return Index(vs, t) >= 0
+	return index(vs, t) >= 0
 }

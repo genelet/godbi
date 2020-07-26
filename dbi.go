@@ -13,45 +13,14 @@ import (
 // Affected: number of row affected after each operation.
 type DBI struct {
 	Db        *sql.DB
-	NeedQuote bool
 	LastId    int64
 	Affected  int64
-}
-
-// Quote escapes string to be used safely in placeholder.
-// The SQL functions in the package have already quoted so
-// you should not call this again in using them.
-func Quote(v interface{}) interface{} {
-	switch v.(type) {
-	case string:
-		str := v.(string)
-		str = strings.Trim(str, `'"`)
-		str = strings.Replace(str, `'`, `\'`, -1)
-		str = strings.Replace(str, `;`, `\;`, -1)
-		return `'` + str + `'`
-	default:
-	}
-	return v
-}
-
-func (self *DBI) quotes(args []interface{}) []interface{} {
-	if args == nil || len(args) == 0 {
-		return nil
-	}
-	if self.NeedQuote == false {
-		return args
-	}
-	newArgs := make([]interface{}, 0)
-	for _, v := range args {
-		newArgs = append(newArgs, Quote(v))
-	}
-	return newArgs
 }
 
 // ExecSQL is the same as the generic SQL's Exec, plus adding
 // the affected number of rows into Affected
 func (self *DBI) ExecSQL(str string, args ...interface{}) error {
-	res, err := self.Db.Exec(str, self.quotes(args)...)
+	res, err := self.Db.Exec(str, args...)
 	if err != nil {
 		return err
 	}
@@ -77,7 +46,7 @@ func (self *DBI) DoSQL(str string, args ...interface{}) error {
 	if err != nil {
 		return err
 	}
-	res, err := sth.Exec(self.quotes(args)...)
+	res, err := sth.Exec(args...)
 	if err != nil {
 		return err
 	}
@@ -113,7 +82,7 @@ func (self *DBI) DoSQLs(str string, args ...[]interface{}) error {
 
 	var res sql.Result
 	for _, once := range args {
-		res, err = sth.Exec(self.quotes(once)...)
+		res, err = sth.Exec(once...)
 		if err != nil {
 			return err
 		}
@@ -155,7 +124,7 @@ func (self *DBI) QuerySQLLabel(lists *[]map[string]interface{}, labels []string,
 // It uses the given data types defined in types_labels.
 // and the keys in the maps uses the given name defined in selectLabels.
 func (self *DBI) QuerySQLTypeLabel(lists *[]map[string]interface{}, typeLabels []string, selectLabels []string, str string, args ...interface{}) error {
-	rows, err := self.Db.Query(str, self.quotes(args)...)
+	rows, err := self.Db.Query(str, args...)
 	if err != nil {
 		return err
 	}
@@ -186,7 +155,7 @@ func (self *DBI) SelectSQLTypeLabel(lists *[]map[string]interface{}, typeLabels 
 		return err
 	}
 	defer sth.Close()
-	rows, err := sth.Query(self.quotes(args)...)
+	rows, err := sth.Query(args...)
 	if err != nil {
 		return err
 	}
