@@ -82,16 +82,16 @@ func (self *DBI) DoSQL(str string, args ...interface{}) error {
 		return err
 	}
 
-	if lastID, err := res.LastInsertId(); err != nil {
+	lastID, err := res.LastInsertId()
+	if err != nil {
 		return err
-	} else {
-		self.LastId = lastID
 	}
-	if affected, err := res.RowsAffected(); err != nil {
+	self.LastId = lastID
+	affected, err := res.RowsAffected()
+	if err != nil {
 		return err
-	} else {
-		self.Affected = affected
 	}
+	self.Affected = affected
 
 	sth.Close()
 	return nil
@@ -123,11 +123,11 @@ func (self *DBI) DoSQLs(str string, args ...[]interface{}) error {
 		}
 		self.Affected += affected
 	}
-	if lastID, err := res.LastInsertId(); err != nil {
+	lastID, err := res.LastInsertId()
+	if err != nil {
 		return err
-	} else {
-		self.LastId = lastID
 	}
+	self.LastId = lastID
 
 	sth.Close()
 	return nil
