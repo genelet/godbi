@@ -1,8 +1,8 @@
 package godbi
 
 import (
-	"errors"
 	"database/sql"
+	"errors"
 	"net/url"
 	"regexp"
 	"strings"
@@ -14,7 +14,6 @@ import (
 // CurrentKeys: if the primary key has multiple columns
 // CurrentRow: the row corresponding to LastID
 // Updated: true if the CurrentRow is old, false if it is new
-
 type Crud struct {
 	DBI
 	CurrentTable  string   `json:"current_table,omitempty"`
@@ -24,6 +23,12 @@ type Crud struct {
 	Updated       bool
 }
 
+// NewCrud creates a new Crud struct.
+// db: the DB handle
+// table: the name of table
+// key: the column name of the primary key
+// tables: array of joint tables as the Table struct
+// keys: if the PK consists of multiple columns, assign them as []string
 func NewCrud(db *sql.DB, table, key string, tables []*Table, keys []string) *Crud {
 	crud := new(Crud)
 	crud.Db = db
@@ -72,18 +77,18 @@ func selectCondition(extra url.Values, table ...string) (string, []interface{}) 
 
 		if HasValue(table) {
 			match, err := regexp.MatchString("\\.", field)
-			if (err == nil && !match) {
+			if err == nil && !match {
 				field = table[0] + "." + field
 			}
 		}
 		n := len(value)
-		if n>1 {
-			sql += field + " IN (" + strings.Join(strings.Split(strings.Repeat("?",n),""), ",") + ")"
+		if n > 1 {
+			sql += field + " IN (" + strings.Join(strings.Split(strings.Repeat("?", n), ""), ",") + ")"
 			for _, v := range value {
 				values = append(values, v)
 			}
 		} else {
-			if len(field)>=5 && field[(len(field)-5):len(field)]=="_gsql" {
+			if len(field) >= 5 && field[(len(field)-5):len(field)] == "_gsql" {
 				sql += value[0]
 			} else {
 				sql += field + " =?"
@@ -103,7 +108,7 @@ func (self *Crud) singleCondition(ids []interface{}, extra ...url.Values) (strin
 	if vs := self.CurrentKeys; HasValue(vs) {
 		for i, item := range vs {
 			val := ids[i]
-			if i==0 {
+			if i == 0 {
 				sql = "("
 			} else {
 				sql += " AND "
@@ -111,7 +116,7 @@ func (self *Crud) singleCondition(ids []interface{}, extra ...url.Values) (strin
 			switch idValues := val.(type) {
 			case []interface{}:
 				n := len(idValues)
-				sql += item + " IN (" + strings.Join(strings.Split(strings.Repeat("?",n),""), ",") + ")"
+				sql += item + " IN (" + strings.Join(strings.Split(strings.Repeat("?", n), ""), ",") + ")"
 				for _, v := range idValues {
 					extraValues = append(extraValues, v)
 				}
@@ -123,8 +128,8 @@ func (self *Crud) singleCondition(ids []interface{}, extra ...url.Values) (strin
 		sql += ")"
 	} else {
 		n := len(ids)
-		if n>1 {
-			sql = "(" + self.CurrentKey + " IN (" + strings.Join(strings.Split(strings.Repeat("?",n),""), ",") + "))"
+		if n > 1 {
+			sql = "(" + self.CurrentKey + " IN (" + strings.Join(strings.Split(strings.Repeat("?", n), ""), ",") + "))"
 		} else {
 			sql = "(" + self.CurrentKey + "=?)"
 		}
@@ -146,15 +151,15 @@ func (self *Crud) singleCondition(ids []interface{}, extra ...url.Values) (strin
 
 // InsertHash inserts a row as map (hash) into the table.
 func (self *Crud) InsertHash(fieldValues url.Values) error {
-	return self.insert_hash_("INSERT", fieldValues)
+	return self.insertHash("INSERT", fieldValues)
 }
 
-// InsertHash inserts a row as map (hash) into the table using 'REPLACE'
+// ReplaceHash inserts a row as map (hash) into the table using 'REPLACE'
 func (self *Crud) ReplaceHash(fieldValues url.Values) error {
-	return self.insert_hash_("REPLACE", fieldValues)
+	return self.insertHash("REPLACE", fieldValues)
 }
 
-func (self *Crud) insert_hash_(how string, fieldValues url.Values) error {
+func (self *Crud) insertHash(how string, fieldValues url.Values) error {
 	fields := make([]string, 0)
 	values := make([]interface{}, 0)
 	for k, v := range fieldValues {
@@ -173,10 +178,10 @@ func (self *Crud) UpdateHash(fieldValues url.Values, ids []interface{}, extra ..
 	return self.UpdateHashNulls(fieldValues, ids, empties, extra...)
 }
 
-// UpdateHash updates a row as map (hash) into the table.
-// If a variable in the empties array has not value, NULL is assigned.
+// UpdateHashNulls updates a row as map (hash) into the table.
+// empties: these columns will be forced to have default NULL.
 func (self *Crud) UpdateHashNulls(fieldValues url.Values, ids []interface{}, empties []string, extra ...url.Values) error {
-	if empties==nil {
+	if empties == nil {
 		empties = make([]string, 0)
 	}
 	if HasValue(self.CurrentKeys) {
@@ -200,8 +205,10 @@ func (self *Crud) UpdateHashNulls(fieldValues url.Values, ids []interface{}, emp
 
 	sql := "UPDATE " + self.CurrentTable + " SET " + strings.Join(field0, ", ")
 	for _, v := range empties {
-		if fieldValues.Get(v) != "" { continue }
-		sql += ", "+v+"=NULL"
+		if fieldValues.Get(v) != "" {
+			continue
+		}
+		sql += ", " + v + "=NULL"
 	}
 
 	where, extraValues := self.singleCondition(ids, extra...)
@@ -216,7 +223,7 @@ func (self *Crud) UpdateHashNulls(fieldValues url.Values, ids []interface{}, emp
 }
 
 // InsupdTable inserts a new row, or retrieves the old one depending on
-// wether or not the row of the unique combinated columns 'uniques', exists. 
+// wether or not the row of the unique combinated columns 'uniques', exists.
 func (self *Crud) InsupdTable(fieldValues url.Values, uniques []string) error {
 	s := "SELECT " + self.CurrentKey + " FROM " + self.CurrentTable + "\nWHERE "
 	v := make([]interface{}, 0)
@@ -226,13 +233,13 @@ func (self *Crud) InsupdTable(fieldValues url.Values, uniques []string) error {
 		}
 		s += val + "=?"
 		x := fieldValues.Get(val)
-		if x=="" {
+		if x == "" {
 			return errors.New("1075")
 		}
 		v = append(v, x)
 	}
 
-    lists := make([]map[string]interface{}, 0)
+	lists := make([]map[string]interface{}, 0)
 	if err := self.SelectSQL(&lists, s, v...); err != nil {
 		return err
 	}
@@ -240,20 +247,20 @@ func (self *Crud) InsupdTable(fieldValues url.Values, uniques []string) error {
 		return errors.New("1070")
 	}
 
-    if len(lists) == 1 {
+	if len(lists) == 1 {
 		id := lists[0][self.CurrentKey]
 		if err := self.UpdateHash(fieldValues, []interface{}{id}); err != nil {
-            return err
-        }
-        self.Updated = true
-    } else {
-        if err := self.InsertHash(fieldValues); err != nil {
-            return err
-        }
-        self.Updated = false
-    }
+			return err
+		}
+		self.Updated = true
+	} else {
+		if err := self.InsertHash(fieldValues); err != nil {
+			return err
+		}
+		self.Updated = false
+	}
 
-    return nil
+	return nil
 }
 
 // DeleteHash deletes having key in ids.
@@ -271,14 +278,14 @@ func (self *Crud) DeleteHash(ids []interface{}, extra ...url.Values) error {
 // Only will columns defined in editPars will be returned.
 // The select restriction is described in extra. See 'extra' in TopicsHash.
 func (self *Crud) EditHash(lists *[]map[string]interface{}, editPars interface{}, ids []interface{}, extra ...url.Values) error {
-  sql, labels, types := selectType(editPars)
-  sql = "SELECT " + sql + "\nFROM " + self.CurrentTable
-  where, extraValues := self.singleCondition(ids, extra...)
-  if where != "" {
-    sql += "\nWHERE " + where
-  }
+	sql, labels, types := selectType(editPars)
+	sql = "SELECT " + sql + "\nFROM " + self.CurrentTable
+	where, extraValues := self.singleCondition(ids, extra...)
+	if where != "" {
+		sql += "\nWHERE " + where
+	}
 
-  return self.SelectSQLTypeLabel(lists, types, labels, sql, extraValues...)
+	return self.SelectSQLTypeLabel(lists, types, labels, sql, extraValues...)
 }
 
 // TopicsHash selects rows using restriction 'extra'.
@@ -297,7 +304,7 @@ func (self *Crud) TopicsHashOrder(lists *[]map[string]interface{}, selectPars in
 	var table []string
 	if HasValue(self.CurrentTables) {
 		sql = "SELECT " + sql + "\nFROM " + TableString(self.CurrentTables)
-		table = []string{self.CurrentTables[0].GetAlias()}
+		table = []string{self.CurrentTables[0].getAlias()}
 	} else {
 		sql = "SELECT " + sql + "\nFROM " + self.CurrentTable
 	}
@@ -320,7 +327,7 @@ func (self *Crud) TopicsHashOrder(lists *[]map[string]interface{}, selectPars in
 }
 
 // TotalHash returns the total number of rows available
-// This function is most likely be used for pagination.
+// This function is used for pagination.
 func (self *Crud) TotalHash(v interface{}, extra ...url.Values) error {
 	str := "SELECT COUNT(*) FROM " + self.CurrentTable
 

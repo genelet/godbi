@@ -1,47 +1,50 @@
 package godbi
 
 import (
-	"net/url"
 	"errors"
+	"net/url"
 )
 
+// Schema type: describes all models and actions in a schema
+// Models: map between model name and model struct
+// Actions: map between model name and actions, which is represented as a map between action name and action method
 type Schema struct {
-	Models	map[string]*Model
+	Models  map[string]*Model
 	Actions map[string]map[string]interface{}
 }
 
-// CallOnce calls page's action once and place data as a marker in OTHER
+// CallOnce calls page's action once and places data as a marker in item
 func (self *Model) CallOnce(item map[string]interface{}, page *Page, extra ...url.Values) error {
-	modelName  := page.Model
+	modelName := page.Model
 	actionName := page.Action
 
-    marker := modelName + "_" + actionName
+	marker := modelName + "_" + actionName
 	if page.Alias != "" {
 		marker = page.Alias
 	}
-    if page.Ignore {
+	if page.Ignore {
 		if _, ok := item[marker]; ok {
 			return nil
 		}
 	}
 
-	schema        := self.Schema
-	model_obj, ok := schema.Models[modelName]
+	schema := self.Schema
+	modelObj, ok := schema.Models[modelName]
 	if !ok {
 		return errors.New("1081")
-    }
-	action_funcs, ok := schema.Actions[modelName]
+	}
+	actionFuncs, ok := schema.Actions[modelName]
 	if !ok {
 		return errors.New("1082")
 	}
-	action_func, ok := action_funcs[actionName]
+	actionFunc, ok := actionFuncs[actionName]
 	if !ok {
 		return errors.New("1083")
 	}
 
 	args := url.Values{}
 	for k, v := range self.ARGS {
-        if Grep([]string{self.Sortby, self.Sortreverse, self.Rowcount, self.Totalno, self.Pageno, self.Maxpageno}, k) {
+		if Grep([]string{self.Sortby, self.Sortreverse, self.Rowcount, self.Totalno, self.Pageno, self.Maxpageno}, k) {
 			continue
 		}
 		args[k] = v
@@ -54,27 +57,27 @@ func (self *Model) CallOnce(item map[string]interface{}, page *Page, extra ...ur
 		}
 	}
 	if page.Manual != nil {
-        for k, v := range page.Manual {
+		for k, v := range page.Manual {
 			hash.Set(k, v)
 		}
 	}
-    if HasValue(hash) {
+	if HasValue(hash) {
 		if !HasValue(extra) {
-			extra = make([]url.Values,1)
+			extra = make([]url.Values, 1)
 		}
 		extra[0] = hash
 	}
 
-	model_obj.UpdateModel(self.Db, args, schema)
-	final_action := action_func.(func(...url.Values) error)
-	if err := final_action(extra...); err != nil {
+	modelObj.UpdateModel(self.Db, args, schema)
+	finalAction := actionFunc.(func(...url.Values) error)
+	if err := finalAction(extra...); err != nil {
 		return err
 	}
 
-	lists := model_obj.LISTS
+	lists := modelObj.LISTS
 	if HasValue(lists) {
 		item[marker] = lists
-		model_obj.LISTS = nil
+		modelObj.LISTS = nil
 	}
 
 	return nil
@@ -89,7 +92,7 @@ func (self *Model) CallNextpage(page *Page, extra ...url.Values) error {
 
 	for _, item := range lists {
 		if !HasValue(extra) {
-			extra = make([]url.Values,1)
+			extra = make([]url.Values, 1)
 			extra[0] = url.Values{}
 		}
 		found := false
@@ -117,7 +120,7 @@ func (self *Model) ProcessAfter(action string, extra ...url.Values) error {
 		return nil
 	}
 
-	nextpages, ok := self.Nextpages[action];
+	nextpages, ok := self.Nextpages[action]
 	if !ok {
 		return nil
 	}

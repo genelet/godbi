@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"net/url"
 	"strings"
-//	"github.com/golang/glog"
+	//	"github.com/golang/glog"
 )
 
 // DBI is an abstract database interface
@@ -41,11 +41,11 @@ func (self *DBI) quotes(args []interface{}) []interface{} {
 	if self.NeedQuote == false {
 		return args
 	}
-	new_args := make([]interface{}, 0)
+	newArgs := make([]interface{}, 0)
 	for _, v := range args {
-		new_args = append(new_args, Quote(v))
+		newArgs = append(newArgs, Quote(v))
 	}
-	return new_args
+	return newArgs
 }
 
 // ExecSQL is the same as the generic SQL's Exec, plus adding
@@ -56,16 +56,16 @@ func (self *DBI) ExecSQL(str string, args ...interface{}) error {
 		return err
 	}
 
-	if lastID, err := res.LastInsertId(); err != nil {
+	lastID, err := res.LastInsertId()
+	if err != nil {
 		return err
-	} else {
-		self.LastId = lastID
 	}
-	if affected, err := res.RowsAffected(); err != nil {
+	self.LastId = lastID
+	affected, err := res.RowsAffected()
+	if err != nil {
 		return err
-	} else {
-		self.Affected = affected
 	}
+	self.Affected = affected
 
 	return nil
 }
@@ -93,8 +93,8 @@ func (self *DBI) DoSQL(str string, args ...interface{}) error {
 		self.Affected = affected
 	}
 
-    sth.Close()
-    return nil
+	sth.Close()
+	return nil
 }
 
 // DoSQLs adds multiple rows at once, each of the rows is a slice
@@ -117,11 +117,11 @@ func (self *DBI) DoSQLs(str string, args ...[]interface{}) error {
 		if err != nil {
 			return err
 		}
-		if affected, err := res.RowsAffected(); err != nil {
+		affected, err := res.RowsAffected()
+		if err != nil {
 			return err
-		} else {
-			self.Affected += affected
 		}
+		self.Affected += affected
 	}
 	if lastID, err := res.LastInsertId(); err != nil {
 		return err
@@ -129,8 +129,8 @@ func (self *DBI) DoSQLs(str string, args ...[]interface{}) error {
 		self.LastId = lastID
 	}
 
-    sth.Close()
-    return nil
+	sth.Close()
+	return nil
 }
 
 // QuerySQL selects rows and put them into lists, an array of maps.
@@ -151,17 +151,17 @@ func (self *DBI) QuerySQLLabel(lists *[]map[string]interface{}, labels []string,
 	return self.QuerySQLTypeLabel(lists, nil, labels, str, args...)
 }
 
-// QuerySQLLabel selects rows and put them into lists, an array of maps.
+// QuerySQLTypeLabel selects rows and put them into lists, an array of maps.
 // It uses the given data types defined in types_labels.
-// and the keys in the maps uses the given name defined in select_labels.
-func (self *DBI) QuerySQLTypeLabel(lists *[]map[string]interface{}, type_labels []string, select_labels []string, str string, args ...interface{}) error {
+// and the keys in the maps uses the given name defined in selectLabels.
+func (self *DBI) QuerySQLTypeLabel(lists *[]map[string]interface{}, typeLabels []string, selectLabels []string, str string, args ...interface{}) error {
 	rows, err := self.Db.Query(str, self.quotes(args)...)
 	if err != nil {
 		return err
 	}
 	defer rows.Close()
 
-	return self.pickup(rows, lists, type_labels, select_labels, str)
+	return self.pickup(rows, lists, typeLabels, selectLabels, str)
 }
 
 // SelectSQL is the same as QuerySQL excepts it uses a prepared statement.
@@ -170,17 +170,17 @@ func (self *DBI) SelectSQL(lists *[]map[string]interface{}, str string, args ...
 }
 
 // SelectSQLType is the same as QuerySQLType excepts it uses a prepared statement.
-func (self *DBI) SelectSQLType(lists *[]map[string]interface{}, type_labels []string, str string, args ...interface{}) error {
-	return self.SelectSQLTypeLabel(lists, type_labels, nil, str, args...)
+func (self *DBI) SelectSQLType(lists *[]map[string]interface{}, typeLabels []string, str string, args ...interface{}) error {
+	return self.SelectSQLTypeLabel(lists, typeLabels, nil, str, args...)
 }
 
-// SelectSQLLable is the same as QuerySQLLabel excepts it uses a prepared statement.
-func (self *DBI) SelectSQLLabel(lists *[]map[string]interface{}, select_labels []string, str string, args ...interface{}) error {
-	return self.SelectSQLTypeLabel(lists, nil, select_labels, str, args...)
+// SelectSQLLabel is the same as QuerySQLLabel excepts it uses a prepared statement.
+func (self *DBI) SelectSQLLabel(lists *[]map[string]interface{}, selectLabels []string, str string, args ...interface{}) error {
+	return self.SelectSQLTypeLabel(lists, nil, selectLabels, str, args...)
 }
 
 // SelectSQLTypeLabel is the same as QuerySQLTypeLabel excepts it uses a prepared statement.
-func (self *DBI) SelectSQLTypeLabel(lists *[]map[string]interface{}, type_labels []string, select_labels []string, str string, args ...interface{}) error {
+func (self *DBI) SelectSQLTypeLabel(lists *[]map[string]interface{}, typeLabels []string, selectLabels []string, str string, args ...interface{}) error {
 	sth, err := self.Db.Prepare(str)
 	if err != nil {
 		return err
@@ -188,30 +188,30 @@ func (self *DBI) SelectSQLTypeLabel(lists *[]map[string]interface{}, type_labels
 	defer sth.Close()
 	rows, err := sth.Query(self.quotes(args)...)
 	if err != nil {
-        return err
+		return err
 	}
 	defer rows.Close()
 
-	return self.pickup(rows, lists, type_labels, select_labels, str)
+	return self.pickup(rows, lists, typeLabels, selectLabels, str)
 }
 
-func (self *DBI) pickup(rows *sql.Rows, lists *[]map[string]interface{}, type_labels []string, select_labels []string, str string) error {
+func (self *DBI) pickup(rows *sql.Rows, lists *[]map[string]interface{}, typeLabels []string, selectLabels []string, str string) error {
 	var err error
-	if select_labels == nil {
-		if select_labels, err = rows.Columns(); err != nil {
+	if selectLabels == nil {
+		if selectLabels, err = rows.Columns(); err != nil {
 			return err
 		}
 	}
 
 	isType := false
-	if type_labels != nil {
+	if typeLabels != nil {
 		isType = true
 	}
-	names := make([]interface{}, len(select_labels))
-	x := make([]interface{}, len(select_labels))
-	for i := range select_labels {
+	names := make([]interface{}, len(selectLabels))
+	x := make([]interface{}, len(selectLabels))
+	for i := range selectLabels {
 		if isType {
-			switch type_labels[i] {
+			switch typeLabels[i] {
 			case "int", "int8", "int16", "int32", "uint", "uint8", "uint16", "uint32", "int64":
 				x[i] = new(sql.NullInt64)
 			case "float32", "float64":
@@ -232,9 +232,9 @@ func (self *DBI) pickup(rows *sql.Rows, lists *[]map[string]interface{}, type_la
 			return err
 		}
 		res := make(map[string]interface{})
-		for j, v := range select_labels {
+		for j, v := range selectLabels {
 			if isType {
-				switch type_labels[j] {
+				switch typeLabels[j] {
 				case "int":
 					x := x[j].(*sql.NullInt64)
 					if x.Valid {
@@ -324,9 +324,10 @@ func (self *DBI) pickup(rows *sql.Rows, lists *[]map[string]interface{}, type_la
 	return nil
 }
 
-func (self *DBI) GetSQLLabel(res map[string]interface{}, sql string, select_labels []string, args ...interface{}) error {
-	lists := make([]map[string]interface{},0)
-	if err := self.SelectSQLLabel(&lists, select_labels, sql, args...); err != nil {
+// GetSQLLabel returns one row and assign them as the values in the res map.
+func (self *DBI) GetSQLLabel(res map[string]interface{}, sql string, selectLabels []string, args ...interface{}) error {
+	lists := make([]map[string]interface{}, 0)
+	if err := self.SelectSQLLabel(&lists, selectLabels, sql, args...); err != nil {
 		return err
 	}
 	if len(lists) >= 1 {
@@ -339,6 +340,7 @@ func (self *DBI) GetSQLLabel(res map[string]interface{}, sql string, select_labe
 	return nil
 }
 
+// GetArgs returns one row and assign them as the values in ARGS as url.Values
 func (self *DBI) GetArgs(ARGS url.Values, sql string, args ...interface{}) error {
 	lists := make([]map[string]interface{}, 0)
 	if err := self.SelectSQL(&lists, sql, args...); err != nil {
@@ -354,6 +356,8 @@ func (self *DBI) GetArgs(ARGS url.Values, sql string, args ...interface{}) error
 	return nil
 }
 
+// DoProc runs the stored procedure 'proc_name' with input parameters 'args'
+// the output is assigned to 'hash' using 'names' as the keys
 func (self *DBI) DoProc(hash map[string]interface{}, names []string, proc_name string, args ...interface{}) error {
 	n := len(args)
 	strQ := strings.Join(strings.Split(strings.Repeat("?", n), ""), ",")
@@ -370,18 +374,32 @@ func (self *DBI) DoProc(hash map[string]interface{}, names []string, proc_name s
 	return self.GetSQLLabel(hash, "SELECT "+strN, names)
 }
 
+// SelectProc retrieves the results in 'lists', an array of rows,
+// from the stored procedure 'proc_name' with input parameters 'args'.
+// Each row is represented as a string to interface{} map.
 func (self *DBI) SelectProc(lists *[]map[string]interface{}, proc_name string, args ...interface{}) error {
 	return self.SelectDoProcLabel(lists, nil, nil, proc_name, nil, args...)
 }
 
+// SelectProcLabel retrieves the results in 'lists', an array of rows,
+// from the stored procedure 'proc_name' with input parameters 'args'.
+// Each row is represented as a labeled string to interface{} map.
 func (self *DBI) SelectProcLabel(lists *[]map[string]interface{}, proc_name string, selectLabels []string, args ...interface{}) error {
 	return self.SelectDoProcLabel(lists, nil, nil, proc_name, selectLabels, args...)
 }
 
+// SelectDoProc retrieves the results in 'lists', an array of rows,
+// from the stored procedure 'proc_name' with input parameters 'args'.
+// The outputs are saved in hash using keys 'names'.
+// Each row is represented as a string to interface{} map.
 func (self *DBI) SelectDoProc(lists *[]map[string]interface{}, hash map[string]interface{}, names []string, proc_name string, args ...interface{}) error {
 	return self.SelectDoProcLabel(lists, hash, names, proc_name, nil, args...)
 }
 
+// SelectDoProc retrieves the results in 'lists', an array of rows,
+// from the stored procedure 'proc_name' with input parameters 'args'.
+// The outputs are saved in hash using keys 'names'.
+// Each row is represented as a labeled string to interface{} map.
 func (self *DBI) SelectDoProcLabel(lists *[]map[string]interface{}, hash map[string]interface{}, names []string, proc_name string, selectLabels []string, args ...interface{}) error {
 	n := len(args)
 	strQ := strings.Join(strings.Split(strings.Repeat("?", n), ""), ",")

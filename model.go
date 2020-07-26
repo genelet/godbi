@@ -2,46 +2,47 @@ package godbi
 
 import (
 	//"github.com/golang/glog"
-	"errors"
-	"encoding/json"
-	"io/ioutil"
-	"regexp"
-	"strings"
-	"strconv"
 	"database/sql"
+	"encoding/json"
+	"errors"
+	"io/ioutil"
 	"math"
 	"math/rand"
 	"net/url"
+	"regexp"
+	"strconv"
+	"strings"
 )
 
 type Model struct {
 	Crud
-	ARGS       url.Values
-	LISTS      []map[string]interface{}
-	Schema     *Schema
-	Nextpages  map[string][]*Page    `json:"nextpages,omitempty"`
+	ARGS      url.Values
+	LISTS     []map[string]interface{}
+	Schema    *Schema
+	Nextpages map[string][]*Page `json:"nextpages,omitempty"`
 
-	CurrentIdAuto string             `json:"current_id_auto,omitempty"`
-	KeyIn      map[string]string     `json:"fk_in,omitempty"`
+	CurrentIdAuto string            `json:"current_id_auto,omitempty"`
+	KeyIn         map[string]string `json:"fk_in,omitempty"`
 
-	InsertPars []string              `json:"insert_pars,omitempty"`
-	EditPars   []string              `json:"edit_pars,omitempty"`
-	UpdatePars []string              `json:"update_pars,omitempty"`
-	InsupdPars []string              `json:"insupd_pars,omitempty"`
-	TopicsPars []string              `json:"topics_pars,omitempty"`
+	InsertPars     []string          `json:"insert_pars,omitempty"`
+	EditPars       []string          `json:"edit_pars,omitempty"`
+	UpdatePars     []string          `json:"update_pars,omitempty"`
+	InsupdPars     []string          `json:"insupd_pars,omitempty"`
+	TopicsPars     []string          `json:"topics_pars,omitempty"`
 	TopicsHashPars map[string]string `json:"topics_hash,omitempty"`
 
-	TotalForce  int                  `json:"total_force,omitempty"`
-	Empties     string               `json:"empties,omitempty"`
-	Fields      string               `json:"fields,omitempty"`
-	Maxpageno   string               `json:"maxpageno,omitempty"`
-	Totalno     string               `json:"totalno,omitempty"`
-	Rowcount    string               `json:"rawcount,omitempty"`
-	Pageno      string               `json:"pageno,omitempty"`
-	Sortreverse string               `json:"sortreverse,omitempty"`
-	Sortby      string               `json:"sortby,omitempty"`
+	TotalForce  int    `json:"total_force,omitempty"`
+	Empties     string `json:"empties,omitempty"`
+	Fields      string `json:"fields,omitempty"`
+	Maxpageno   string `json:"maxpageno,omitempty"`
+	Totalno     string `json:"totalno,omitempty"`
+	Rowcount    string `json:"rawcount,omitempty"`
+	Pageno      string `json:"pageno,omitempty"`
+	Sortreverse string `json:"sortreverse,omitempty"`
+	Sortby      string `json:"sortby,omitempty"`
 }
 
+// NewModel creates a new Model struct from json file 'filename'
 func NewModel(filename string) (*Model, error) {
 	var parsed *Model
 	content, err := ioutil.ReadFile(filename)
@@ -81,11 +82,12 @@ func NewModel(filename string) (*Model, error) {
 	return parsed, nil
 }
 
+// UpdateModel updates the DB handle, the arguments and schema
 func (self *Model) UpdateModel(db *sql.DB, args url.Values, schema *Schema) {
 	self.Crud.DBI.Db = db
-	self.ARGS        = args
-	self.Schema      = schema
-	self.LISTS       = make([]map[string]interface{}, 0)
+	self.ARGS = args
+	self.Schema = schema
+	self.LISTS = make([]map[string]interface{}, 0)
 }
 
 func (self *Model) filteredFields(pars []string) []string {
@@ -122,9 +124,8 @@ func (self *Model) getIdVal(extra ...url.Values) []interface{} {
 	if HasValue(self.CurrentKeys) {
 		if HasValue(extra) {
 			return self.ProperValues(self.CurrentKeys, extra[0])
-		} else {
-			return self.ProperValues(self.CurrentKeys, nil)
 		}
+		return self.ProperValues(self.CurrentKeys, nil)
 	}
 	if HasValue(extra) {
 		return []interface{}{self.ProperValue(self.CurrentKey, extra[0])}
@@ -293,6 +294,7 @@ func fromFv(fieldValues url.Values) []map[string]interface{} {
 	return []map[string]interface{}{hash}
 }
 
+// Delete deletes a row or multiple rows using the contraint in extra
 func (self *Model) Delete(extra ...url.Values) error {
 	val := self.getIdVal(extra...)
 	if !HasValue(val) {
@@ -327,12 +329,14 @@ func (self *Model) Delete(extra ...url.Values) error {
 	return self.ProcessAfter("delete", extra...)
 }
 
+// Existing checks if table has val in field
 func (self *Model) Existing(table string, field string, val interface{}) error {
 	id := 0
-    return self.Db.QueryRow("SELECT "+field+" FROM "+table+" WHERE "+field+"=?", val).Scan(&id)
+	return self.Db.QueryRow("SELECT "+field+" FROM "+table+" WHERE "+field+"=?", val).Scan(&id)
 }
 
-func (self *Model) Randomid(table string, field string, m ...interface{}) error {
+// Randomid create PK field's int value that does not exists in the table
+func (self *Model) Randomid(table string, field string, m ...interface{}) (int, error) {
 	ARGS := self.ARGS
 	var min, max, trials int
 	if m == nil {
@@ -355,63 +359,64 @@ func (self *Model) Randomid(table string, field string, m ...interface{}) error 
 			continue
 		}
 		ARGS.Set(field, strconv.FormatInt(int64(val), 10))
-		return nil
+		return val, nil
 	}
 
-	return errors.New("1076")
+	return 0, errors.New("1076")
 }
 
 // ProperValue returns the value of key 'v' from extra.
 // In case it does not exist, it tries to get from ARGS.
 func (self *Model) ProperValue(v string, extra url.Values) interface{} {
-    ARGS := self.ARGS
-    if !HasValue(extra) {
-        return ARGS.Get(v)
-    }
-    if val := extra.Get(v); val != "" {
-        return val
-    }
-    return ARGS.Get(v)
+	ARGS := self.ARGS
+	if !HasValue(extra) {
+		return ARGS.Get(v)
+	}
+	if val := extra.Get(v); val != "" {
+		return val
+	}
+	return ARGS.Get(v)
 }
 
 // ProperValues returns the values of multiple keys 'vs' from extra.
 // In case it does not exists, it tries to get from ARGS.
 func (self *Model) ProperValues(vs []string, extra url.Values) []interface{} {
-    ARGS := self.ARGS
-    outs := make([]interface{}, len(vs))
-    if !HasValue(extra) {
-        for i, v := range vs {
-            outs[i] = ARGS.Get(v)
-        }
-        return outs
-    }
-    for i, v := range vs {
-        val := extra.Get(v)
-        if val != "" {
-            outs[i] = val
-        } else {
-            outs[i] = ARGS.Get(v)
-        }
-    }
-    return outs
+	ARGS := self.ARGS
+	outs := make([]interface{}, len(vs))
+	if !HasValue(extra) {
+		for i, v := range vs {
+			outs[i] = ARGS.Get(v)
+		}
+		return outs
+	}
+	for i, v := range vs {
+		val := extra.Get(v)
+		if val != "" {
+			outs[i] = val
+		} else {
+			outs[i] = ARGS.Get(v)
+		}
+	}
+	return outs
 }
 
 // ProperValuesHash is the same as ProperValues, but resulting in a map.
 func (self *Model) ProperValuesHash(vs []string, extra url.Values) map[string]interface{} {
-    values := self.ProperValues(vs, extra)
-    hash := make(map[string]interface{})
-    for i, v := range vs {
-        hash[v] = values[i]
-    }
-    return hash
+	values := self.ProperValues(vs, extra)
+	hash := make(map[string]interface{})
+	for i, v := range vs {
+		hash[v] = values[i]
+	}
+	return hash
 }
 
+// OrderString outputs the ORDER BY string using information in args
 func (self *Model) OrderString() string {
 	ARGS := self.ARGS
-    column := ""
+	column := ""
 	if ARGS.Get(self.Sortby) != "" {
 		column = ARGS.Get(self.Sortby)
-    } else if HasValue(self.CurrentTables) {
+	} else if HasValue(self.CurrentTables) {
 		table := self.CurrentTables[0]
 		if table.Sortby != "" {
 			column = table.Sortby
@@ -422,7 +427,7 @@ func (self *Model) OrderString() string {
 			}
 			name += "."
 			if HasValue(self.CurrentKeys) {
-				column = name + strings.Join(self.CurrentKeys, ", " + name)
+				column = name + strings.Join(self.CurrentKeys, ", "+name)
 			} else {
 				column = name + self.CurrentKey
 			}
@@ -440,7 +445,7 @@ func (self *Model) OrderString() string {
 		order += " DESC"
 	}
 
-    if ARGS.Get(self.Rowcount) != "" {
+	if ARGS.Get(self.Rowcount) != "" {
 		rowcount, err := strconv.Atoi(ARGS.Get(self.Rowcount))
 		if err != nil {
 			return ""
@@ -455,9 +460,9 @@ func (self *Model) OrderString() string {
 			}
 		}
 		order += " LIMIT " + ARGS.Get(self.Rowcount) + " OFFSET " + strconv.Itoa((pageno-1)*rowcount)
-    }
+	}
 
-    matched, err := regexp.MatchString("[;'\"]", order)
+	matched, err := regexp.MatchString("[;'\"]", order)
 	if err != nil || matched {
 		return ""
 	}
