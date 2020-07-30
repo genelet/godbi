@@ -19,7 +19,7 @@ type Model struct {
 	Restful
 	ARGS      url.Values
 	LISTS     []map[string]interface{}
-	Schema    *Schema
+	Scheme    *Schema
 	Nextpages map[string][]*Page `json:"nextpages,omitempty"`
 
 	CurrentIdAuto string            `json:"current_id_auto,omitempty"`
@@ -95,7 +95,7 @@ func (self *Model) SetLists(in []map[string]interface{}) {
 func (self *Model) UpdateModel(db *sql.DB, args url.Values, schema *Schema) {
 	self.Crud.DBI.Db = db
 	self.ARGS = args
-	self.Schema = schema
+	self.Scheme = schema
 	self.LISTS = make([]map[string]interface{}, 0)
 }
 

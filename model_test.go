@@ -390,7 +390,7 @@ func TestNextPages(t *testing.T) {
 	actions["testing"] = tt
 
 	schema := &Schema{Models:methods, Actions:actions}
-	model.Schema = schema
+	model.Scheme = schema
 
 
 	err = model.Topics()

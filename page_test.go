@@ -81,7 +81,7 @@ func TestPage(t *testing.T) {
 	actions["testing"] = tt
 
 	schema := &Schema{Models:methods, Actions:actions}
-	model.Schema = schema
+	model.Scheme = schema
 
 	item := make(map[string]interface{})
 	page := &Page{Model:"testing", Action:"topics"}

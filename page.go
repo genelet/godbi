@@ -36,7 +36,7 @@ func (self *Model) CallOnce(item map[string]interface{}, page *Page, extra ...ur
 		}
 	}
 
-	schema := self.Schema
+	schema := self.Scheme
 	modelObj, ok := schema.Models[modelName]
 	if !ok {
 		return errors.New("1081")
