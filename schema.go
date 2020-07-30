@@ -13,6 +13,7 @@ type Restful interface {
     GetLists() []map[string]interface{}
     SetLists([]map[string]interface{})
 	UpdateModel(*sql.DB, url.Values, *Schema)
+	CallOnce(map[string]interface{}, *Page, ...url.Values) error
 }
 
 // Schema describes all models and actions in a database schema
