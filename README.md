@@ -1,4 +1,3 @@
-go mod init github.com/genelet/godbi
 # godbi
 An abstract interface class to access relational system in GO. Check *godoc* from [here](https://godoc.org/github.com/genelet/godbi)
 

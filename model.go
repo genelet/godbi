@@ -16,6 +16,7 @@ import (
 
 type Model struct {
 	Crud
+	Restful
 	ARGS      url.Values
 	LISTS     []map[string]interface{}
 	Schema    *Schema
@@ -80,6 +81,14 @@ func NewModel(filename string) (*Model, error) {
 	}
 
 	return parsed, nil
+}
+
+func (self *Model) GetLists() []map[string]interface{} {
+	return self.LISTS
+}
+
+func (self *Model) SetLists(in []map[string]interface{}) {
+	self.LISTS = in
 }
 
 // UpdateModel updates the DB handle, the arguments and schema

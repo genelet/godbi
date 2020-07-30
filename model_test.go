@@ -379,7 +379,7 @@ func TestNextPages(t *testing.T) {
 	st, err := NewModel("m3.json")
     if err != nil { panic(err) }
 
-	methods := make(map[string]*Model)
+	methods := make(map[string]Restful)
 	methods["testing"] = st
 
 	tt := make(map[string]interface{})
