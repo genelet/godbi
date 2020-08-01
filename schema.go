@@ -9,9 +9,11 @@ import (
 // Restful is interface whose methods have been implemented in Model
 // GetLists: get the main data as slice of rows which is a map in column name and column value
 // UpdateModel: pass db handle, args and schema into Model and set the data to be 0-sized
+// CallOnce calls page's action places data as value to a marker in item
 type Restful interface {
     GetLists() []map[string]interface{}
 	UpdateModel(*sql.DB, url.Values, *Schema)
+	CallOnce(map[string]interface{}, *Page, ...url.Values) error
 }
 
 // Schema describes all models and actions in a database schema
