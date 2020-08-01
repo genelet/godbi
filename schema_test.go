@@ -1,7 +1,6 @@
 package godbi
 
 import (
-"github.com/golang/glog"
     "testing"
     "net/url"
 )
@@ -249,7 +248,6 @@ func TestSchema(t *testing.T) {
 
 	models := make(map[string]Restful)
 	models["testing"] = st
-glog.Infof("200000%v", models["testing"].GetDb())
 
 	tt := make(map[string]interface{})
 	tt["topics"] = func(args ...url.Values) error {
@@ -264,13 +262,11 @@ glog.Infof("200000%v", models["testing"].GetDb())
 	schema := &Schema{Models:models, Actions:actions}
 	model.Scheme = schema
 
-glog.Infof("300000%v", model.Scheme.Models["testing"].GetDb())
 	err = model.Topics()
 	if err != nil { panic(err) }
 	lists := model.LISTS
 // [map[id:1 testing_topics:[map[child:john id:1 tid:1] map[child:sam id:1 tid:2]] x:a1234567 y:b1234567] map[id:2 testing_topics:[map[child:mary id:2 tid:3]] x:c1234567 y:d1234567 z:e1234] map[id:3 testing_topics:[map[child:kkk id:3 tid:4]] x:e1234567 y:f1234567 z:e1234]]
     list0 := lists[0]
-t.Errorf("%#v", list0)
     relate := list0["testing_topics"].([]map[string]interface{})
     if len(lists) != 3 ||
         list0["x"].(string) != "a1234567" ||

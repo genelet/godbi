@@ -4,19 +4,14 @@ import (
 	"database/sql"
 	"errors"
 	"net/url"
-	"github.com/golang/glog"
 )
 
 // Restful is interface whose methods have been implemented in Model
-// GetLists: get the main data
-// SetLists: setup the main data; pass nil will reset it to be nil
-// UpdateModel: pass db handle, args and schema into Model
+// GetLists: get the main data as slice of rows which is a map in column name and column value
+// UpdateModel: pass db handle, args and schema into Model and set the data to be 0-sized
 type Restful interface {
     GetLists() []map[string]interface{}
-    SetLists([]map[string]interface{})
-	GetDb() *sql.DB
 	UpdateModel(*sql.DB, url.Values, *Schema)
-	CallOnce(map[string]interface{}, *Page, ...url.Values) error
 }
 
 // Schema describes all models and actions in a database schema
@@ -64,7 +59,6 @@ func (self *Model) CallOnce(item map[string]interface{}, page *Page, extra ...ur
 	if !ok {
 		return errors.New("1081")
 	}
-glog.Infof("100000%v", modelObj.GetDb())
 	actionFuncs, ok := schema.Actions[modelName]
 	if !ok {
 		return errors.New("1082")
@@ -100,10 +94,7 @@ glog.Infof("100000%v", modelObj.GetDb())
 		extra[0] = hash
 	}
 
-glog.Infof("11111111%v", self.Db)
-glog.Infof("22222222%v", modelObj.GetDb())
 	modelObj.UpdateModel(self.Db, args, schema)
-glog.Infof("33333333%v", modelObj.GetDb())
 	finalAction := actionFunc.(func(...url.Values) error)
 	if err := finalAction(extra...); err != nil {
 		return err
@@ -112,7 +103,6 @@ glog.Infof("33333333%v", modelObj.GetDb())
 	lists := modelObj.GetLists()
 	if HasValue(lists) {
 		item[marker] = lists
-		//modelObj.SetLists(nil)
 	}
 	modelObj.UpdateModel(nil, nil, nil)
 

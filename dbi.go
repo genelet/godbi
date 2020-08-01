@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"net/url"
 	"strings"
-//	"github.com/golang/glog"
+	"github.com/golang/glog"
 )
 
 // DBI is an abstract database interface
@@ -20,6 +20,9 @@ type DBI struct {
 // ExecSQL is the same as the generic SQL's Exec, plus adding
 // the affected number of rows into Affected
 func (self *DBI) ExecSQL(str string, args ...interface{}) error {
+glog.Infof("godbi SQL statement: %s", str)
+glog.Infof("godbi input data: %v", args)
+
 	res, err := self.Db.Exec(str, args...)
 	if err != nil {
 		return err
@@ -42,6 +45,9 @@ func (self *DBI) ExecSQL(str string, args ...interface{}) error {
 // DoSQL is the same as ExecSQL, except for using prepared statement,
 // which is safe for concurrent use use by multiple goroutines.
 func (self *DBI) DoSQL(str string, args ...interface{}) error {
+glog.Infof("godbi SQL statement: %s", str)
+glog.Infof("godbi input data: %v", args)
+
 	sth, err := self.Db.Prepare(str)
 	if err != nil {
 		return err
@@ -68,6 +74,9 @@ func (self *DBI) DoSQL(str string, args ...interface{}) error {
 
 // DoSQLs adds multiple rows at once, each of the rows is a slice
 func (self *DBI) DoSQLs(str string, args ...[]interface{}) error {
+glog.Infof("godbi SQL statement: %s", str)
+glog.Infof("godbi input data: %v", args)
+
 	n := len(args)
 	if n == 0 {
 		return self.DoSQL(str)
@@ -124,6 +133,11 @@ func (self *DBI) QuerySQLLabel(lists *[]map[string]interface{}, labels []string,
 // It uses the given data types defined in types_labels.
 // and the keys in the maps uses the given name defined in selectLabels.
 func (self *DBI) QuerySQLTypeLabel(lists *[]map[string]interface{}, typeLabels []string, selectLabels []string, str string, args ...interface{}) error {
+glog.Infof("godbi SQL statement: %s", str)
+glog.Infof("godbi select columns: %v", selectLabels)
+glog.Infof("godbi column types: %v", typeLabels)
+glog.Infof("godbi input data: %v", args)
+
 	rows, err := self.Db.Query(str, args...)
 	if err != nil {
 		return err
@@ -150,14 +164,11 @@ func (self *DBI) SelectSQLLabel(lists *[]map[string]interface{}, selectLabels []
 
 // SelectSQLTypeLabel is the same as QuerySQLTypeLabel excepts it uses a prepared statement.
 func (self *DBI) SelectSQLTypeLabel(lists *[]map[string]interface{}, typeLabels []string, selectLabels []string, str string, args ...interface{}) error {
-/*
-glog.Infof("%s", str)
-glog.Infof("%v", typeLabels)
-glog.Infof("%v", selectLabels)
-glog.Infof("%v", args)
-glog.Infof("%v", self.Db)
-glog.Infof("7777")
-*/
+glog.Infof("godbi SQL statement: %s", str)
+glog.Infof("godbi select columns: %v", selectLabels)
+glog.Infof("godbi column types: %v", typeLabels)
+glog.Infof("godbi input data: %v", args)
+
 	sth, err := self.Db.Prepare(str)
 	if err != nil {
 		return err

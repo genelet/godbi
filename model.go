@@ -1,7 +1,6 @@
 package godbi
 
 import (
-"github.com/golang/glog"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -87,14 +86,6 @@ func (self *Model) GetLists() []map[string]interface{} {
 	return self.LISTS
 }
 
-func (self *Model) SetLists(in []map[string]interface{}) {
-	self.LISTS = in
-}
-
-func (self *Model) GetDb() *sql.DB {
-	return self.Crud.DBI.Db
-}
-
 // UpdateModel updates the DB handle, the arguments and schema
 func (self *Model) UpdateModel(db *sql.DB, args url.Values, schema *Schema) {
 	self.Crud.DBI.Db = db
@@ -167,9 +158,6 @@ func (self *Model) Topics(extra ...url.Values) error {
 		ARGS.Set(self.Maxpageno, strconv.FormatInt(maxPageno, 10))
 	}
 
-if self.Scheme != nil && self.Scheme.Models != nil && self.Scheme.Models["testing"] != nil {
-glog.Infof("400000000%v", self.Scheme.Models["testing"].GetDb())
-}
 	var fields interface{}
 	if self.TopicsHashPars == nil {
 		fields = self.filteredFields(self.TopicsPars)
@@ -180,9 +168,7 @@ glog.Infof("400000000%v", self.Scheme.Models["testing"].GetDb())
 	if err := self.TopicsHashOrder(&self.LISTS, fields, self.OrderString(), extra...); err != nil {
 		return err
 	}
-if self.Scheme != nil && self.Scheme.Models != nil && self.Scheme.Models["testing"] != nil {
-glog.Infof("500000000%v", self.Scheme.Models["testing"].GetDb())
-}
+
 	return self.ProcessAfter("topics", extra...)
 }
 
