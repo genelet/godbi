@@ -5,7 +5,6 @@ import (
     "testing"
     "strconv"
     "net/url"
-    "database/sql"
 )
 
 func TestModelSimple(t *testing.T) {
@@ -248,7 +247,7 @@ func TestModelSimple(t *testing.T) {
 }
 
 func TestModel(t *testing.T) {
-	db, err := sql.Open("mysql", "eightran_goto:12pass34@/gotest")
+	db, err := getdb()
 	if err != nil {
 		panic(err)
 	}
@@ -318,7 +317,7 @@ func TestModel(t *testing.T) {
 }
 
 func TestNextPages(t *testing.T) {
-	db, err := sql.Open("mysql", "eightran_goto:12pass34@/gotest")
+	db, err := getdb()
 	if err != nil {
 		panic(err)
 	}

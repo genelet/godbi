@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"net/url"
 	"strings"
-	"github.com/golang/glog"
+//	"github.com/golang/glog"
 )
 
 // DBI is an abstract database interface
@@ -150,18 +150,18 @@ func (self *DBI) SelectSQLLabel(lists *[]map[string]interface{}, selectLabels []
 
 // SelectSQLTypeLabel is the same as QuerySQLTypeLabel excepts it uses a prepared statement.
 func (self *DBI) SelectSQLTypeLabel(lists *[]map[string]interface{}, typeLabels []string, selectLabels []string, str string, args ...interface{}) error {
+/*
 glog.Infof("%s", str)
 glog.Infof("%v", typeLabels)
 glog.Infof("%v", selectLabels)
 glog.Infof("%v", args)
 glog.Infof("%v", self.Db)
 glog.Infof("7777")
+*/
 	sth, err := self.Db.Prepare(str)
-glog.Infof("8888")
 	if err != nil {
 		return err
 	}
-glog.Infof("9999")
 	defer sth.Close()
 	rows, err := sth.Query(args...)
 	if err != nil {
