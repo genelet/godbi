@@ -154,10 +154,14 @@ glog.Infof("%s", str)
 glog.Infof("%v", typeLabels)
 glog.Infof("%v", selectLabels)
 glog.Infof("%v", args)
+glog.Infof("%v", self.Db)
+glog.Infof("7777")
 	sth, err := self.Db.Prepare(str)
+glog.Infof("8888")
 	if err != nil {
 		return err
 	}
+glog.Infof("9999")
 	defer sth.Close()
 	rows, err := sth.Query(args...)
 	if err != nil {
