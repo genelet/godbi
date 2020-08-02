@@ -93,14 +93,32 @@ func selectType(selectPars interface{}) (string, []string, []string) {
 			labels = append(labels, v)
 		}
 		return strings.Join(labels, ", "), labels, nil
-	case map[string]string:
+	case [][2]string:
 		labels := make([]string, 0)
-		types := make([]string, 0)
-		for key, val := range vs {
-			labels = append(labels, key)
-			types = append(types, val)
+		types  := make([]string, 0)
+		for _, v := range vs {
+			labels = append(labels, v[0])
+			types  = append(labels, v[1])
 		}
 		return strings.Join(labels, ", "), labels, types
+	case map[string]string:
+		labels := make([]string, 0)
+		keys   := make([]string, 0)
+		for key, val := range vs {
+			keys   = append(keys,   key)
+			labels = append(labels, val)
+		}
+		return strings.Join(keys, ", "), labels, nil
+	case map[string][2]string:
+		labels := make([]string, 0)
+		keys   := make([]string, 0)
+		types  := make([]string, 0)
+		for key, val := range vs {
+			keys   = append(keys,   key)
+			labels = append(labels, val[0])
+			types  = append(labels, val[1])
+		}
+		return strings.Join(keys, ", "), labels, types
 	default:
 	}
 	return selectPars.(string), []string{selectPars.(string)}, nil

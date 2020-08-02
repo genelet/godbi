@@ -56,10 +56,10 @@ func TestCrudStr(t *testing.T) {
 	if !strings.Contains(sql, "firstname") {
 		t.Errorf("%s wanted", sql)
 	}
-	if !Grep(types, "First") {
+	if types != nil {
 		t.Errorf("%s wanted", types)
 	}
-	if !Grep(labels, "firstname") {
+	if !Grep(labels, "First") {
 		t.Errorf("%s wanted", labels)
 	}
 
