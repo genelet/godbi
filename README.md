@@ -27,7 +27,6 @@ $ go get -u github.com/genelet/godbi
 ## Chapter 1. BASIC USAGE
 
 
-<br />
 ### 1.1) Type _DBI_
 
 The _DBI_ type simply embeds the standard SQL handle.
@@ -99,7 +98,7 @@ Running this example will report something like
 ```
 
 
-<br />
+<br /><br />
 ### 1.2) Execution with _ExecSQL_ & _DoSQL_
 
 Definition:
@@ -112,7 +111,7 @@ Similar to SQL's _Exec_, these functions execute _INSERT_ or _UPDATE_ queries. T
 The difference between the two functions is that _DoSQL_ runs a prepared statement and is safe for concurrent use by multiple goroutines.
 
 
-<br />
+<br /><br />
 ### 1.3) Queries with _SELECT_ 
 
 #### 1.3.1)  *QuerySQL* & *SelectSQL*
@@ -183,7 +182,7 @@ func (*DBI) SelectSQLTypeLabel(lists *[]map[string]interface{}, typeLabels []str
 These functions assign both data types and column names in the queries.
 
 
-<br />
+<br /><br />
 ### 1.4) Query one-row data with _SELECT_ 
 
 In some cases we may just want to select one row from a query. 
@@ -205,7 +204,7 @@ func (*DBI) GetArgs(res url.Values, query string, args ...interface{}) error
 which is similar to *SelectSQL* but has only one row output to *res* of of type [url.Values](https://golang.org/pkg/net/url/). This function will be used mainly in web applications, where HTTP request data are expressed in _url.Values_.
 
 
-<,br />
+<br /><br />
 ### 1.5) Stored Procedure
 
 _godbi_ runs stored procedures easily as well.
