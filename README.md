@@ -14,7 +14,7 @@ _godbi_ is an ideal replacement of ORM. It achieves the common SQL, CRUD, RESTfu
 The package is fully tested in MySQL and PostgreSQL, and is assumed to work with other relational databases.
 
 
-<br >
+<br /><br />
 ### Installation
 
 ```
