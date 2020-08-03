@@ -14,7 +14,7 @@ func TestModelSimple(t *testing.T) {
 	}
 
     model := new(Model)
-    model.Db = db
+    model.Db  = db
     model.CurrentTable = "testing"
     model.Sortby        ="sortby"
     model.Sortreverse   ="sortreverse"

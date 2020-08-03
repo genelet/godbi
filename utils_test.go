@@ -11,26 +11,26 @@ func TestUtils(t *testing.T) {
 		t.Errorf("%s %s wanted", str, newStr)
 	}
 	x := []string{str, newStr, "abc"}
-	if Grep(x, "abcZ") {
+	if grep(x, "abcZ") {
 		t.Errorf("%s wrong matched", "abcZ")
 	}
-	if Grep(x, "abc") == false {
+	if grep(x, "abc") == false {
 		t.Errorf("%s matched", "abc")
 	}
 	x1 := []interface{}{"a","b"}
 	x2 := map[string]interface{}{"a":"b"}
 	x3 := make([]interface{},0)
 	x4 := make(map[string]interface{})
-	if !HasValue(x1) {
+	if !hasValue(x1) {
 		t.Errorf("%v", x1)
 	}
-	if !HasValue(x2) {
+	if !hasValue(x2) {
 		t.Errorf("%v", x2)
 	}
-	if HasValue(x3) {
+	if hasValue(x3) {
 		t.Errorf("%v", x3)
 	}
-	if HasValue(x4) {
+	if hasValue(x4) {
 		t.Errorf("%v", x4)
 	}
 
@@ -42,16 +42,16 @@ func TestUtils(t *testing.T) {
 	x4["a5"] = float32(4.5)
 	x4["a6"] = float32(6.7)
 	x4["a7"] = "world"
-	if Interface2String(x4["a1"]) != "hello" {
-		t.Errorf("%v", Interface2String(x4["a1"]))
+	if interface2String(x4["a1"]) != "hello" {
+		t.Errorf("%v", interface2String(x4["a1"]))
 	}
-	if Interface2String(x4["a2"]) != "1" {
-		t.Errorf("%v", Interface2String(x4["a2"]))
+	if interface2String(x4["a2"]) != "1" {
+		t.Errorf("%v", interface2String(x4["a2"]))
 	}
-	if Interface2String(x4["a3"]) != "2" {
-		t.Errorf("%v", Interface2String(x4["a3"]))
+	if interface2String(x4["a3"]) != "2" {
+		t.Errorf("%v", interface2String(x4["a3"]))
 	}
-	y := Interface2String(x4["a6"])
+	y := interface2String(x4["a6"])
 	if y[:3] != "6.7" {
 		t.Errorf("%v", y)
 	}

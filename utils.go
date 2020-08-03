@@ -6,33 +6,49 @@ import (
 	"strings"
 )
 
-func HasValue(extra interface{}) bool {
+func hasValue(extra interface{}) bool {
 	if extra == nil {
 		return false
 	}
 	switch v := extra.(type) {
 	case []string:
-		if len(v) == 0 { return false }
+		if len(v) == 0 {
+			return false
+		}
 	case []interface{}:
-		if len(v) == 0 { return false }
+		if len(v) == 0 {
+			return false
+		}
 	case []*Table:
-		if len(v) == 0 { return false }
+		if len(v) == 0 {
+			return false
+		}
 	case url.Values:
-		if len(v) == 0 { return false }
+		if len(v) == 0 {
+			return false
+		}
 	case []url.Values:
-		if len(v) == 0 { return false }
+		if len(v) == 0 {
+			return false
+		}
 	case map[string]string:
-		if len(v) == 0 { return false }
+		if len(v) == 0 {
+			return false
+		}
 	case map[string]interface{}:
-		if len(v) == 0 { return false }
+		if len(v) == 0 {
+			return false
+		}
 	case []map[string]interface{}:
-		if len(v) == 0 { return false }
+		if len(v) == 0 {
+			return false
+		}
 	default:
 	}
 	return true
 }
 
-func Interface2String(v interface{}) string {
+func interface2String(v interface{}) string {
 	switch u := v.(type) {
 	case []uint8:
 		return string(u)
@@ -83,6 +99,6 @@ func index(vs []string, t string) int {
 	return -1
 }
 
-func Grep(vs []string, t string) bool {
+func grep(vs []string, t string) bool {
 	return index(vs, t) >= 0
 }

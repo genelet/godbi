@@ -59,7 +59,7 @@ func TestCrudStr(t *testing.T) {
 	if types != nil {
 		t.Errorf("%s wanted", types)
 	}
-	if !Grep(labels, "First") {
+	if !grep(labels, "First") {
 		t.Errorf("%s wanted", labels)
 	}
 

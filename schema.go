@@ -72,14 +72,14 @@ func (self *Model) CallOnce(item map[string]interface{}, page *Page, extra ...ur
 
 	args := url.Values{}
 	for k, v := range self.ARGS {
-		if Grep([]string{self.Sortby, self.Sortreverse, self.Rowcount, self.Totalno, self.Pageno, self.Maxpageno}, k) {
+		if grep([]string{self.Sortby, self.Sortreverse, self.Rowcount, self.Totalno, self.Pageno, self.Maxpageno}, k) {
 			continue
 		}
 		args[k] = v
 	}
 
 	hash := url.Values{}
-	if HasValue(extra) {
+	if hasValue(extra) {
 		for k, v := range extra[0] {
 			hash[k] = v
 		}
@@ -89,8 +89,8 @@ func (self *Model) CallOnce(item map[string]interface{}, page *Page, extra ...ur
 			hash.Set(k, v)
 		}
 	}
-	if HasValue(hash) {
-		if !HasValue(extra) {
+	if hasValue(hash) {
+		if !hasValue(extra) {
 			extra = make([]url.Values, 1)
 		}
 		extra[0] = hash
@@ -103,7 +103,7 @@ func (self *Model) CallOnce(item map[string]interface{}, page *Page, extra ...ur
 	}
 
 	lists := modelObj.GetLists()
-	if HasValue(lists) {
+	if hasValue(lists) {
 		item[marker] = lists
 	}
 	modelObj.UpdateModel(nil, nil, nil)
@@ -114,12 +114,12 @@ func (self *Model) CallOnce(item map[string]interface{}, page *Page, extra ...ur
 // CallNextpage calls page's action, for each item in LISTS.
 func (self *Model) CallNextpage(page *Page, extra ...url.Values) error {
 	lists := self.LISTS
-	if !HasValue(lists) || !HasValue(page.RelateItem) {
+	if !hasValue(lists) || !hasValue(page.RelateItem) {
 		return nil
 	}
 
 	for _, item := range lists {
-		if !HasValue(extra) {
+		if !hasValue(extra) {
 			extra = make([]url.Values, 1)
 			extra[0] = url.Values{}
 		}
@@ -127,7 +127,7 @@ func (self *Model) CallNextpage(page *Page, extra ...url.Values) error {
 		for k, v := range page.RelateItem {
 			if t, ok := item[k]; ok {
 				found = true
-				extra[0].Set(v, Interface2String(t))
+				extra[0].Set(v, interface2String(t))
 			}
 		}
 		if found == false {
@@ -144,7 +144,7 @@ func (self *Model) CallNextpage(page *Page, extra ...url.Values) error {
 // ProcessAfter calls all pages' actions, defined in Nextpages.
 // each action's value is placed in LISTS as a key-value pair
 func (self *Model) ProcessAfter(action string, extra ...url.Values) error {
-	if !HasValue(self.Nextpages) {
+	if !hasValue(self.Nextpages) {
 		return nil
 	}
 
@@ -154,7 +154,7 @@ func (self *Model) ProcessAfter(action string, extra ...url.Values) error {
 	}
 
 	for _, page := range nextpages {
-		if HasValue(extra) {
+		if hasValue(extra) {
 			extra = extra[1:]
 		}
 		if err := self.CallNextpage(page, extra...); err != nil {

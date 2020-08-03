@@ -135,7 +135,7 @@ func selectCondition(extra url.Values, table ...string) (string, []interface{}) 
 		i++
 		sql += "("
 
-		if HasValue(table) {
+		if hasValue(table) {
 			match, err := regexp.MatchString("\\.", field)
 			if err == nil && !match {
 				field = table[0] + "." + field
@@ -165,7 +165,7 @@ func (self *Crud) singleCondition(ids []interface{}, extra ...url.Values) (strin
 	sql := ""
 	extraValues := make([]interface{}, 0)
 
-	if vs := self.CurrentKeys; HasValue(vs) {
+	if vs := self.CurrentKeys; hasValue(vs) {
 		for i, item := range vs {
 			val := ids[i]
 			if i == 0 {
@@ -198,7 +198,7 @@ func (self *Crud) singleCondition(ids []interface{}, extra ...url.Values) (strin
 		}
 	}
 
-	if HasValue(extra) {
+	if hasValue(extra) {
 		s, arr := selectCondition(extra[0])
 		sql += " AND " + s
 		for _, v := range arr {
@@ -244,13 +244,13 @@ func (self *Crud) UpdateHashNulls(fieldValues url.Values, ids []interface{}, emp
 	if empties == nil {
 		empties = make([]string, 0)
 	}
-	if HasValue(self.CurrentKeys) {
+	if hasValue(self.CurrentKeys) {
 		for _, k := range self.CurrentKeys {
-			if Grep(empties, k) {
+			if grep(empties, k) {
 				return errors.New("Assgin empties to key")
 			}
 		}
-	} else if Grep(empties, self.CurrentKey) {
+	} else if grep(empties, self.CurrentKey) {
 		return errors.New("Assgin empties to key")
 	}
 
@@ -362,14 +362,14 @@ func (self *Crud) TopicsHash(lists *[]map[string]interface{}, selectPars interfa
 func (self *Crud) TopicsHashOrder(lists *[]map[string]interface{}, selectPars interface{}, order string, extra ...url.Values) error {
 	sql, labels, types := selectType(selectPars)
 	var table []string
-	if HasValue(self.CurrentTables) {
+	if hasValue(self.CurrentTables) {
 		sql = "SELECT " + sql + "\nFROM " + TableString(self.CurrentTables)
 		table = []string{self.CurrentTables[0].getAlias()}
 	} else {
 		sql = "SELECT " + sql + "\nFROM " + self.CurrentTable
 	}
 
-	if HasValue(extra) {
+	if hasValue(extra) {
 		where, values := selectCondition(extra[0], table...)
 		if where != "" {
 			sql += "\nWHERE " + where
@@ -391,7 +391,7 @@ func (self *Crud) TopicsHashOrder(lists *[]map[string]interface{}, selectPars in
 func (self *Crud) TotalHash(v interface{}, extra ...url.Values) error {
 	str := "SELECT COUNT(*) FROM " + self.CurrentTable
 
-	if HasValue(extra) {
+	if hasValue(extra) {
 		where, values := selectCondition(extra[0])
 		if where != "" {
 			str += "\nWHERE " + where

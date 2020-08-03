@@ -7,23 +7,30 @@ import (
 	"github.com/golang/glog"
 )
 
-// DBI is an abstract database interface
-// Db: the generic SQL handler.
-// LastId: the last auto id, if any in the table
-// Affected: number of row affected after each operation.
+// DBI simply embeds GO's generic SQL handler.
+// It adds a set of functions for easier database execution and query:
+// 1) the return is always the rightful error if it failes, or nil if succeeds.
+// 2) query result is represented as slice of maps, passed in as a reference.
+//
 type DBI struct {
-	Db        *sql.DB
+	// Db is reference to the generic database handle.
+	Db *sql.DB
+
+	// LastId: the last auto id inserted, if the database provides
 	LastId    int64
+
+	// Affected: the number of rows affected
 	Affected  int64
 }
 
-// ExecSQL is the same as the generic SQL's Exec, plus adding
-// the affected number of rows into Affected
-func (self *DBI) ExecSQL(str string, args ...interface{}) error {
-glog.Infof("godbi SQL statement: %s", str)
+// ExecSQL excutes a query like 'Exec', and refreshes the LastId and Affected 
+// If the execution fails, it returns error; otherwise nil.
+//
+func (self *DBI) ExecSQL(query string, args ...interface{}) error {
+glog.Infof("godbi SQL statement: %s", query)
 glog.Infof("godbi input data: %v", args)
 
-	res, err := self.Db.Exec(str, args...)
+	res, err := self.Db.Exec(query, args...)
 	if err != nil {
 		return err
 	}
@@ -42,13 +49,14 @@ glog.Infof("godbi input data: %v", args)
 	return nil
 }
 
-// DoSQL is the same as ExecSQL, except for using prepared statement,
-// which is safe for concurrent use use by multiple goroutines.
-func (self *DBI) DoSQL(str string, args ...interface{}) error {
-glog.Infof("godbi SQL statement: %s", str)
+// DoSQL is the same as ExecSQL, except for using a prepared statement,
+// which is safe for concurrent use by multiple goroutines.
+//
+func (self *DBI) DoSQL(query string, args ...interface{}) error {
+glog.Infof("godbi SQL statement: %s", query)
 glog.Infof("godbi input data: %v", args)
 
-	sth, err := self.Db.Prepare(str)
+	sth, err := self.Db.Prepare(query)
 	if err != nil {
 		return err
 	}
@@ -72,19 +80,21 @@ glog.Infof("godbi input data: %v", args)
 	return nil
 }
 
-// DoSQLs adds multiple rows at once, each of the rows is a slice
-func (self *DBI) DoSQLs(str string, args ...[]interface{}) error {
-glog.Infof("godbi SQL statement: %s", str)
+// DoSQLs inserts multiple rows at once.
+// Each row is represented as array and the rows are array of array.
+//
+func (self *DBI) DoSQLs(query string, args ...[]interface{}) error {
+glog.Infof("godbi SQL statement: %s", query)
 glog.Infof("godbi input data: %v", args)
 
 	n := len(args)
 	if n == 0 {
-		return self.DoSQL(str)
+		return self.DoSQL(query)
 	} else if n == 1 {
-		return self.DoSQL(str, args[0]...)
+		return self.DoSQL(query, args[0]...)
 	}
 
-	sth, err := self.Db.Prepare(str)
+	sth, err := self.Db.Prepare(query)
 	if err != nil {
 		return err
 	}
@@ -111,65 +121,78 @@ glog.Infof("godbi input data: %v", args)
 	return nil
 }
 
-// QuerySQL selects rows and put them into lists, an array of maps.
-// It lets the generic SQL class to decides rows' data types.
-func (self *DBI) QuerySQL(lists *[]map[string]interface{}, str string, args ...interface{}) error {
-	return self.QuerySQLTypeLabel(lists, nil, nil, str, args...)
+// QuerySQL selects data rows as slice of maps.
+// The rows' data types are determined dynamically by the generic handle.
+// 'lists' is a reference to slice of maps to receive the quering data.
+// 
+func (self *DBI) QuerySQL(lists *[]map[string]interface{}, query string, args ...interface{}) error {
+	return self.QuerySQLTypeLabel(lists, nil, nil, query, args...)
 }
 
-// QuerySQLType selects rows and put them into lists, an array of maps.
-// It uses the give data types defined in types.
-func (self *DBI) QuerySQLType(lists *[]map[string]interface{}, types []string, str string, args ...interface{}) error {
-	return self.QuerySQLTypeLabel(lists, types, nil, str, args...)
+// QuerySQL selects data rows as slice of maps.
+// The rows' data types are defined in 'types' as an array of string.
+// 'lists' is a reference to slice of maps to receive the quering data.
+// 
+func (self *DBI) QuerySQLType(lists *[]map[string]interface{}, typeLabels []string, query string, args ...interface{}) error {
+	return self.QuerySQLTypeLabel(lists, typeLabels, nil, query, args...)
 }
 
-// QuerySQLLabel selects rows and put them into lists, an array of maps.
-// The keys in the maps uses the given name defined in labels.
-func (self *DBI) QuerySQLLabel(lists *[]map[string]interface{}, labels []string, str string, args ...interface{}) error {
-	return self.QuerySQLTypeLabel(lists, nil, labels, str, args...)
+// QuerySQL selects data rows as slice of maps.
+// The rows' data types are determined dynamically by the generic handle.
+// 'lists' is a reference to slice of maps to receive the quering data.
+// The original SQL column names will be replaced by 'selectLabels'.
+//
+func (self *DBI) QuerySQLLabel(lists *[]map[string]interface{}, selectLabels []string, query string, args ...interface{}) error {
+	return self.QuerySQLTypeLabel(lists, nil, selectLabels, query, args...)
 }
 
-// QuerySQLTypeLabel selects rows and put them into lists, an array of maps.
-// It uses the given data types defined in types_labels.
-// and the keys in the maps uses the given name defined in selectLabels.
-func (self *DBI) QuerySQLTypeLabel(lists *[]map[string]interface{}, typeLabels []string, selectLabels []string, str string, args ...interface{}) error {
-glog.Infof("godbi SQL statement: %s", str)
+//  selects data rows as slice of maps.
+// The rows' data types are defined in 'typeLabels' as an array of string.
+// 'lists' is a reference to slice of maps to receive the quering data.
+// The original SQL column names will be replaced by 'labels'.
+//
+func (self *DBI) QuerySQLTypeLabel(lists *[]map[string]interface{}, typeLabels []string, selectLabels []string, query string, args ...interface{}) error {
+glog.Infof("godbi SQL statement: %s", query)
 glog.Infof("godbi select columns: %v", selectLabels)
 glog.Infof("godbi column types: %v", typeLabels)
 glog.Infof("godbi input data: %v", args)
 
-	rows, err := self.Db.Query(str, args...)
+	rows, err := self.Db.Query(query, args...)
 	if err != nil {
 		return err
 	}
 	defer rows.Close()
 
-	return self.pickup(rows, lists, typeLabels, selectLabels, str)
+	return self.pickup(rows, lists, typeLabels, selectLabels, query)
 }
 
 // SelectSQL is the same as QuerySQL excepts it uses a prepared statement.
-func (self *DBI) SelectSQL(lists *[]map[string]interface{}, str string, args ...interface{}) error {
-	return self.SelectSQLTypeLabel(lists, nil, nil, str, args...)
+//
+func (self *DBI) SelectSQL(lists *[]map[string]interface{}, query string, args ...interface{}) error {
+	return self.SelectSQLTypeLabel(lists, nil, nil, query, args...)
 }
 
 // SelectSQLType is the same as QuerySQLType excepts it uses a prepared statement.
-func (self *DBI) SelectSQLType(lists *[]map[string]interface{}, typeLabels []string, str string, args ...interface{}) error {
-	return self.SelectSQLTypeLabel(lists, typeLabels, nil, str, args...)
+//
+func (self *DBI) SelectSQLType(lists *[]map[string]interface{}, typeLabels []string, query string, args ...interface{}) error {
+	return self.SelectSQLTypeLabel(lists, typeLabels, nil, query, args...)
 }
 
 // SelectSQLLabel is the same as QuerySQLLabel excepts it uses a prepared statement.
-func (self *DBI) SelectSQLLabel(lists *[]map[string]interface{}, selectLabels []string, str string, args ...interface{}) error {
-	return self.SelectSQLTypeLabel(lists, nil, selectLabels, str, args...)
+//
+func (self *DBI) SelectSQLLabel(lists *[]map[string]interface{}, selectLabels []string, query string, args ...interface{}) error {
+	return self.SelectSQLTypeLabel(lists, nil, selectLabels, query, args...)
 }
 
 // SelectSQLTypeLabel is the same as QuerySQLTypeLabel excepts it uses a prepared statement.
-func (self *DBI) SelectSQLTypeLabel(lists *[]map[string]interface{}, typeLabels []string, selectLabels []string, str string, args ...interface{}) error {
-glog.Infof("godbi SQL statement: %s", str)
+//
+func (self *DBI) SelectSQLTypeLabel(lists *[]map[string]interface{}, typeLabels []string, selectLabels []string, query string, args ...interface{}) error {
+glog.Infof("godbi SQL statement: %s", query)
 glog.Infof("godbi select columns: %v", selectLabels)
 glog.Infof("godbi column types: %v", typeLabels)
 glog.Infof("godbi input data: %v", args)
 
-	sth, err := self.Db.Prepare(str)
+	sth, err := self.Db.Prepare(query)
 	if err != nil {
 		return err
 	}
@@ -180,10 +203,10 @@ glog.Infof("godbi input data: %v", args)
 	}
 	defer rows.Close()
 
-	return self.pickup(rows, lists, typeLabels, selectLabels, str)
+	return self.pickup(rows, lists, typeLabels, selectLabels, query)
 }
 
-func (self *DBI) pickup(rows *sql.Rows, lists *[]map[string]interface{}, typeLabels []string, selectLabels []string, str string) error {
+func (self *DBI) pickup(rows *sql.Rows, lists *[]map[string]interface{}, typeLabels []string, selectLabels []string, query string) error {
 	var err error
 	if selectLabels == nil {
 		if selectLabels, err = rows.Columns(); err != nil {
@@ -312,10 +335,12 @@ func (self *DBI) pickup(rows *sql.Rows, lists *[]map[string]interface{}, typeLab
 	return nil
 }
 
-// GetSQLLabel returns one row and assign them as the values in the res map.
-func (self *DBI) GetSQLLabel(res map[string]interface{}, sql string, selectLabels []string, args ...interface{}) error {
+// GetSQLLabel returns one row as map into 'res'.
+// The column names are replaced by 'selectLabels'
+//
+func (self *DBI) GetSQLLabel(res map[string]interface{}, query string, selectLabels []string, args ...interface{}) error {
 	lists := make([]map[string]interface{}, 0)
-	if err := self.SelectSQLLabel(&lists, selectLabels, sql, args...); err != nil {
+	if err := self.SelectSQLLabel(&lists, selectLabels, query, args...); err != nil {
 		return err
 	}
 	if len(lists) >= 1 {
@@ -328,25 +353,27 @@ func (self *DBI) GetSQLLabel(res map[string]interface{}, sql string, selectLabel
 	return nil
 }
 
-// GetArgs returns one row and assign them as the values in ARGS as url.Values
-func (self *DBI) GetArgs(ARGS url.Values, sql string, args ...interface{}) error {
+// GetArgs returns one row as url.Values into 'res', as in web application.
+//
+func (self *DBI) GetArgs(res url.Values, query string, args ...interface{}) error {
 	lists := make([]map[string]interface{}, 0)
-	if err := self.SelectSQL(&lists, sql, args...); err != nil {
+	if err := self.SelectSQL(&lists, query, args...); err != nil {
 		return err
 	}
 	if len(lists) >= 1 {
 		for k, v := range lists[0] {
 			if v != nil {
-				ARGS.Set(k, Interface2String(v))
+				res.Set(k, interface2String(v))
 			}
 		}
 	}
 	return nil
 }
 
-// DoProc runs the stored procedure 'proc_name' with input parameters 'args'
-// the output is assigned to 'hash' using 'names' as the keys
-func (self *DBI) DoProc(hash map[string]interface{}, names []string, proc_name string, args ...interface{}) error {
+// DoProc runs the stored procedure 'proc_name' using input parameters 'args'.
+// The output is returned as map using 'names' as keys.
+//
+func (self *DBI) DoProc(res map[string]interface{}, names []string, proc_name string, args ...interface{}) error {
 	n := len(args)
 	strQ := strings.Join(strings.Split(strings.Repeat("?", n), ""), ",")
 	str := "CALL " + proc_name + "(" + strQ
@@ -359,35 +386,40 @@ func (self *DBI) DoProc(hash map[string]interface{}, names []string, proc_name s
 	if err := self.DoSQL(str, args...); err != nil {
 		return err
 	}
-	return self.GetSQLLabel(hash, "SELECT "+strN, names)
+	return self.GetSQLLabel(res, "SELECT "+strN, names)
 }
 
-// SelectProc retrieves the results in 'lists', an array of rows,
-// from the stored procedure 'proc_name' with input parameters 'args'.
-// Each row is represented as a string to interface{} map.
+// SelectProc runs the stored procedure 'proc_name' using input parameters 'args'.
+// The query result, 'lists', is received as a slice of maps,
+// with data types determined dynamically by the generic SQL handle.
+//
 func (self *DBI) SelectProc(lists *[]map[string]interface{}, proc_name string, args ...interface{}) error {
 	return self.SelectDoProcLabel(lists, nil, nil, proc_name, nil, args...)
 }
 
-// SelectProcLabel retrieves the results in 'lists', an array of rows,
-// from the stored procedure 'proc_name' with input parameters 'args'.
-// Each row is represented as a labeled string to interface{} map.
+// SelectProcLabel runs the stored procedure 'proc_name' using input parameters 'args'.
+// The query result, 'lists', is received as a slice of maps.
+// The keys of the maps are renamed according to 'selectLabels'.
+//
 func (self *DBI) SelectProcLabel(lists *[]map[string]interface{}, proc_name string, selectLabels []string, args ...interface{}) error {
 	return self.SelectDoProcLabel(lists, nil, nil, proc_name, selectLabels, args...)
 }
 
-// SelectDoProc retrieves the results in 'lists', an array of rows,
-// from the stored procedure 'proc_name' with input parameters 'args'.
-// The outputs are saved in hash using keys 'names'.
-// Each row is represented as a string to interface{} map.
+// SelectDoProc runs the stored procedure 'proc_name' using input parameters 'args'.
+// The query result, 'lists', is received as a slice of maps,
+// with data types are dynamically determined by the generic SQL handle.
+// The output is returned as map using 'names' as keys.
+//
 func (self *DBI) SelectDoProc(lists *[]map[string]interface{}, hash map[string]interface{}, names []string, proc_name string, args ...interface{}) error {
 	return self.SelectDoProcLabel(lists, hash, names, proc_name, nil, args...)
 }
 
-// SelectDoProc retrieves the results in 'lists', an array of rows,
-// from the stored procedure 'proc_name' with input parameters 'args'.
-// The outputs are saved in hash using keys 'names'.
-// Each row is represented as a labeled string to interface{} map.
+// SelectDoProcLabel runs the stored procedure 'proc_name' using input parameters 'args'.
+// The query result, 'lists', is received as a slice of maps,
+// with data types are dynamically determined by the generic SQL handle,
+// and the map keys are renamed according to selectLabels.
+// The output is returned as map using 'names' as keys.
+//
 func (self *DBI) SelectDoProcLabel(lists *[]map[string]interface{}, hash map[string]interface{}, names []string, proc_name string, selectLabels []string, args ...interface{}) error {
 	n := len(args)
 	strQ := strings.Join(strings.Split(strings.Repeat("?", n), ""), ",")

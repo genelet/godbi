@@ -88,7 +88,7 @@ func (self *Model) GetLists() []map[string]interface{} {
 
 // UpdateModel updates the DB handle, the arguments and schema
 func (self *Model) UpdateModel(db *sql.DB, args url.Values, schema *Schema) {
-	self.Crud.DBI.Db = db
+	self.Db = db
 	self.ARGS = args
 	self.Scheme = schema
 	self.LISTS = make([]map[string]interface{}, 0)
@@ -125,13 +125,13 @@ func (self *Model) getFv(pars []string) url.Values {
 }
 
 func (self *Model) getIdVal(extra ...url.Values) []interface{} {
-	if HasValue(self.CurrentKeys) {
-		if HasValue(extra) {
+	if hasValue(self.CurrentKeys) {
+		if hasValue(extra) {
 			return self.ProperValues(self.CurrentKeys, extra[0])
 		}
 		return self.ProperValues(self.CurrentKeys, nil)
 	}
-	if HasValue(extra) {
+	if hasValue(extra) {
 		return []interface{}{self.ProperValue(self.CurrentKey, extra[0])}
 	}
 	return []interface{}{self.ProperValue(self.CurrentKey, nil)}
@@ -177,13 +177,13 @@ func (self *Model) Topics(extra ...url.Values) error {
 func (self *Model) Edit(extra ...url.Values) error {
 	val := self.getIdVal(extra...)
 	fields := self.filteredFields(self.EditPars)
-	if !HasValue(fields) {
+	if !hasValue(fields) {
 		return errors.New("1077")
 	}
 
 	self.LISTS = make([]map[string]interface{}, 0)
 	var err error
-	if HasValue(extra) {
+	if hasValue(extra) {
 		err = self.EditHash(&self.LISTS, fields, val, extra[0])
 	} else {
 		err = self.EditHash(&self.LISTS, fields, val)
@@ -199,14 +199,14 @@ func (self *Model) Edit(extra ...url.Values) error {
 // in 'extra' will override that in ARGS and be used for that column.
 func (self *Model) Insert(extra ...url.Values) error {
 	fieldValues := self.getFv(self.InsertPars)
-	if HasValue(extra) {
+	if hasValue(extra) {
 		for key, value := range extra[0] {
-			if Grep(self.InsertPars, key) {
+			if grep(self.InsertPars, key) {
 				fieldValues.Set(key, value[0])
 			}
 		}
 	}
-	if !HasValue(fieldValues) {
+	if !hasValue(fieldValues) {
 		return errors.New("1076")
 	}
 
@@ -229,19 +229,19 @@ func (self *Model) Insert(extra ...url.Values) error {
 // depending on the unique of the columns defined in InsupdPars.
 func (self *Model) Insupd(extra ...url.Values) error {
 	fieldValues := self.getFv(self.InsertPars)
-	if HasValue(extra) {
+	if hasValue(extra) {
 		for key, value := range extra[0] {
-			if Grep(self.InsertPars, key) {
+			if grep(self.InsertPars, key) {
 				fieldValues[key] = value
 			}
 		}
 	}
-	if !HasValue(fieldValues) {
+	if !hasValue(fieldValues) {
 		return errors.New("1076")
 	}
 
 	uniques := self.InsupdPars
-	if !HasValue(uniques) {
+	if !hasValue(uniques) {
 		return errors.New("1078")
 	}
 
@@ -262,12 +262,12 @@ func (self *Model) Insupd(extra ...url.Values) error {
 // extra is for SQL constrains
 func (self *Model) Update(extra ...url.Values) error {
 	val := self.getIdVal(extra...)
-	if !HasValue(val) {
+	if !hasValue(val) {
 		return errors.New("1040")
 	}
 
 	fieldValues := self.getFv(self.UpdatePars)
-	if !HasValue(fieldValues) {
+	if !hasValue(fieldValues) {
 		return errors.New("1076")
 	} else if len(fieldValues) == 1 && fieldValues.Get(self.CurrentKey) != "" {
 		self.LISTS = fromFv(fieldValues)
@@ -278,7 +278,7 @@ func (self *Model) Update(extra ...url.Values) error {
 		return err
 	}
 
-	if HasValue(self.CurrentKeys) {
+	if hasValue(self.CurrentKeys) {
 		for i, v := range self.CurrentKeys {
 			fieldValues.Set(v, val[i].(string))
 		}
@@ -301,11 +301,11 @@ func fromFv(fieldValues url.Values) []map[string]interface{} {
 // Delete deletes a row or multiple rows using the contraint in extra
 func (self *Model) Delete(extra ...url.Values) error {
 	val := self.getIdVal(extra...)
-	if !HasValue(val) {
+	if !hasValue(val) {
 		return errors.New("1040")
 	}
 
-	if HasValue(self.KeyIn) {
+	if hasValue(self.KeyIn) {
 		for table, keyname := range self.KeyIn {
 			for _, v := range val {
 				err := self.Existing(table, keyname, v)
@@ -321,7 +321,7 @@ func (self *Model) Delete(extra ...url.Values) error {
 	}
 
 	hash := make(map[string]interface{})
-	if HasValue(self.CurrentKeys) {
+	if hasValue(self.CurrentKeys) {
 		for i, v := range self.CurrentKeys {
 			hash[v] = val[i]
 		}
@@ -373,7 +373,7 @@ func (self *Model) Randomid(table string, field string, m ...interface{}) (int, 
 // In case it does not exist, it tries to get from ARGS.
 func (self *Model) ProperValue(v string, extra url.Values) interface{} {
 	ARGS := self.ARGS
-	if !HasValue(extra) {
+	if !hasValue(extra) {
 		return ARGS.Get(v)
 	}
 	if val := extra.Get(v); val != "" {
@@ -387,7 +387,7 @@ func (self *Model) ProperValue(v string, extra url.Values) interface{} {
 func (self *Model) ProperValues(vs []string, extra url.Values) []interface{} {
 	ARGS := self.ARGS
 	outs := make([]interface{}, len(vs))
-	if !HasValue(extra) {
+	if !hasValue(extra) {
 		for i, v := range vs {
 			outs[i] = ARGS.Get(v)
 		}
@@ -420,7 +420,7 @@ func (self *Model) OrderString() string {
 	column := ""
 	if ARGS.Get(self.Sortby) != "" {
 		column = ARGS.Get(self.Sortby)
-	} else if HasValue(self.CurrentTables) {
+	} else if hasValue(self.CurrentTables) {
 		table := self.CurrentTables[0]
 		if table.Sortby != "" {
 			column = table.Sortby
@@ -430,14 +430,14 @@ func (self *Model) OrderString() string {
 				name = table.Alias
 			}
 			name += "."
-			if HasValue(self.CurrentKeys) {
+			if hasValue(self.CurrentKeys) {
 				column = name + strings.Join(self.CurrentKeys, ", "+name)
 			} else {
 				column = name + self.CurrentKey
 			}
 		}
 	} else {
-		if HasValue(self.CurrentKeys) {
+		if hasValue(self.CurrentKeys) {
 			column = strings.Join(self.CurrentKeys, ", ")
 		} else {
 			column = self.CurrentKey
