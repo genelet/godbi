@@ -90,7 +90,7 @@ type Crud struct {
 //
 func NewCrud(db *sql.DB, table, currentKey string, tables []*Table, currentKeys []string) *Crud {
 	crud := new(Crud)
-	crud.Db = db
+	crud.DB = db
 	crud.CurrentTable = table
 	if tables != nil {
 		crud.CurrentTables = tables
@@ -446,8 +446,8 @@ func (self *Crud) TotalHash(v interface{}, extra ...url.Values) error {
 		if where != "" {
 			str += "\nWHERE " + where
 		}
-		return self.Db.QueryRow(str, values...).Scan(v)
+		return self.DB.QueryRow(str, values...).Scan(v)
 	}
 
-	return self.Db.QueryRow(str).Scan(v)
+	return self.DB.QueryRow(str).Scan(v)
 }

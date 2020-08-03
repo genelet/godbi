@@ -8,13 +8,11 @@ import (
 )
 
 // DBI simply embeds GO's generic SQL handler.
-// It adds a set of functions for easier database execution and query:
-// 1) the return is always the rightful error if it failes, or nil if succeeds.
-// 2) query result is represented as slice of maps, passed in as a reference.
+// It adds a set of functions for easier database executionis and queriesr.
 //
 type DBI struct {
-	// Db is reference to the generic database handle.
-	Db *sql.DB
+	// Embedding the generic database handle.
+	*sql.DB
 
 	// LastId: the last auto id inserted, if the database provides
 	LastId    int64
@@ -30,7 +28,7 @@ func (self *DBI) ExecSQL(query string, args ...interface{}) error {
 glog.Infof("godbi SQL statement: %s", query)
 glog.Infof("godbi input data: %v", args)
 
-	res, err := self.Db.Exec(query, args...)
+	res, err := self.DB.Exec(query, args...)
 	if err != nil {
 		return err
 	}
@@ -56,7 +54,7 @@ func (self *DBI) DoSQL(query string, args ...interface{}) error {
 glog.Infof("godbi SQL statement: %s", query)
 glog.Infof("godbi input data: %v", args)
 
-	sth, err := self.Db.Prepare(query)
+	sth, err := self.DB.Prepare(query)
 	if err != nil {
 		return err
 	}
@@ -94,7 +92,7 @@ glog.Infof("godbi input data: %v", args)
 		return self.DoSQL(query, args[0]...)
 	}
 
-	sth, err := self.Db.Prepare(query)
+	sth, err := self.DB.Prepare(query)
 	if err != nil {
 		return err
 	}
@@ -157,7 +155,7 @@ glog.Infof("godbi select columns: %v", selectLabels)
 glog.Infof("godbi column types: %v", typeLabels)
 glog.Infof("godbi input data: %v", args)
 
-	rows, err := self.Db.Query(query, args...)
+	rows, err := self.DB.Query(query, args...)
 	if err != nil {
 		return err
 	}
@@ -192,7 +190,7 @@ glog.Infof("godbi select columns: %v", selectLabels)
 glog.Infof("godbi column types: %v", typeLabels)
 glog.Infof("godbi input data: %v", args)
 
-	sth, err := self.Db.Prepare(query)
+	sth, err := self.DB.Prepare(query)
 	if err != nil {
 		return err
 	}

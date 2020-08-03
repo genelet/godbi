@@ -14,7 +14,7 @@ func TestModelSimple(t *testing.T) {
 	}
 
     model := new(Model)
-    model.Db  = db
+    model.DB  = db
     model.CurrentTable = "testing"
     model.Sortby        ="sortby"
     model.Sortreverse   ="sortreverse"
@@ -324,7 +324,7 @@ func TestNextPages(t *testing.T) {
 
     model, err := NewModel("m2.json")
     if err != nil { panic(err) }
-    model.Db = db
+    model.DB = db
 
 	err = model.ExecSQL(`drop table if exists atesting`)
 	if err != nil { panic(err) }
@@ -348,7 +348,7 @@ func TestNextPages(t *testing.T) {
 
 	supp, err := NewModel("m3.json")
     if err != nil { panic(err) }
-    supp.Db = db
+    supp.DB = db
     err = supp.ExecSQL(`drop table if exists testing`)
     if err != nil { panic(err) }
     err = supp.ExecSQL(`CREATE TABLE testing (tid int auto_increment not null primary key, child varchar(8), id int)`)

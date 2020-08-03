@@ -19,7 +19,7 @@ func TestProcedure(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	dbi := &DBI{Db:db}
+	dbi := &DBI{DB:db}
 
 	dbi.ExecSQL(`drop procedure if exists proc_w`)
 	dbi.ExecSQL(`drop procedure if exists proc_w_resultset`)

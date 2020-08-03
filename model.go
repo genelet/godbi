@@ -112,7 +112,7 @@ func (self *Model) GetLists() []map[string]interface{} {
 
 // UpdateModel updates the DB handle, the arguments and schema
 func (self *Model) UpdateModel(db *sql.DB, args url.Values, schema *Schema) {
-	self.Db = db
+	self.DB = db
 	self.ARGS = args
 	self.Scheme = schema
 	self.LISTS = make([]map[string]interface{}, 0)
@@ -360,7 +360,7 @@ func (self *Model) Delete(extra ...url.Values) error {
 // Existing checks if table has val in field
 func (self *Model) Existing(table string, field string, val interface{}) error {
 	id := 0
-	return self.Db.QueryRow("SELECT "+field+" FROM "+table+" WHERE "+field+"=?", val).Scan(&id)
+	return self.DB.QueryRow("SELECT "+field+" FROM "+table+" WHERE "+field+"=?", val).Scan(&id)
 }
 
 // Randomid create PK field's int value that does not exists in the table

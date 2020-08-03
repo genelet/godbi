@@ -85,7 +85,7 @@ func (self *Model) CallOnce(item map[string]interface{}, page *Page, extra ...ur
 		extra[0] = hash
 	}
 
-	modelObj.UpdateModel(self.Db, args, schema)
+	modelObj.UpdateModel(self.DB, args, schema)
 	finalAction := actionFunc.(func(...url.Values) error)
 	if err := finalAction(extra...); err != nil {
 		return err

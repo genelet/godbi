@@ -13,7 +13,7 @@ func TestPage(t *testing.T) {
 
     model, err := NewOne("m1.json")
     if err != nil { panic(err) }
-    model.Db = db
+    model.DB = db
 
 	err = model.ExecSQL(`drop table if exists atesting`)
 	if err != nil { panic(err) }
@@ -37,7 +37,7 @@ func TestPage(t *testing.T) {
 
 	supp, err := NewTwo("m3.json")
     if err != nil { panic(err) }
-    supp.Db = db
+    supp.DB = db
     err = supp.ExecSQL(`drop table if exists testing`)
     if err != nil { panic(err) }
     err = supp.ExecSQL(`CREATE TABLE testing (tid int auto_increment not null primary key, child varchar(8), id int)`)
@@ -144,7 +144,7 @@ func TestRestful(t *testing.T) {
 
     model, err := NewOne("m1.json")
     if err != nil { panic(err) }
-    model.Db = db
+    model.DB = db
 
 	err = model.ExecSQL(`drop table if exists atesting`)
 	if err != nil { panic(err) }
@@ -193,7 +193,7 @@ func TestSchema(t *testing.T) {
 
     model, err := NewOne("m2.json")
     if err != nil { panic(err) }
-    model.Db = db
+    model.DB = db
 
 	err = model.ExecSQL(`drop table if exists atesting`)
 	if err != nil { panic(err) }
@@ -217,7 +217,7 @@ func TestSchema(t *testing.T) {
 
 	supp, err := NewTwo("m3.json")
     if err != nil { panic(err) }
-    supp.Db = db
+    supp.DB = db
     err = supp.ExecSQL(`drop table if exists testing`)
     if err != nil { panic(err) }
     err = supp.ExecSQL(`CREATE TABLE testing (tid int auto_increment not null primary key, child varchar(8), id int)`)
