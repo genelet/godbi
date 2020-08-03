@@ -13,14 +13,38 @@ import (
 	"strings"
 )
 
+// Restful is interface to implement Model
+//
+type Restful interface {
+	// GetLists: get the main data
+	GetLists() []map[string]interface{}
+
+	// UpdateModel: initiate the model with DB handle, input and database schema
+	UpdateModel(*sql.DB, url.Values, *Schema)
+
+	// CallOnce calls SQL operation on another model using defined page information
+	CallOnce(map[string]interface{}, *Page, ...url.Values) error
+}
+
+// Model works on table's CRUD in web applications.
+//
 type Model struct {
 	Crud
 	Restful
-	ARGS      url.Values
-	LISTS     []map[string]interface{}
-	Scheme    *Schema
+
+	// ARGS: the input data received by the web request
+	ARGS url.Values
+
+	// LISTS: output data as slice of map, which represents a table row
+	LISTS []map[string]interface{}
+
+	// Scheme: the whole schema of the database. See Schema
+	Scheme *Schema
+
+	// Nextpages: defining how to call other models' actions
 	Nextpages map[string][]*Page `json:"nextpages,omitempty"`
 
+	//
 	CurrentIdAuto string            `json:"current_id_auto,omitempty"`
 	KeyIn         map[string]string `json:"fk_in,omitempty"`
 

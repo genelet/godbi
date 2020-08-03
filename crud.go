@@ -8,22 +8,25 @@ import (
 	"strings"
 )
 
-// Table describes a table used in multiple join select, which is represented as []*Table .
-// Name: the name of the table
-// Alias: the alias of the name
-// Sortby: defines which column to sort. only used for the first table
-// Using:  join by USING column name
-// On: join by ON columns in the 2 tables
+// Table describes a table used in multiple joined SELECT query.
+//
 type Table struct {
-	Name   string `json:"name"`
-	Alias  string `json:"alias,omitempty"`
+	// Name: the name of the table
+	Name string `json:"name"`
+	// Alias: the alias of the name
+	Alias string `json:"alias,omitempty"`
+	// Type: INNER or LEFT, how the table if joined
+	Type string `json:"type,omitempty"`
+	// Using: optional, join by USING column name.
+	Using string `json:"using,omitempty"`
+	// On: optional, join by ON condition
+	On string `json:"on,omitempty"`
+	// Sortby: optional, column to sort, only applied to the first table
 	Sortby string `json:"sortby,omitempty"`
-	Type   string `json:"type,omitempty"`
-	Using  string `json:"using,omitempty"`
-	On     string `json:"on,omitempty"`
 }
 
-// TableString gives the joint SQL statements in place of the single table name.
+// TableString outputs the joined SQL statements from multiple tables.
+//
 func TableString(tables []*Table) string {
 	sql := ""
 	for i, table := range tables {
@@ -50,37 +53,51 @@ func (self *Table) getAlias() string {
 	return self.Name
 }
 
-// Crud works on table's REST actions
-// CurrentTable: the current table name
-// CurrentKey: the single primary key of the table
-// CurrentKeys: if the primary key has multiple columns
-// CurrentRow: the row corresponding to LastID
-// Updated: true if the CurrentRow is old, false if it is new
+// Crud works on one table's CRUD or RESTful operations:
+// C: create a new row
+// R: read all rows, or read one row
+// U: update a row
+// D: delete a row
+//
+// Note that in the functions, an input table row is expressed as url.Values
+// while in the output data, row is expressed as map between column string to interface value.
+// SQL contraint on WHERE statement is expressed as url.Values too:
+// 1) if key has single value, it means a simple EQUAL constraint
+// 2) if key has array values, it mean an IN constrain
+// 3) if key is "_gsql", it means a raw SQL statement.
+// 4) it is the AND condition between keys.
+//
 type Crud struct {
 	DBI
-	CurrentTable  string   `json:"current_table,omitempty"`
+	// CurrentTable: the current table name
+	CurrentTable string `json:"current_table,omitempty"`
+	// CurrentTables: optional, for read-all SELECT with other joined tables
 	CurrentTables []*Table `json:"current_tables,omitempty"`
-	CurrentKey    string   `json:"current_key,omitempty"`
-	CurrentKeys   []string `json:"current_keys,omitempty"`
-	Updated       bool
+	// CurrentKey: the single primary key of the table
+	CurrentKey string `json:"current_key,omitempty"`
+	// CurrentKeys: optional, if the primary key has multiple columns
+	CurrentKeys []string `json:"current_keys,omitempty"`
+	// Updated: for Insupd only, indicating if the row is updated or new
+	Updated bool
 }
 
 // NewCrud creates a new Crud struct.
 // db: the DB handle
 // table: the name of table
-// key: the column name of the primary key
-// tables: array of joint tables as the Table struct
-// keys: if the PK consists of multiple columns, assign them as []string
-func NewCrud(db *sql.DB, table, key string, tables []*Table, keys []string) *Crud {
+// currentKey: the column name of the primary key
+// currentKeys: if the PK consists of multiple columns, as []string
+// tables: array of joined tables for real-all SELECT
+//
+func NewCrud(db *sql.DB, table, currentKey string, tables []*Table, currentKeys []string) *Crud {
 	crud := new(Crud)
 	crud.Db = db
 	crud.CurrentTable = table
 	if tables != nil {
 		crud.CurrentTables = tables
 	}
-	crud.CurrentKey = key
-	if keys != nil {
-		crud.CurrentKeys = keys
+	crud.CurrentKey = currentKey
+	if currentKeys != nil {
+		crud.CurrentKeys = currentKeys
 	}
 	return crud
 }
@@ -95,28 +112,28 @@ func selectType(selectPars interface{}) (string, []string, []string) {
 		return strings.Join(labels, ", "), labels, nil
 	case [][2]string:
 		labels := make([]string, 0)
-		types  := make([]string, 0)
+		types := make([]string, 0)
 		for _, v := range vs {
 			labels = append(labels, v[0])
-			types  = append(labels, v[1])
+			types = append(labels, v[1])
 		}
 		return strings.Join(labels, ", "), labels, types
 	case map[string]string:
 		labels := make([]string, 0)
-		keys   := make([]string, 0)
+		keys := make([]string, 0)
 		for key, val := range vs {
-			keys   = append(keys,   key)
+			keys = append(keys, key)
 			labels = append(labels, val)
 		}
 		return strings.Join(keys, ", "), labels, nil
 	case map[string][2]string:
 		labels := make([]string, 0)
-		keys   := make([]string, 0)
-		types  := make([]string, 0)
+		keys := make([]string, 0)
+		types := make([]string, 0)
 		for key, val := range vs {
-			keys   = append(keys,   key)
+			keys = append(keys, key)
 			labels = append(labels, val[0])
-			types  = append(labels, val[1])
+			types = append(labels, val[1])
 		}
 		return strings.Join(keys, ", "), labels, types
 	default:
@@ -209,12 +226,18 @@ func (self *Crud) singleCondition(ids []interface{}, extra ...url.Values) (strin
 	return sql, extraValues
 }
 
-// InsertHash inserts a row as map (hash) into the table.
+// InsertHash inserts one row into the table.
+// fieldValues: the row expressed as url's Values type.
+// The keys are column names, and their values are columns' values.
+//
 func (self *Crud) InsertHash(fieldValues url.Values) error {
 	return self.insertHash("INSERT", fieldValues)
 }
 
-// ReplaceHash inserts a row as map (hash) into the table using 'REPLACE'
+// ReplaceHash inserts one row as using 'REPLACE' instead of 'INSERT'
+// fieldValues: the row expressed as url's Values type.
+// The keys are column names, and their values are columns' values.
+//
 func (self *Crud) ReplaceHash(fieldValues url.Values) error {
 	return self.insertHash("REPLACE", fieldValues)
 }
@@ -232,14 +255,22 @@ func (self *Crud) insertHash(how string, fieldValues url.Values) error {
 	return self.DoSQL(sql, values...)
 }
 
-// UpdateHash updates a row as map (hash) into the table.
+// UpdateHash updates multiple rows using data expressed in type Values.
+// fieldValues: columns names and their new values.
+// ids: primary key's value, either a single value or array of values.
+// extra: optional, extra constraints put on row's WHERE statement.
+//
 func (self *Crud) UpdateHash(fieldValues url.Values, ids []interface{}, extra ...url.Values) error {
 	empties := make([]string, 0)
 	return self.UpdateHashNulls(fieldValues, ids, empties, extra...)
 }
 
-// UpdateHashNulls updates a row as map (hash) into the table.
-// empties: these columns will be forced to have default NULL.
+// UpdateHashNull updates multiple rows using data expressed in type Values.
+// fieldValues: columns names and their new values.
+// empties: if these columns have no values in fieldValues, they are forced to be NULL.
+// ids: primary key's value, either a single value or array of values.
+// extra: optional, extra constraints on WHERE statement.
+//
 func (self *Crud) UpdateHashNulls(fieldValues url.Values, ids []interface{}, empties []string, extra ...url.Values) error {
 	if empties == nil {
 		empties = make([]string, 0)
@@ -282,8 +313,10 @@ func (self *Crud) UpdateHashNulls(fieldValues url.Values, ids []interface{}, emp
 	return self.DoSQL(sql, values...)
 }
 
-// InsupdTable inserts a new row, or retrieves the old one depending on
-// wether or not the row of the unique combinated columns 'uniques', exists.
+// InsupdTable update a row if it is found to exists, or to inserts a new row
+// fieldValues: row's column names and values
+// uniques: combination of one or multiple columns to assert uniqueness.
+//
 func (self *Crud) InsupdTable(fieldValues url.Values, uniques []string) error {
 	s := "SELECT " + self.CurrentKey + " FROM " + self.CurrentTable + "\nWHERE "
 	v := make([]interface{}, 0)
@@ -323,8 +356,10 @@ func (self *Crud) InsupdTable(fieldValues url.Values, uniques []string) error {
 	return nil
 }
 
-// DeleteHash deletes having key in ids.
-// The constrain is described in extra. See 'extra' in TopicsHash.
+// DeleteHash deletes one or multiple rows by the primary key.
+// ids: primary key value or values.
+// extra: optional, extra constraints on WHERE statement.
+//
 func (self *Crud) DeleteHash(ids []interface{}, extra ...url.Values) error {
 	sql := "DELETE FROM " + self.CurrentTable
 	where, extraValues := self.singleCondition(ids, extra...)
@@ -334,9 +369,16 @@ func (self *Crud) DeleteHash(ids []interface{}, extra ...url.Values) error {
 	return self.DoSQL(sql, extraValues...)
 }
 
-// EditHash selects rows having key in ids
-// Only will columns defined in editPars will be returned.
-// The select restriction is described in extra. See 'extra' in TopicsHash.
+// EditHash selects one or multiple rows from the primary key.
+// lists: received the query results in slice of maps.
+// ids: primary key values array.
+// extra: optional, extra constraints on WHERE statement.
+// editPars: defining which and how columns are returned:
+// 1) []string{name} - name of column
+// 2) [2]string{name, type} - name and data type of column
+// 3) map[string]string{name: label} - column name is mapped to label
+// 4) map[string][2]string{name: label, type} -- column name to label and data type
+//
 func (self *Crud) EditHash(lists *[]map[string]interface{}, editPars interface{}, ids []interface{}, extra ...url.Values) error {
 	sql, labels, types := selectType(editPars)
 	sql = "SELECT " + sql + "\nFROM " + self.CurrentTable
@@ -348,17 +390,22 @@ func (self *Crud) EditHash(lists *[]map[string]interface{}, editPars interface{}
 	return self.SelectSQLTypeLabel(lists, types, labels, sql, extraValues...)
 }
 
-// TopicsHash selects rows using restriction 'extra'.
-// Only will columns defined in selectPars will be returned.
-// Currently only will the following three tpyes os restrictions are support:
-// key=>value: the key has the value
-// key=>slice: the key has one of the values in the slice
-// '_gsql'=>'raw sql statement': use the raw SQL statement
+// TopicsHash selects all rows.
+// lists: received the query results in slice of maps.
+// extra: optional, extra constraints on WHERE statement.
+// topicsPars: defining which and how columns are returned:
+// 1) []string{name} - name of column
+// 2) [2]string{name, type} - name and data type of column
+// 3) map[string]string{name: label} - column name is mapped to label
+// 4) map[string][2]string{name: label, type} -- column name to label and data type
+//
 func (self *Crud) TopicsHash(lists *[]map[string]interface{}, selectPars interface{}, extra ...url.Values) error {
 	return self.TopicsHashOrder(lists, selectPars, "", extra...)
 }
 
-// TopicsHashOrder is the same as TopicsHash, but use the order string as 'ORDER BY order'
+// TopicsHashOrder is the same as TopicsHash with the order string
+// order: a string used in 'ORDER BY order'
+//
 func (self *Crud) TopicsHashOrder(lists *[]map[string]interface{}, selectPars interface{}, order string, extra ...url.Values) error {
 	sql, labels, types := selectType(selectPars)
 	var table []string
@@ -388,6 +435,9 @@ func (self *Crud) TopicsHashOrder(lists *[]map[string]interface{}, selectPars in
 
 // TotalHash returns the total number of rows available
 // This function is used for pagination.
+// v: the total number is returned in this referenced variable
+// extra: optional, extra constraints on WHERE statement.
+//
 func (self *Crud) TotalHash(v interface{}, extra ...url.Values) error {
 	str := "SELECT COUNT(*) FROM " + self.CurrentTable
 
