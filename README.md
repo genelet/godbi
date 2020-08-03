@@ -51,8 +51,8 @@ dbi := &DBI{DB: the_standard_sql_handle}
 #### 1.1.2) Example
 
 In this example, we create a MySQL handle using database credentials in the environment; then create a new table _letters_ and add 3 rows. We query the data using _SelectSQL_ and put the result into _lists_ as slice of maps.
-<sup><sub>
 ```
+<sup><sub>
 package main
 
     dbUser := os.Getenv("DBUSER")
@@ -92,8 +92,8 @@ package main
 
     os.Exit(0)
 }
-```
 </sub></sup>
+```
 Running this example will report something like
 ```
 [map[id:1 x:m] map[id:2 x:n] map[id:3 x:p]]
