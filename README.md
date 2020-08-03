@@ -139,7 +139,7 @@ Definition:
 func (*DBI) QuerySQLType (lists *[]map[string]interface{}, typeLabels []string, query string, args ...interface{}) error
 func (*DBI) SelectSQLType(lists *[]map[string]interface{}, typeLabels []string, query string, args ...interface{}) error
 ```
-They differ from the above *QuerySQL* by specifying data types to the rows. While the generic handle could correctly figure out the types in most cases, occasionally it fails because there is no exact matching between SQL typies to GOLANG data types.
+They differ from the above *QuerySQL* by specifying data types to the rows. While the generic handle could correctly figure out the types in most cases, occasionally it fails because there is no exact matching between SQL typies and GOLANG types.
 
 Here is an example. We have assign _string_, _int_, _string_, _int8_, _bool_ and _float32_ to the corresponding columns:
 ```
@@ -154,13 +154,13 @@ Definition:
 func (*DBI) QuerySQLLabel (lists *[]map[string]interface{}, selectLabels []string, query string, args ...interface{}) error
 func (*DBI) SelectSQLLabel(lists *[]map[string]interface{}, selectLabels []string, query string, args ...interface{}) error
 ```
-They differ from the above *QuerySQL* by specifying map keys, called _selectLabels_, instead of using the default column names. For example:
+They differ from the above *QuerySQL* by specifying map keys, called _selectLabels_, instead of using the default names. For example:
 ```
 lists := make([]map[string]interface{})
 err = dbi.QuerySQLLabel(&lists, []string{"time stamp", "record ID", "recorder name", "length", "flag", "values"},
     `SELECT ts, id, name, len, flag, fv FROM mytable WHERE id=?`, 1234)
 ```
-So the result will show the _labels_ as the map keys:
+The result uses the renamed keys:
 ```
 [
     {"time stamp":"2019-12-15 01:01:01", "record ID":1234, "recorder name":"company", "length":30, "flag":true, "values":789.123},
@@ -223,7 +223,7 @@ Similar to *DoProc* but it receives _SELECT_ data into *lists*, providing *proc_
 
 Here is a full example.
 ```
-ackage main
+package main
 
 import (
     "os"
