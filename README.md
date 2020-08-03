@@ -27,7 +27,7 @@ $ go get -u github.com/genelet/godbi
 
 ### 1.1) Type _DBI_
 
-The _DBI_ simply embeds the standard _database/sql_ handle.
+The _DBI_ type simply embeds the standard SQL handle.
 ```
 package godbi
 
@@ -49,7 +49,7 @@ dbi := &DBI{DB: the_standard_sql_handle}
 
 #### Example
 
-In this example, we create a MySQL handle using database credentials in the environment; then create a new table name _letters_ and add 3 rows. We query the data using _SelectSQL_ and get the result in the data structures _lists_ as slice of maps.
+In this example, we create a MySQL handle using database credentials in the environment; then create a new table name _letters_ and add 3 rows. We query the data using _SelectSQL_ and get the result into _lists_ as slice of maps.
 ```
 package main
 
