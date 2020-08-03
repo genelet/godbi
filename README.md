@@ -4,12 +4,12 @@ _godbi_ adds a set of high-level functions to the official SQL handle in GO, for
 [![GoDoc](https://godoc.org/github.com/genelet/godbi?status.svg)](https://godoc.org/github.com/genelet/godbi)
 
 There are three levels of usages:
-- Basic: operating on raw SQL statements and stored procedures, and receiving data as a slice of rows. Each row is represented as a map between the column string names and column interface values.
-- Map: operating on a specific table and fulfiling the CRUD operations using map data.
-- Advanced: operating on multiple tables, called Models, as in MVC pattern and fulfilling the RESTful and GraphQL actions in web applications.
+- _Basic_: operating on raw SQL statements and stored procedures, and receiving data as a slice of rows. Each row is represented as a map between the column string names and column interface values.
+- _Table_: operating on a specific table and fulfiling the CRUD operations using map data.
+- _Advanced_: operating on multiple tables, called Models, as in MVC pattern and fulfilling the RESTful and GraphQL actions in web applications.
 
 _godbi_ is an ideal replacement of ORM. It lets one to achieve the common SQL, CRUD, RESTful and GraphQL tasks very easily and efficiently.
-
+The package is fully tested in MySQL and PostgreSQL, and is assumed to work with other relational databases.
 
 ### Installation
 
@@ -30,7 +30,7 @@ The struct _DBI_ embeds the standard _database/sql_ handle.
 package godbi
 
 type DBI struct {
-    *sql.DB
+    *sql.DB          // Note this is the pointer to the handle
     LastId    int64  // read only, saves the last inserted id
     Affected  int64  // read only, saves the affected rows
 }
@@ -42,65 +42,68 @@ type DBI struct {
 
 Use this function:
 ```
-dbi := &DBI{DB: the_offical_sql_handle}
+dbi := &DBI{DB: the_standard_sql_handle}
 ```
 
 #### Example
 
-Create an instance; use it to create a new database and a table; add a row; and query the row:
+Create a DBI instance; use it to create a new database and a table; add few rows; and query them. The results are output to the data structures _lists_ as slice of maps.
 ```
 package main
 
-import (
-    "log"
-    "os"
-    "github.com/genelet/godbi"
-)
-
-func main() {
-    db, err := godbi.Open("root:taosdata@/tcp(127.0.0.1:0)/");
+    dbUser := os.Getenv("DBUSER")
+    dbPass := os.Getenv("DBPASS")
+    dbName := os.Getenv("DBNAME")
+    db, err := sql.Open("mysql", dbUser + ":" + dbPass + "@/" + dbName)
     if err != nil { panic(err) }
     defer db.Close()
 
-    dbi := &godbi.DBI{Db: db}
+    dbi := &godbi.DBI{DB:db}
 
-    err = dbi.ExecSQL(`CREATE DATABASE IF NOT EXISTS mydbi precision "us"`)
+    // create a new table and insert some data using ExecSQL
+    //
+    err = dbi.ExecSQL(`DROP TABLE IF EXISTS letters`)
     if err != nil { panic(err) }
-    err = dbi.ExecSQL(`USE mydbi`)
+    err = dbi.ExecSQL(`CREATE TABLE letters (
+        id int auto_increment primary key,
+        x varchar(1))`)
     if err != nil { panic(err) }
-    err = dbi.ExecSQL(`DROP TABLE IF EXISTS mytable`)
+    err = dbi.ExecSQL(`INSERT INTO letters (x) VALUES ('m')`)
     if err != nil { panic(err) }
-    err = dbi.ExecSQL(`CREATE TABLE mytable 
-(ts timestamp, id int, name binary(8), len tinyint, flag bool, notes binary(8), fv float, dv double)`)
+    err = dbi.ExecSQL(`INSERT INTO letters (x) VALUES ('n')`)
     if err != nil { panic(err) }
-    err = dbi.ExecSQL(`INSERT INTO mytable (ts, id, name, len, flag, notes, fv, dv)
-VALUES (now, ?, ?, 30, true, 'abcdefgh', 789.123, 456.789)`, 1234, `company`)
+    err = dbi.ExecSQL(`INSERT INTO letters (x) VALUES ('p')`)
     if err != nil { panic(err) }
+
+    // select data from the table and put them into lists
     lists := make([]map[string]interface{},0)
-    err = dbi.QuerySQL(&lists,
-`SELECT ts, id, name, len, flag, fv FROM mytable WHERE id=?`, 1234)
+    sql := "SELECT id, x FROM letters"
+    err = dbi.SelectSQL(&lists, sql)
     if err != nil { panic(err) }
-    
+
+    // print it
     log.Printf("%v", lists)
 
-    err = dbi.ExecSQL(`DROP DATABASE IF EXISTS mydbi`)
-    if err != nil { panic(err) }
+    dbi.ExecSQL(`DROP TABLE letters`)
 
     os.Exit(0)
 }
 ```
 Running this example will report something like
 ```
-[map[flag:true fv:789.123 id:1234 len:30 name:company ts:2020-07-19 09:07:48.341270]]
+[map[id:1 x:m] map[id:2 x:n] map[id:3 x:p]]
 ```
 
 
 ### 1.2) Execute an action on database or table, _ExecSQL_
 
 ```
+// process error if found
 err = dbi.ExecSQL(`CREATE DATABASE mytest`)
+// proces error if found
 err = dbi.ExecSQL(`CREATE TABLE mytable 
         (ts timestamp, id int, name binary(8), len tinyint, flag bool, notes binary(8), fv float, dv double)`)
+        
 err = dbi.ExecSQL(`INSERT INTO mytable (ts, id, name, len, name, flag, notes, fv, dv)
         VALUES (now, ?, ?, 30, true, 'abcdefgh', 789.123, 456.789)`, 1234, `company`)
 // after INSERT, dbi.Affected will be 1
