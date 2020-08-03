@@ -183,7 +183,7 @@ These functions assign both data types and column names in the queries.
 
 
 <br /><br />
-### 1.4) Query one-row data with _SELECT_ 
+### 1.4) Query Single Row with _SELECT_ 
 
 In some cases we may just want to select one row from a query. 
 
@@ -290,10 +290,11 @@ Running the program will result in:
 
 
 <br /><br />
-## Chapter 2. TABLE USAGE
+## Chapter 2. CRUD USAGE
 
+### 2.1) Type *Crud*
 
-Somet times it is more convenient to work on a table by using  
+Type *Crud* lets us to run CRUD actions on a table easily.  
 ```
 type Crud struct {
     DBI
@@ -304,17 +305,104 @@ type Crud struct {
     Updated bool           // for Insupd() only, if the row is updated or new
 }
 ```
-where *CurrentTable* is the table you are working with, *CurrentKey* the primary key in the table, always a [*timestamp*](https://www.taosdata.com/en/documentation/taos-sql/#Data-Query). *LastID*, *CurrentRow* and *Updated* are for the last inserted row.
+Just to note, the 4 letters in CRUD are: 
+- C: _create_ a new row
+- R: _read all_ rows, or _read one_ row
+- U: _update_ a row
+- D: _delete_ a row
 
-You create an instance of *Crud* by
+#### 2.1.1) Create an instance
+
+Create a new one like:
 ```
-crud := &godbi.Crud{Db:db, CurrentTable:mytable, CurrentKey:ts}
+crud := &godbi.Crud{Db:db_handle, CurrentTable:"mytable", CurrentKey:"mykey"}
 ```
 
+#### 2.1.2) Example
 
-<<br />
-### 2.1) Insert one row, *InsertHash*
+This example creates a new table and _create_s 3 rows using _url.Values_ data. Then it _update_s one row, _reads one_ row and _reads all_ rows.
 ```
+package main
+
+import (
+    "log"
+    "net/url"
+    "os"
+    "database/sql"
+    "github.com/genelet/godbi"
+    _ "github.com/go-sql-driver/mysql"
+)
+
+func main() {
+    dbUser := os.Getenv("DBUSER")
+    dbPass := os.Getenv("DBPASS")
+    dbName := os.Getenv("DBNAME")
+    db, err := sql.Open("mysql", dbUser + ":" + dbPass + "@/" + dbName)
+    if err != nil { panic(err) }
+    defer db.Close()
+
+    // create a new instance for table "atesting"
+    dbi := godbi.DBI{DB:db}
+    crud := &godbi.Crud{dbi, "atesting", nil, "id", nil, false}
+
+    err = crud.ExecSQL(`DROP TABLE IF EXISTS atesting`)
+    if err != nil { panic(err) }
+    err = crud.ExecSQL(`CREATE TABLE atesting (id int auto_increment, x varchar(255), y varchar(255), primary key (id))`)
+    if err != nil { panic(err) }
+
+    // 'create' 3 rows one by one using url.Values
+    hash := url.Values{}
+    hash.Set("x", "a")
+    hash.Set("y", "b") // column y is "b"
+    if err = crud.InsertHash(hash); err != nil { panic(err) }
+    hash.Set("x", "c")
+    hash.Set("y", "d") // column y is "d"
+    if err = crud.InsertHash(hash); err != nil { panic(err) }
+    hash.Set("x", "c")
+    hash.Set("y", "e") // column y is "e"
+    if err = crud.InsertHash(hash); err != nil { panic(err) }
+
+    // now the id is 3
+    id := crud.LastId
+    log.Printf("last id=%d", id)
+    // 'update' the row of id=2, change column y to be "z"
+    hash1 := url.Values{}
+    hash1.Set("y", "z")
+    if err = crud.UpdateHash(hash1, []interface{}{id}); err != nil { panic(err) }
+
+    // 'read one' of the row of id=3. Only the columns x and y are reported
+    lists := make([]map[string]interface{}, 0)
+    label := []string{"x", "y"} // which columns to be reported
+    err = crud.EditHash(&lists, label, []interface{}{id})
+    if err != nil { panic(err) }
+    log.Printf("row of id=2: %v", lists)
+
+    // 'read all' rows with contraint "x='c'". Report columns id, x and y.
+    lists = make([]map[string]interface{}, 0)
+    label = []string{"id", "x", "y"}
+    extra := url.Values{"x":[]string{"c"}} // this is the contraint x='c'
+    if err = crud.TopicsHash(&lists, label, extra); err != nil { panic(err) }
+    log.Printf("all rows: %v", lists)
+
+    db.Close()
+}
+```
+Running the program will result in:
+```
+last id=3
+row of id=2: [map[x:c y:z]]
+all rows: [map[id:2 x:c y:d] map[id:3 x:c y:z]]
+```
+
+<br /><br />
+### 2.1) Insert a New Row, *InsertHash*
+
+Definition:
+```
+func (*Crud) InsertHash(fieldValues url.Values) error
+```
+where _fieldValues_ stores the column names and values in type _url.Values_.
+
 err = crud.InsertHash(map[string]interface{}{
         {"ts":"2019-12-31 23:59:59.9999", "id":7890, "name":"last day", "fv":123.456}
 })
@@ -322,7 +410,7 @@ err = crud.InsertHash(map[string]interface{}{
 If you miss the primary key, the package will automatically assign *now* to be the value.
 
 
-<br />
+<br /><br />
 ### 2.2) Insert or Retrieve an old row, *InsupdHash*
 
 Sometimes a record may already be existing in the table, so you'd like to insert if it is not there, or retrieve it. Function *InsupdHash* is for this purpose:
