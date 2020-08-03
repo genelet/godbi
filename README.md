@@ -294,7 +294,7 @@ Running the program will result in:
 
 ### 2.1) Type *Crud*
 
-Type *Crud* lets us to run CRUD actions on a table easily.  
+Type *Crud* lets us to run CRUD on a table easily.  
 ```
 type Crud struct {
     DBI
@@ -313,14 +313,14 @@ Just to note, the 4 letters in CRUD are:
 
 #### 2.1.1) Create an instance
 
-Create a new one like:
+Create a new instance:
 ```
-crud := &godbi.Crud{Db:db_handle, CurrentTable:"mytable", CurrentKey:"mykey"}
+crud := &godbi.Crud{DBI:dbi_created, CurrentTable:"mytable", CurrentKey:"mykey"}
 ```
 
 #### 2.1.2) Example
 
-This example creates a new table and _create_s 3 rows using _url.Values_ data. Then it _update_s one row, _reads one_ row and _reads all_ rows.
+This example creates a new table and _creates_ 3 rows using _url.Values_ data. Then it _updates_ one row, _reads one_ row and _reads all_ rows.
 ```
 package main
 
@@ -395,7 +395,7 @@ all rows: [map[id:2 x:c y:d] map[id:3 x:c y:z]]
 ```
 
 <br /><br />
-### 2.1) Insert a New Row, *InsertHash*
+### 2.1) Create a New Row, *InsertHash*
 
 Definition:
 ```
