@@ -1,10 +1,14 @@
 # godbi
-An abstract interface class (DBi) to access relational dabtase system in GO. Check *godoc* from [here](https://godoc.org/github.com/genelet/godbi)
+_godbi_ adds a set of high-level functions to the official SQL handle in GO, for easier database executions and queries. Check *godoc* from [here](https://godoc.org/github.com/genelet/godbi) for definitions.
 
 [![GoDoc](https://godoc.org/github.com/genelet/godbi?status.svg)](https://godoc.org/github.com/genelet/godbi)
 
-[TDengine](https://github.com/taosdata/TDengine) is a very fast open-source database system. It comes with a [GO connector](https://github.com/taosdata/driver-go). This _godbi_ GO package provides _abstract_ classes to access it, which some users may feel more convenient to use. In an advanced usage, one can call multiple *JOINed* tables in one statement, just like relational database.
+There are three levels of usages:
+- Basic: operating on raw SQL statements and stored procedures, and receiving data as a slice of rows. Each row is represented as a map between the column string names and column interface values.
+- Map: operating on a specific table and fulfiling the CRUD operations using map data.
+- Advanced: operating on multiple tables, called Models, as in MVC pattern and fulfilling the RESTful and GraphQL actions in web applications.
 
+_godbi_ is an ideal replacement of ORM. It lets one to achieve the common SQL, CRUD, RESTful and GraphQL tasks very easily and efficiently.
 
 
 ### Installation
@@ -14,14 +18,6 @@ $ go get -u github.com/genelet/godbi
 ```
 <!-- go mod init github.com/genelet/godbi -->
 
-Or manually clone from [github](https://github.com/genelet/godbi) and place it under your GOPATH
-```
-$ git clone https://github.com/genelet/godbi.git
-```
-
-There are three levels of usages: Basic, Map and Advanced.
-
-
 
 
 ## Chapter 1. BASIC USAGE
@@ -29,28 +25,24 @@ There are three levels of usages: Basic, Map and Advanced.
 
 ### 1.1) Data Type _DBI_
 
-The struct _DBI_ is a wrapper of the standard _database/sql_ handle.
+The struct _DBI_ embeds the standard _database/sql_ handle.
 ```
 package godbi
 
 type DBI struct {
-    Db        *sql.DB
-    Affected  int64
+    *sql.DB
+    LastId    int64  // read only, saves the last inserted id
+    Affected  int64  // read only, saves the affected rows
 }
 
 ```
-where _Db_ is the database handle; _Affected_ saves affected number of rows after an operation.
+
 
 #### Create a new handle
 
 Use this function:
 ```
-func Open(dataSourceName string) (*DB, error)
-```
-
-So you get a _DBI_ instance by:
-```
-&DBI{Db: created_handle}
+dbi := &DBI{DB: the_offical_sql_handle}
 ```
 
 #### Example
