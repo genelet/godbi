@@ -14,6 +14,7 @@ _godbi_ is an ideal replacement of ORM. It achieves the common SQL, CRUD, RESTfu
 The package is fully tested in MySQL and PostgreSQL, and is assumed to work with other relational databases.
 
 
+<br >
 ### Installation
 
 ```
@@ -22,10 +23,11 @@ $ go get -u github.com/genelet/godbi
 <!-- go mod init github.com/genelet/godbi -->
 
 
-
+<br /><br />
 ## Chapter 1. BASIC USAGE
 
 
+<br />
 ### 1.1) Type _DBI_
 
 The _DBI_ type simply embeds the standard SQL handle.
@@ -40,13 +42,14 @@ type DBI struct {
 
 ```
 
-#### Create a new handle
+
+#### 1.1.1) Create a new handle
 
 ```
 dbi := &DBI{DB: the_standard_sql_handle}
 ```
 
-#### Example
+#### 1.1.2) Example
 
 In this example, we create a MySQL handle using database credentials in the environment; then create a new table _letters_ and add 3 rows. We query the data using _SelectSQL_ and put the result into _lists_ as slice of maps.
 ```
@@ -96,6 +99,7 @@ Running this example will report something like
 ```
 
 
+<br />
 ### 1.2) Execution with _ExecSQL_ & _DoSQL_
 
 Definition:
@@ -108,6 +112,7 @@ Similar to SQL's _Exec_, these functions execute _INSERT_ or _UPDATE_ queries. T
 The difference between the two functions is that _DoSQL_ runs a prepared statement and is safe for concurrent use by multiple goroutines.
 
 
+<br />
 ### 1.3) Queries with _SELECT_ 
 
 #### 1.3.1)  *QuerySQL* & *SelectSQL*
@@ -178,6 +183,7 @@ func (*DBI) SelectSQLTypeLabel(lists *[]map[string]interface{}, typeLabels []str
 These functions assign both data types and column names in the queries.
 
 
+<br />
 ### 1.4) Query one-row data with _SELECT_ 
 
 In some cases we may just want to select one row from a query. 
@@ -199,6 +205,7 @@ func (*DBI) GetArgs(res url.Values, query string, args ...interface{}) error
 which is similar to *SelectSQL* but has only one row output to *res* of of type [url.Values](https://golang.org/pkg/net/url/). This function will be used mainly in web applications, where HTTP request data are expressed in _url.Values_.
 
 
+<,br />
 ### 1.5) Stored Procedure
 
 _godbi_ runs stored procedures easily as well.
@@ -283,7 +290,7 @@ Running the program will result in:
 ```
 
 
-
+<br /><br />
 ## Chapter 2. TABLE USAGE
 
 
@@ -306,6 +313,7 @@ crud := &godbi.Crud{Db:db, CurrentTable:mytable, CurrentKey:ts}
 ```
 
 
+<<br />
 ### 2.1) Insert one row, *InsertHash*
 ```
 err = crud.InsertHash(map[string]interface{}{
@@ -315,6 +323,7 @@ err = crud.InsertHash(map[string]interface{}{
 If you miss the primary key, the package will automatically assign *now* to be the value.
 
 
+<br />
 ### 2.2) Insert or Retrieve an old row, *InsupdHash*
 
 Sometimes a record may already be existing in the table, so you'd like to insert if it is not there, or retrieve it. Function *InsupdHash* is for this purpose:
@@ -327,6 +336,7 @@ err = crud.InsupdHash(map[string]interface{}{
 It identifies the uniqueness by the combined valuse of *id* and *name*. In both the cases, you get the ID in *crud.LastID*, the row in *CurrentRow*, and the case in *Updated* (true for old record, and false for new). 
 
 
+<br />
 ### 2.3) Select many rows, *TopicsHash*
 
 Search many by *TopicsHash*:
@@ -344,6 +354,7 @@ Only three types of _restriction_ are supported in map:
 - _"_gsql":"row sql statement"_  Use the special key *_gsql* to write a raw SQL statment.
 
 
+<br />
 ### 2.4) Select one row, *EditHash*
 
 ```
@@ -356,7 +367,7 @@ Optionally, you may input an array of few key values and get them all in *lists*
 
 
 
-
+<br /><br />
 ## Chapter 3. ADVANCED USAGE
 
 *Model* is even a more detailed class operation on TDengine table.
