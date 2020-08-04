@@ -1,17 +1,17 @@
 # godbi
-_godbi_ adds a set of high-level functions to the official SQL handle in GO, for easier database executions and queries. Check *godoc* from [here](https://godoc.org/github.com/genelet/godbi) for definitions.
+_godbi_ adds a set of high-level functions to the generic SQL handle in GO, for easier database executions and queries. 
 
+Check *godoc* from [here](https://godoc.org/github.com/genelet/godbi) for definitions:
 [![GoDoc](https://godoc.org/github.com/genelet/godbi?status.svg)](https://godoc.org/github.com/genelet/godbi)
 
 There are three levels of usages:
-- _Basic_: operating on raw SQL statements and stored procedures, and receiving data as a _slice_ of rows. Each row is represented as a _map_ between the column names (_string_) and column value (_interface{}_).
-- _Table_: operating on a specific table and fulfilling the CRUD operations using _map_ data.
-- _Advanced_: operating on multiple tables, called Models, as in MVC pattern in web applications; and fulfilling the RESTful and GraphQL actions.
+- _Basic_: operating on raw SQL statements and stored procedures.
+- _Crud_: operating on specific table and fulfilling CRUD actions.
+- _Advanced_: operating on tables, called Models, as in MVC pattern in web applications, and fulfilling RESTful and GraphQL actions.
 
-Note that all functions are consistently returning _error_ if failed, or _nil_ if succeeded.
 
-_godbi_ is an ideal replacement of ORM. It achieves the common SQL, CRUD, RESTful and GraphQL tasks very easily and efficiently.
-The package is fully tested in MySQL and PostgreSQL, and is assumed to work with other relational databases.
+_godbi_ is an ideal replacement of ORM. It achieves SQL, CRUD, RESTful and GraphQL tasks gracefully and very efficiently.
+The package is fully tested in MySQL and PostgreSQL, and assumed to work with other relational databases.
 
 
 <br /><br />
