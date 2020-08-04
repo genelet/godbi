@@ -296,7 +296,7 @@ Running the program will result in:
 
 ### 2.1) Type *Crud*
 
-Type *Crud* lets us to run CRUD on a table easily.  
+Type *Crud* lets us to run CRUD verbs on a table easily.  
 ```
 type Crud struct {
     DBI
@@ -397,25 +397,109 @@ all rows: [map[id:2 x:c y:d] map[id:3 x:c y:z]]
 ```
 
 <br /><br />
-### 2.1) Create a New Row, *InsertHash*
+### 2.2) Create a New Row, *InsertHash*
 
 Definition:
 ```
 func (*Crud) InsertHash(fieldValues url.Values) error
 ```
-where _fieldValues_ stores the column names and values in type _url.Values_.
-
-err = crud.InsertHash(map[string]interface{}{
-        {"ts":"2019-12-31 23:59:59.9999", "id":7890, "name":"last day", "fv":123.456}
-})
-```
-If you miss the primary key, the package will automatically assign *now* to be the value.
+where _fieldValues_ stores column's names and values in type _url.Values_. The last inserted id will be assigned to _LastId_ if the database driver supports it.
 
 
 <br /><br />
-### 2.2) Insert or Retrieve an old row, *InsupdHash*
+### 2.3) Read All Rows, *TopicsHash*
 
-Sometimes a record may already be existing in the table, so you'd like to insert if it is not there, or retrieve it. Function *InsupdHash* is for this purpose:
+Definition:
+```
+func (*Crud) TopicsHash(lists *[]map[string]interface{}, selectPars interface{}, extra ...url.Values) error
+```
+where _lists_ receives the query results.
+
+#### 2.3.1) Specify which columns to be reported
+
+_selectPars_ is an interface which specifies column names and types to be included in the query report. There are 5 cases:
+- []string{name}, just a list of column names
+- [][2]string{name, type}, a list of column names and associated data types
+- map[string]string{name: label}, rename the column names by labels
+- map[string][2]string{name: label, type}, rename the column names labels and use the specific types
+If you don't specify column types, the generic handle will decide one for you which is most likely correct.
+
+#### 2.3.2) Constraints
+
+_extra_ is a contraint on the search, i.e. the *WHERE* statement. It is of type _url.Values_ and the keys are the column names. There are 3 and only 3 cases (currently supported):
+- a key has only single value, it means an EQUAL constraint
+- a key has array string values, it mean an IN constraint
+- the key has name "_gsql", it means a raw SQL statement
+- if there are multiple keys in _extra_, they are AND conditions.
+
+#### 2.3.3) Use multiple JOINed tables
+
+The _R_ verb will use a JOINed SQL statement from related tables, if field _CurrentTables_ exists in the instance. We should pre-define the tables as type _Table_:
+```
+type Table struct { 
+   Name string   `json:"name"`             // name of the table
+	Alias string  `json:"alias,omitempty"`  // optional alias of the table
+	Type string   `json:"type,omitempty"`   // INNER or LEFT, how the table is joined
+	Using string  `json:"using,omitempty"`  // optional, joining by USING table name
+	On string 	  `json:"on,omitempty"`     // optional, joining by ON condition
+	Sortby string `json:"sortby,omitempty"` // optional column to sort, only applied to the first table
+}
+```
+The related tables should be placed into a slice, with corrent JOIN order. We can use
+```
+func TableString(tables []*Table) string {
+```
+To generate the JOINed statement. Here is an example:
+```
+str := `[
+    {"name":"user_project", "alias":"j", "sortby":"c.componentid"},
+    {"name":"user_component", "alias":"c", "type":"INNER", "using":"projectid"},
+    {"name":"user_table", "alias":"t", "type":"LEFT", "on":"c.tableid=t.tableid"}]`
+tables := make([]*Table, 0)
+if err := json.Unmarshal([]byte(str), &tables); err != nil { panic(err) }
+```
+And the statement will be
+```
+user_project j
+INNER JOIN user_component c USING (projectid)
+LEFT JOIN user_table t USING (c.tableid=t.tableid)
+```
+By specifying the _selectPars_ as in 2.3.1 and constraints in 2.3.2, we can construct very sophisticate relational SELECT statement. The use cases are mostly applied to the _Advanced Usage_, discussed below.
+
+
+
+<br /><br />
+### 2.3) Read One Row, *EditHash*
+
+The function:
+```
+func (*Crud) EditHash(lists *[]map[string]interface{}, editPars interface{}, ids []interface{}, extra ...url.Values) error
+```
+Similiar to *TopicsHash*, we run a _SELECT_ search and receive the result in _lists_ with column names specified by *editPars* and constrainted by *extra*. Here the rows must have the primary key (PK) values *ids*.
+- if PK is a single column, *ids* should be a slice of targed PK values
+  - to select a single PK equaling to 1234, just use *ids = []int{1234}*
+- if PK has multiple columns, i.e. *CurrentKeys* exists, *ids* should be a slice of value arrays.
+
+<br /><br />
+### 2.3) Update a Row, *UpdateHash*
+
+The function:
+```
+func (*Crud) UpdateHash(fieldValues url.Values, ids []interface{}, extra ...url.Values) error
+```
+The rows specified by PK of *ids*, and constrainted by *extra* will be updated using the new column values in *fieldValues*.
+
+<br /><br />
+### 2.4) Create a New Row or Update a Row, *InsupdHash*
+
+This is not the "standard" Crud verb but is impleted as *PATCH* method in web applications. The use case is that when we insert a row,
+we don't know if it it already existing. If so, we would update the record instead of creating a new one. The uniqueness is defined by
+*uniques* which consists of selected column names:
+```
+func (*Crud) InsupdTable(fieldValues url.Values, uniques []string) error
+```
+So if the row specitied by the selected column values exists, only a update verb will be made and the
+you don't  a record may already be existing in the table, so you'd like to insert if it is not there, or retrieve it. Function *InsupdHash* is for this purpose:
 ```
 err = crud.InsupdHash(map[string]interface{}{
         {"ts":"2019-12-31 23:59:59.9999", "id":7890, "name":"last day", "fv":123.456}},
