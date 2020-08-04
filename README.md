@@ -1,7 +1,7 @@
 # godbi
 _godbi_ adds a set of high-level functions to the generic SQL handle in GO, for easier database executions and queries. 
 
-Check *godoc* from [here](https://godoc.org/github.com/genelet/godbi) for definitions:
+Check *godoc* for definitions:
 [![GoDoc](https://godoc.org/github.com/genelet/godbi?status.svg)](https://godoc.org/github.com/genelet/godbi)
 
 There are three levels of usages:
@@ -120,12 +120,10 @@ lists := make([]map[string]interface{})
 err = dbi.QuerySQL(&lists,
     `SELECT ts, id, name, len, flag, fv FROM mytable WHERE id=?`, 1234)
 ```
-This will select all rows with _id=1234_.
+will select all rows with _id=1234_.
 ```
-[
     {"ts":"2019-12-15 01:01:01", "id":1234, "name":"company", "len":30, "flag":true, "fv":789.123},
     ....
-]
 ```
 The difference between the two functions is that _SelectSQL_ runs a prepared statement.
 
