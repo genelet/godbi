@@ -350,21 +350,21 @@ func main() {
     // now the id is 3
     id := crud.LastId
     log.Printf("last id=%d", id)
-    // 'update' the row of id=2, change column y to be "z"
+    // update the row of id=3, change column y to be "z"
     hash1 := url.Values{}
     hash1.Set("y", "z")
     if err = crud.UpdateHash(hash1, []interface{}{id}); err != nil { panic(err) }
 
-    // 'read one' of the row of id=3. Only the columns x and y are reported
+    // read one of the row of id=3. Only the columns x and y are reported
     lists := make([]map[string]interface{}, 0)
     label := []string{"x", "y"} // which columns to be reported
     if err = crud.EditHash(&lists, label, []interface{}{id}); err != nil { panic(err) }
     log.Printf("row of id=2: %v", lists)
 
-    // 'read all' rows with contraint "x='c'". Report columns id, x and y.
+    // read all rows with contraint x='c'
     lists = make([]map[string]interface{}, 0)
     label = []string{"id", "x", "y"}
-    extra := url.Values{"x":[]string{"c"}} // this is the contraint x='c'
+    extra := url.Values{"x":[]string{"c"}}
     if err = crud.TopicsHash(&lists, label, extra); err != nil { panic(err) }
     log.Printf("all rows: %v", lists)
 
@@ -374,7 +374,7 @@ func main() {
 Running the program will result in:
 ```
 last id=3
-row of id=2: [map[x:c y:z]]
+row of id=3: [map[x:c y:z]]
 all rows: [map[id:2 x:c y:d] map[id:3 x:c y:z]]
 ```
 
