@@ -133,7 +133,7 @@ func (*DBI) SelectSQLType(lists *[]map[string]interface{}, typeLabels []string, 
 ```
 They differ from the above *QuerySQL* by specifying data types to the rows. While the generic handle could correctly figure out the types in most cases, occasionally it fails because there is no exact matching between SQL typies and GOLANG types.
 
-Here is an example. We have assign _string_, _int_, _string_, _int8_, _bool_ and _float32_ to the corresponding columns:
+The following example assigns _string_, _int_, _string_, _int8_, _bool_ and _float32_ to the corresponding columns:
 ```
 err = dbi.QuerySQLType(&lists, []string{"string", "int", "string", "int8", "bool", "float32},
     `SELECT ts, id, name, len, flag, fv FROM mytable WHERE id=?`, 1234)
@@ -151,7 +151,7 @@ lists := make([]map[string]interface{})
 err = dbi.QuerySQLLabel(&lists, []string{"time stamp", "record ID", "recorder name", "length", "flag", "values"},
     `SELECT ts, id, name, len, flag, fv FROM mytable WHERE id=?`, 1234)
 ```
-The result uses the renamed keys:
+The result has the renamed keys:
 ```
     {"time stamp":"2019-12-15 01:01:01", "record ID":1234, "recorder name":"company", "length":30, "flag":true, "values":789.123},
 ```
@@ -270,7 +270,7 @@ Running the program will result in:
 
 ### 2.1) Type *Crud*
 
-Type *Crud* lets us to run CRUD verbs on a table easily.  
+Type *Crud* lets us to run CRUD verbs easily on a table.  
 ```
 type Crud struct {
     DBI
@@ -282,10 +282,10 @@ type Crud struct {
 }
 ```
 Just to note, the 4 letters in CRUD are: 
-- C: _create_ a new row
-- R: _read all_ rows, or _read one_ row
-- U: _update_ a row
-- D: _delete_ a row
+- C: _Create_ a new row
+- R: _Read all_ rows, or _Read one_ row
+- U: _Update_ a row
+- D: _Delete_ a row
 
 #### 2.1.1) Create an instance
 
@@ -296,7 +296,7 @@ crud := &godbi.Crud{DBI:dbi_created, CurrentTable:"mytable", CurrentKey:"mykey"}
 
 #### 2.1.2) Example
 
-This example creates a new table and _creates_ 3 rows. Then it _updates_ one row, _reads one_ row and _reads all_ rows.
+This example _Creates_ 3 rows. Then it _Updates_ one row, _Reads one_ row and _Reads all_ rows.
 ```
 package main
 
@@ -327,13 +327,13 @@ func main() {
     // 'create' 3 rows one by one using url.Values
     hash := url.Values{}
     hash.Set("x", "a")
-    hash.Set("y", "b") // column y is "b"
+    hash.Set("y", "b") 
     if err = crud.InsertHash(hash); err != nil { panic(err) }
     hash.Set("x", "c")
-    hash.Set("y", "d") // column y is "d"
+    hash.Set("y", "d") 
     if err = crud.InsertHash(hash); err != nil { panic(err) }
     hash.Set("x", "c")
-    hash.Set("y", "e") // column y is "e"
+    hash.Set("y", "e")  
     if err = crud.InsertHash(hash); err != nil { panic(err) }
 
     // now the id is 3
@@ -361,7 +361,7 @@ func main() {
     os.Exit(0)
 }
 ```
-Running the program will result in:
+Running result:
 ```
 last id=3
 row of id=3: [map[x:c y:z]]
@@ -374,7 +374,7 @@ all rows: [map[id:2 x:c y:d] map[id:3 x:c y:z]]
 ```
 func (*Crud) InsertHash(fieldValues url.Values) error
 ```
-where _fieldValues_ of type _url.Values_ stores column's names and values. The last inserted id will be put in _LastId_ if the database driver supports it.
+where _fieldValues_ of type _url.Values_ stores column's names and values. The lastest inserted id will be put in _LastId_ if the database driver supports it.
 
 
 <br /><br />
@@ -387,40 +387,40 @@ where _lists_ receives the query results.
 
 #### 2.3.1) Specify which columns to be reported
 
-_selectPars_ is an interface which specifies column names and types to be included in the query report. There are 4 cases:
+Use _selectPars_ which is an interface to specify which column names and types in the query. There are 4 cases:
 - *[]string{name}*, just a list of column names
 - *[][2]string{name, type}*, a list of column names and associated data types
 - *map[string]string{name: label}*, rename the column names by labels
 - *map[string][2]string{name: label, type}*, rename the column names to labels and use the specific types
 
-If you don't specify column types, the generic handle will decide one for you, which is most likely correct.
+If you don't specify types, the generic handle will decide one for you, which is most likely correct.
 
 #### 2.3.2) Constraints
 
-_extra_ is a contraint in the *WHERE* statement. There are 3 and only 3 cases (currently supported):
-- a key has only single value, it means an EQUAL constraint
-- a key has array string values, it means an IN constraint
-- the key has name *_gsql*, it means a raw SQL statement
+Use _extra_ to contrain the *WHERE* statement. <Currently we support 3 and only 3 cases:
+- a key has only single value, which means an EQUAL constraint
+- a key has array string values, which means an IN constraint
+- the key is named *_gsql*, which means a raw SQL statement
 - if there are multiple keys in _extra_, they are AND conditions.
 
 #### 2.3.3) Use multiple JOIN tables
 
-The _R_ verb will use a JOIN SQL statement from related tables, if _CurrentTables_ exists in the instance. The table type is:
+The _R_ verb will use a JOIN SQL statement from related tables, if _CurrentTables_ of type *Table* exists in *Crud*.
 ```
 type Table struct { 
     Name string   `json:"name"`             // name of the table
     Alias string  `json:"alias,omitempty"`  // optional alias of the table
     Type string   `json:"type,omitempty"`   // INNER or LEFT, how the table is joined
     Using string  `json:"using,omitempty"`  // optional, joining by USING table name
-    On string 	   `json:"on,omitempty"`     // optional, joining by ON condition
+    On string     `json:"on,omitempty"`     // optional, joining by ON condition
     Sortby string `json:"sortby,omitempty"` // optional column to sort, only applied to the first table
 }
 ```
-The related tables should be placed into a slice with corrent orders. The function
+The tables in _CurrentTables_ should be placed with corrent orders. To output the SQL string, use
 ```
 func TableString(tables []*Table) string
 ```
-will output the SQL statement. Here is an example:
+For example:
 ```
 str := `[
     {"name":"user_project", "alias":"j"},
@@ -430,14 +430,14 @@ tables := make([]*Table, 0)
 if err := json.Unmarshal([]byte(str), &tables); err != nil { panic(err) }
 log.Printf("%s", TableString())
 ```
-will be
+will output
 ```
 user_project j
 INNER JOIN user_component c USING (projectid)
 LEFT JOIN user_table t USING (c.tableid=t.tableid)
 ```
 
-By combining _selectPars_ in section 2.3.1 and _extra_ in section 2.3.2, we can construct very sophisticate search queries. The use cases will be discussed in _Advanced Usage_ below.
+By combining _selectPars_ and _extra_, we can construct sophisticate search queries. The use cases will be discussed in _Advanced Usage_ below.
 
 
 <br /><br />
@@ -446,7 +446,7 @@ By combining _selectPars_ in section 2.3.1 and _extra_ in section 2.3.2, we can 
 ```
 func (*Crud) EditHash(lists *[]map[string]interface{}, editPars interface{}, ids []interface{}, extra ...url.Values) error
 ```
-Similiar to *TopicsHash*, we receive the result in _lists_ with columns specified by *editPars* and constraints by *extra*. Here there is another constraint: the rows must have the primary key (*PK*) *ids*.
+This will select rows which have the specific primary key (*PK*) values *ids* and are constrainted by *extra*. The query result is put in _lists_ with columns defined in *editPars*. *ids* should be: 
 - if PK is a single column, *ids* should be a slice of targed PK values
   - to select a single PK equaling to 1234, just use *ids = []int{1234}*
 - if PK has multiple columns, i.e. *CurrentKeys* exists, *ids* should be a slice of value arrays.
@@ -458,7 +458,7 @@ Similiar to *TopicsHash*, we receive the result in _lists_ with columns specifie
 ```
 func (*Crud) UpdateHash(fieldValues url.Values, ids []interface{}, extra ...url.Values) error
 ```
-The rows having PK *ids* and constraint *extra* will be updated using the new values in *fieldValues*.
+The rows having *ids* as PK values and *extra* as constraint will be updated by *fieldValues*, which uses column names as its keys.
 
 
 <br /><br />
@@ -467,8 +467,9 @@ The rows having PK *ids* and constraint *extra* will be updated using the new va
 ```
 func (*Crud) InsupdTable(fieldValues url.Values, uniques []string) error
 ```
-This is not defined in CRUD, but is implemented as the *PATCH* method in *http*. The use case is that when we try create a row,
-it may already exist. If so, we will update it instead. The uniqueness is determined by *uniques* column names. The field *Updated* will tell if the verb is *Update* or not. 
+This function is not a part of CRUD, but is implemented as *PATCH* method in *http*. When we try create a row,
+it may already exist. If so, we will update it instead. The uniqueness is determined by *uniques* column names.
+The field *Updated* will tell if the verb is *Update* or not. 
 
 
 <br /><br />
@@ -477,7 +478,7 @@ it may already exist. If so, we will update it instead. The uniqueness is determ
 ```
 func (*Crud) DeleteHash(ids []interface{}, extra ...url.Values) error
 ```
-This function deletes row specified by *ids* with constraint *extra*.
+This function deletes row specified by *ids* and constraint *extra*.
 
 
 
