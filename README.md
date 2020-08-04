@@ -94,7 +94,6 @@ Running this example will report something like
 <br /><br />
 ### 1.2) Execution with _ExecSQL_ & _DoSQL_
 
-Definition:
 ```
 func (*DBI) ExecSQL(query string, args ...interface{}) error
 func (*DBI) DoSQL  (query string, args ...interface{}) error
@@ -109,7 +108,6 @@ The difference between the two functions is that _DoSQL_ runs a prepared stateme
 
 #### 1.3.1)  *QuerySQL* & *SelectSQL*
 
-Definition:
 ```
 func (*DBI) QuerySQL (lists *[]map[string]interface{}, query string, args ...interface{}) error
 func (*DBI) SelectSQL(lists *[]map[string]interface{}, query string, args ...interface{}) error
@@ -129,7 +127,6 @@ The difference between the two functions is that _SelectSQL_ runs a prepared sta
 
 #### 1.3.2) *QuerySQLType* & *SelectSQLType*
 
-Definition:
 ```
 func (*DBI) QuerySQLType (lists *[]map[string]interface{}, typeLabels []string, query string, args ...interface{}) error
 func (*DBI) SelectSQLType(lists *[]map[string]interface{}, typeLabels []string, query string, args ...interface{}) error
@@ -144,7 +141,6 @@ err = dbi.QuerySQLType(&lists, []string{"string", "int", "string", "int8", "bool
 
 #### 1.3.3) *QuerySQLLabel* & *SelectSQLLable*
 
-Definition:
 ```
 func (*DBI) QuerySQLLabel (lists *[]map[string]interface{}, selectLabels []string, query string, args ...interface{}) error
 func (*DBI) SelectSQLLabel(lists *[]map[string]interface{}, selectLabels []string, query string, args ...interface{}) error
@@ -162,7 +158,6 @@ The result uses the renamed keys:
 
 #### 1.3.4) *QuerySQLTypeLabel* & *SelectSQlTypeLabel*
 
-Definition:
 ```
 func (*DBI) QuerySQLTypeLabel (lists *[]map[string]interface{}, typeLabels []string, selectLabels []string, query string, args ...interface{}) error
 func (*DBI) SelectSQLTypeLabel(lists *[]map[string]interface{}, typeLabels []string, selectLabels []string, query string, args ...interface{}) error
@@ -177,7 +172,6 @@ In some cases we may just want to select one row from a query.
 
 #### 1.4.1) *GetSQLLable*
 
-Definition:
 ```
 func (*DBI) GetSQLLabel(res map[string]interface{}, query string, selectLabels []string, args ...interface{}) error
 ```
@@ -185,7 +179,6 @@ which is similar to *SelectSQLLable* but has only one row output to *res*.
 
 #### 1.4.2) *GetArgs*
 
-Definition:
 ```
 func (*DBI) GetArgs(res url.Values, query string, args ...interface{}) error
 ```
@@ -199,7 +192,6 @@ _godbi_ runs stored procedures easily as well.
 
 #### 1.5.1) *DoProc*
 
-Definition:
 ```
 func (*DBI) DoProc(res map[string]interface{}, names []string, proc_name string, args ...interface{}) error
 ```
@@ -209,13 +201,12 @@ If the procedure has no output data to receive, just assign *names* to be _nil_.
 
 #### 1.5.2) *SelectDoProc*
 
-Definition:
 ```
 func (*DBI) SelectDoProc(lists *[]map[string]interface{}, res map[string]interface{}, names []string, proc_name string, args ...interface{}) error
 ```
 Similar to *DoProc* but it receives _SELECT_ data into *lists*, providing *proc_name* contains such a query. 
 
-Here is a full example.
+Full example:
 ```
 package main
 
@@ -380,7 +371,6 @@ all rows: [map[id:2 x:c y:d] map[id:3 x:c y:z]]
 <br /><br />
 ### 2.2) Create a New Row, *InsertHash*
 
-Definition:
 ```
 func (*Crud) InsertHash(fieldValues url.Values) error
 ```
@@ -390,7 +380,6 @@ where _fieldValues_ of type _url.Values_ stores column's names and values. The l
 <br /><br />
 ### 2.3) Read All Rows, *TopicsHash*
 
-Definition:
 ```
 func (*Crud) TopicsHash(lists *[]map[string]interface{}, selectPars interface{}, extra ...url.Values) error
 ```
@@ -454,7 +443,6 @@ By combining _selectPars_ in section 2.3.1 and _extra_ in section 2.3.2, we can 
 <br /><br />
 ### 2.3) Read One Row, *EditHash*
 
-Definition:
 ```
 func (*Crud) EditHash(lists *[]map[string]interface{}, editPars interface{}, ids []interface{}, extra ...url.Values) error
 ```
@@ -467,7 +455,6 @@ Similiar to *TopicsHash*, we receive the result in _lists_ with columns specifie
 <br /><br />
 ### 2.4) Update a Row, *UpdateHash*
 
-Definition:
 ```
 func (*Crud) UpdateHash(fieldValues url.Values, ids []interface{}, extra ...url.Values) error
 ```
@@ -477,19 +464,16 @@ The rows having PK *ids* and constraint *extra* will be updated using the new va
 <br /><br />
 ### 2.4) Create or Update a Row, *InsupdHash*
 
-This is not defined in CRUD, but is implemented as the *PATCH* method in *http*. The use case is that when we create a row,
-it may already exist. If so, we will update the record instead. The uniqueness is determined by
-*uniques* column names:
 ```
 func (*Crud) InsupdTable(fieldValues url.Values, uniques []string) error
 ```
-The field *Updated* will tell if the verb is *Update* or not. 
+This is not defined in CRUD, but is implemented as the *PATCH* method in *http*. The use case is that when we try create a row,
+it may already exist. If so, we will update it instead. The uniqueness is determined by *uniques* column names. The field *Updated* will tell if the verb is *Update* or not. 
 
 
 <br /><br />
 ### 2.5) Delete a Row, *DeleteHash*
 
-Definition:
 ```
 func (*Crud) DeleteHash(ids []interface{}, extra ...url.Values) error
 ```
