@@ -424,15 +424,15 @@ type Table struct {
     Alias string  `json:"alias,omitempty"`  // optional alias of the table
     Type string   `json:"type,omitempty"`   // INNER or LEFT, how the table is joined
     Using string  `json:"using,omitempty"`  // optional, joining by USING table name
-    On string 	  `json:"on,omitempty"`     // optional, joining by ON condition
+    On string 	   `json:"on,omitempty"`     // optional, joining by ON condition
     Sortby string `json:"sortby,omitempty"` // optional column to sort, only applied to the first table
 }
 ```
-The related tables should be placed into a slice with corrent orders. The
+The related tables should be placed into a slice with corrent orders. The function
 ```
-func TableString(tables []*Table) string {
+func TableString(tables []*Table) string
 ```
-outputs the SQL statement. Here is an example:
+will output the SQL statement. Here is an example:
 ```
 str := `[
     {"name":"user_project", "alias":"j"},
