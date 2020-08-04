@@ -66,24 +66,18 @@ package main
 
     // create a new table and insert some data using ExecSQL
     //
-    err = dbi.ExecSQL(`DROP TABLE IF EXISTS letters`)
-    if err != nil { panic(err) }
-    err = dbi.ExecSQL(`CREATE TABLE letters (
+    if err = dbi.ExecSQL(`DROP TABLE IF EXISTS letters`); err != nil { panic(err) }
+    if err = dbi.ExecSQL(`CREATE TABLE letters (
         id int auto_increment primary key,
-        x varchar(1))`)
-    if err != nil { panic(err) }
-    err = dbi.ExecSQL(`INSERT INTO letters (x) VALUES ('m')`)
-    if err != nil { panic(err) }
-    err = dbi.ExecSQL(`INSERT INTO letters (x) VALUES ('n')`)
-    if err != nil { panic(err) }
-    err = dbi.ExecSQL(`INSERT INTO letters (x) VALUES ('p')`)
-    if err != nil { panic(err) }
+        x varchar(1))`); err != nil { panic(err) }
+    if err = dbi.ExecSQL(`INSERT INTO letters (x) VALUES ('m')`); err != nil { panic(err) }
+    if err = dbi.ExecSQL(`INSERT INTO letters (x) VALUES ('n')`); err != nil { panic(err) }
+    if err = dbi.ExecSQL(`INSERT INTO letters (x) VALUES ('p')`); err != nil { panic(err) }
 
     // select data from the table and put them into lists
     lists := make([]map[string]interface{},0)
     sql := "SELECT id, x FROM letters"
-    err = dbi.SelectSQL(&lists, sql)
-    if err != nil { panic(err) }
+    if err = dbi.SelectSQL(&lists, sql); err != nil { panic(err) }
 
     // print it
     log.Printf("%v", lists)
@@ -251,10 +245,9 @@ func main() {
 
     dbi := &godbi.DBI{DB:db}
 
-    dbi.ExecSQL(`drop procedure if exists proc_w2`)
-    dbi.ExecSQL(`drop table if exists letters`)
-    err = dbi.ExecSQL(`create table letters(id int auto_increment primary key, x varchar(1))`)
-    if err != nil { panic(err) }
+    if err = dbi.ExecSQL(`drop procedure if exists proc_w2`); err != nil { panic(err) }
+    if err = dbi.ExecSQL(`drop table if exists letters`); err != nil { panic(err) }
+    if err = dbi.ExecSQL(`create table letters(id int auto_increment primary key, x varchar(1))`); err != nil { panic(err) }
 
     err = dbi.ExecSQL(`create procedure proc_w2(IN x0 varchar(1),OUT y0 int)
         begin
@@ -269,10 +262,9 @@ func main() {
         end`)
     if err != nil { panic(err) }
 
-    sql := `proc_w2`
     hash := make(map[string]interface{})
     lists := make([]map[string]interface{},0)
-    err = dbi.SelectDoProc(&lists, hash, []string{"amount"}, sql, "m")
+    err = dbi.SelectDoProc(&lists, hash, []string{"amount"}, "proc_w2", "m")
     if err != nil { panic(err) }
 
     log.Printf("lists is: %v", lists)
@@ -417,42 +409,43 @@ where _lists_ receives the query results.
 
 #### 2.3.1) Specify which columns to be reported
 
-_selectPars_ is an interface which specifies column names and types to be included in the query report. There are 5 cases:
-- []string{name}, just a list of column names
-- [][2]string{name, type}, a list of column names and associated data types
-- map[string]string{name: label}, rename the column names by labels
-- map[string][2]string{name: label, type}, rename the column names labels and use the specific types
-If you don't specify column types, the generic handle will decide one for you which is most likely correct.
+_selectPars_ is an interface which specifies column names and types to be included in the query report. There are 4 cases:
+- *[]string{name}*, just a list of column names
+- *[][2]string{name, type}*, a list of column names and associated data types
+- *map[string]string{name: label}*, rename the column names by labels
+- *map[string][2]string{name: label, type}*, rename the column names to labels and use the specific types
+
+If you don't specify column types, the generic handle will decide one for you, which is most likely correct.
 
 #### 2.3.2) Constraints
 
-_extra_ is a contraint on the search, i.e. the *WHERE* statement. It is of type _url.Values_ and the keys are the column names. There are 3 and only 3 cases (currently supported):
+_extra_ is a contraint in the *WHERE* statement. There are 3 and only 3 cases (currently supported):
 - a key has only single value, it means an EQUAL constraint
-- a key has array string values, it mean an IN constraint
-- the key has name "_gsql", it means a raw SQL statement
+- a key has array string values, it means an IN constraint
+- the key has name *_gsql*, it means a raw SQL statement
 - if there are multiple keys in _extra_, they are AND conditions.
 
 #### 2.3.3) Use multiple JOINed tables
 
-The _R_ verb will use a JOINed SQL statement from related tables, if field _CurrentTables_ exists in the instance. We should pre-define the tables as type _Table_:
+The _R_ verb will use a JOINed SQL statement from related tables, if field _CurrentTables_ exists in the instance. The table type is:
 ```
 type Table struct { 
-   Name string   `json:"name"`             // name of the table
-	Alias string  `json:"alias,omitempty"`  // optional alias of the table
-	Type string   `json:"type,omitempty"`   // INNER or LEFT, how the table is joined
-	Using string  `json:"using,omitempty"`  // optional, joining by USING table name
-	On string 	  `json:"on,omitempty"`     // optional, joining by ON condition
-	Sortby string `json:"sortby,omitempty"` // optional column to sort, only applied to the first table
+    Name string   `json:"name"`             // name of the table
+    Alias string  `json:"alias,omitempty"`  // optional alias of the table
+    Type string   `json:"type,omitempty"`   // INNER or LEFT, how the table is joined
+    Using string  `json:"using,omitempty"`  // optional, joining by USING table name
+    On string 	  `json:"on,omitempty"`     // optional, joining by ON condition
+    Sortby string `json:"sortby,omitempty"` // optional column to sort, only applied to the first table
 }
 ```
-The related tables should be placed into a slice, with corrent JOIN order. We can use
+The related tables should be placed into a slice with corrent orders. The
 ```
 func TableString(tables []*Table) string {
 ```
-To generate the JOINed statement. Here is an example:
+outputs the SQL statement. Here is an example:
 ```
 str := `[
-    {"name":"user_project", "alias":"j", "sortby":"c.componentid"},
+    {"name":"user_project", "alias":"j"},
     {"name":"user_component", "alias":"c", "type":"INNER", "using":"projectid"},
     {"name":"user_table", "alias":"t", "type":"LEFT", "on":"c.tableid=t.tableid"}]`
 tables := make([]*Table, 0)
@@ -464,79 +457,54 @@ user_project j
 INNER JOIN user_component c USING (projectid)
 LEFT JOIN user_table t USING (c.tableid=t.tableid)
 ```
-By specifying the _selectPars_ as in 2.3.1 and constraints in 2.3.2, we can construct very sophisticate relational SELECT statement. The use cases are mostly applied to the _Advanced Usage_, discussed below.
+
+By combining _selectPars_ in section 2.3.1 and _extra_ in section 2.3.2, we can construct very sophisticate search queries. The use cases will be discussed in _Advanced Usage_ below.
 
 
 
 <br /><br />
 ### 2.3) Read One Row, *EditHash*
 
-The function:
+Definition:
 ```
 func (*Crud) EditHash(lists *[]map[string]interface{}, editPars interface{}, ids []interface{}, extra ...url.Values) error
 ```
-Similiar to *TopicsHash*, we run a _SELECT_ search and receive the result in _lists_ with column names specified by *editPars* and constrainted by *extra*. Here the rows must have the primary key (PK) values *ids*.
+Similiar to *TopicsHash*, we receive the result in _lists_ with columns specified by *editPars* and constraints by *extra*. Here there is another constraint: the rows must have the primary key (PK) *ids*.
 - if PK is a single column, *ids* should be a slice of targed PK values
   - to select a single PK equaling to 1234, just use *ids = []int{1234}*
 - if PK has multiple columns, i.e. *CurrentKeys* exists, *ids* should be a slice of value arrays.
 
-<br /><br />
-### 2.3) Update a Row, *UpdateHash*
 
-The function:
+<br /><br />
+### 2.4) Update a Row, *UpdateHash*
+
+Definition:
 ```
 func (*Crud) UpdateHash(fieldValues url.Values, ids []interface{}, extra ...url.Values) error
 ```
-The rows specified by PK of *ids*, and constrainted by *extra* will be updated using the new column values in *fieldValues*.
+The rows having PK *ids* and having constraints *extra* will be updated using the new values in *fieldValues*.
+
 
 <br /><br />
-### 2.4) Create a New Row or Update a Row, *InsupdHash*
+### 2.4) Create or Update a Row, *InsupdHash*
 
-This is not the "standard" Crud verb but is impleted as *PATCH* method in web applications. The use case is that when we insert a row,
-we don't know if it it already existing. If so, we would update the record instead of creating a new one. The uniqueness is defined by
-*uniques* which consists of selected column names:
+This is not defined in CRUD, but is implemented as the *PATCH* method in *http*. The use case is that when we create a row,
+it may already exist. If so, we will update the record instead. The uniqueness is determined by
+*uniques* column names:
 ```
 func (*Crud) InsupdTable(fieldValues url.Values, uniques []string) error
 ```
-So if the row specitied by the selected column values exists, only a update verb will be made and the
-you don't  a record may already be existing in the table, so you'd like to insert if it is not there, or retrieve it. Function *InsupdHash* is for this purpose:
+The field *Updated* will tell if the verb is *Update* or not. 
+
+
+<br /><br />
+### 2.5) Delete a Row, *DeleteHash*
+
+Definition:
 ```
-err = crud.InsupdHash(map[string]interface{}{
-        {"ts":"2019-12-31 23:59:59.9999", "id":7890, "name":"last day", "fv":123.456}},
-        []string{"id","name"},
-)
+func (*Crud) DeleteHash(ids []interface{}, extra ...url.Values) error
 ```
-It identifies the uniqueness by the combined valuse of *id* and *name*. In both the cases, you get the ID in *crud.LastID*, the row in *CurrentRow*, and the case in *Updated* (true for old record, and false for new). 
-
-
-<br />
-### 2.3) Select many rows, *TopicsHash*
-
-Search many by *TopicsHash*:
-```
-lists := make([]map[string]interface{})
-restriction := map[string]interface{}{"len":10}
-err = crud.TopicsHash(&lists, []string{"ts", "name", "id"}, restriction)
-```
-which returns all records with restriction *len=10*. You specifically define which columns to return in second argument,
-which are *ts*, *name* and *id* here. 
-
-Only three types of _restriction_ are supported in map:
-- _key:value_  The *key* has *value*.
-- _key:slice_  The *key* has one of values in *slice*.
-- _"_gsql":"row sql statement"_  Use the special key *_gsql* to write a raw SQL statment.
-
-
-<br />
-### 2.4) Select one row, *EditHash*
-
-```
-lists := make([]map[string]interface{})
-err = crud.EditHash(&lists, []string{"ts", "name", "id"}, "2019-12-31 23:59:59.9999")
-```
-Here you select by its primary key value (the timestamp). 
-
-Optionally, you may input an array of few key values and get them all in *lists*. Or you may put a restriction map too.
+This function deletes row specified by *ids* with constraints *extra*.
 
 
 
