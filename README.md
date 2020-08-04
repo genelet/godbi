@@ -191,7 +191,7 @@ Definition:
 ```
 func (*DBI) GetArgs(res url.Values, query string, args ...interface{}) error
 ```
-which is similar to *SelectSQL* but has only one row output to *res* of of type [url.Values](https://golang.org/pkg/net/url/). This function will be used mainly in web applications, where HTTP request data are expressed in _url.Values_.
+which is similar to *SelectSQL* but has only one row output to *res* of type [url.Values](https://golang.org/pkg/net/url/). This function will be used mainly in web applications, where HTTP request data are expressed in _url.Values_.
 
 
 <br /><br />
@@ -307,7 +307,7 @@ crud := &godbi.Crud{DBI:dbi_created, CurrentTable:"mytable", CurrentKey:"mykey"}
 
 #### 2.1.2) Example
 
-This example creates a new table and _creates_ 3 rows using _url.Values_ data. Then it _updates_ one row, _reads one_ row and _reads all_ rows.
+This example creates a new table and _creates_ 3 rows. Then it _updates_ one row, _reads one_ row and _reads all_ rows.
 ```
 package main
 
@@ -350,6 +350,7 @@ func main() {
     // now the id is 3
     id := crud.LastId
     log.Printf("last id=%d", id)
+    
     // update the row of id=3, change column y to be "z"
     hash1 := url.Values{}
     hash1.Set("y", "z")
@@ -357,7 +358,7 @@ func main() {
 
     // read one of the row of id=3. Only the columns x and y are reported
     lists := make([]map[string]interface{}, 0)
-    label := []string{"x", "y"} // which columns to be reported
+    label := []string{"x", "y"} // defining columns to be reported
     if err = crud.EditHash(&lists, label, []interface{}{id}); err != nil { panic(err) }
     log.Printf("row of id=2: %v", lists)
 
@@ -385,7 +386,7 @@ Definition:
 ```
 func (*Crud) InsertHash(fieldValues url.Values) error
 ```
-where _fieldValues_ stores column's names and values in type _url.Values_. The last inserted id will be assigned to _LastId_ if the database driver supports it.
+where _fieldValues_ of type _url.Values_ stores column's names and values. The last inserted id will be put in _LastId_ if the database driver supports it.
 
 
 <br /><br />
@@ -415,9 +416,9 @@ _extra_ is a contraint in the *WHERE* statement. There are 3 and only 3 cases (c
 - the key has name *_gsql*, it means a raw SQL statement
 - if there are multiple keys in _extra_, they are AND conditions.
 
-#### 2.3.3) Use multiple JOINed tables
+#### 2.3.3) Use multiple JOIN tables
 
-The _R_ verb will use a JOINed SQL statement from related tables, if field _CurrentTables_ exists in the instance. The table type is:
+The _R_ verb will use a JOIN SQL statement from related tables, if _CurrentTables_ exists in the instance. The table type is:
 ```
 type Table struct { 
     Name string   `json:"name"`             // name of the table
@@ -459,7 +460,7 @@ Definition:
 ```
 func (*Crud) EditHash(lists *[]map[string]interface{}, editPars interface{}, ids []interface{}, extra ...url.Values) error
 ```
-Similiar to *TopicsHash*, we receive the result in _lists_ with columns specified by *editPars* and constraints by *extra*. Here there is another constraint: the rows must have the primary key (PK) *ids*.
+Similiar to *TopicsHash*, we receive the result in _lists_ with columns specified by *editPars* and constraints by *extra*. Here there is another constraint: the rows must have the primary key (*PK*) *ids*.
 - if PK is a single column, *ids* should be a slice of targed PK values
   - to select a single PK equaling to 1234, just use *ids = []int{1234}*
 - if PK has multiple columns, i.e. *CurrentKeys* exists, *ids* should be a slice of value arrays.
@@ -472,7 +473,7 @@ Definition:
 ```
 func (*Crud) UpdateHash(fieldValues url.Values, ids []interface{}, extra ...url.Values) error
 ```
-The rows having PK *ids* and having constraints *extra* will be updated using the new values in *fieldValues*.
+The rows having PK *ids* and constraint *extra* will be updated using the new values in *fieldValues*.
 
 
 <br /><br />
@@ -494,7 +495,7 @@ Definition:
 ```
 func (*Crud) DeleteHash(ids []interface{}, extra ...url.Values) error
 ```
-This function deletes row specified by *ids* with constraints *extra*.
+This function deletes row specified by *ids* with constraint *extra*.
 
 
 
