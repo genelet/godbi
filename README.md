@@ -52,7 +52,6 @@ dbi := &DBI{DB: the_standard_sql_handle}
 
 In this example, we create a MySQL handle using database credentials in the environment; then create a new table _letters_ and add 3 rows. We query the data using _SelectSQL_ and put the result into _lists_ as slice of maps.
 ```
-<sup><sub>
 package main
 
     dbUser := os.Getenv("DBUSER")
@@ -76,8 +75,7 @@ package main
 
     // select data from the table and put them into lists
     lists := make([]map[string]interface{},0)
-    sql := "SELECT id, x FROM letters"
-    if err = dbi.SelectSQL(&lists, sql); err != nil { panic(err) }
+    if err = dbi.SelectSQL(&lists, "SELECT id, x FROM letters"); err != nil { panic(err) }
 
     // print it
     log.Printf("%v", lists)
@@ -86,7 +84,6 @@ package main
 
     os.Exit(0)
 }
-</sub></sup>
 ```
 Running this example will report something like
 ```
@@ -162,10 +159,7 @@ err = dbi.QuerySQLLabel(&lists, []string{"time stamp", "record ID", "recorder na
 ```
 The result uses the renamed keys:
 ```
-[
     {"time stamp":"2019-12-15 01:01:01", "record ID":1234, "recorder name":"company", "length":30, "flag":true, "values":789.123},
-    ....
-]
 ```
 
 #### 1.3.4) *QuerySQLTypeLabel* & *SelectSQlTypeLabel*
@@ -264,8 +258,7 @@ func main() {
 
     hash := make(map[string]interface{})
     lists := make([]map[string]interface{},0)
-    err = dbi.SelectDoProc(&lists, hash, []string{"amount"}, "proc_w2", "m")
-    if err != nil { panic(err) }
+    if err = dbi.SelectDoProc(&lists, hash, []string{"amount"}, "proc_w2", "m"); err != nil { panic(err) }
 
     log.Printf("lists is: %v", lists)
     log.Printf("OUT is: %v", hash)
@@ -339,10 +332,8 @@ func main() {
     dbi := godbi.DBI{DB:db}
     crud := &godbi.Crud{dbi, "atesting", nil, "id", nil, false}
 
-    err = crud.ExecSQL(`DROP TABLE IF EXISTS atesting`)
-    if err != nil { panic(err) }
-    err = crud.ExecSQL(`CREATE TABLE atesting (id int auto_increment, x varchar(255), y varchar(255), primary key (id))`)
-    if err != nil { panic(err) }
+    if err = crud.ExecSQL(`DROP TABLE IF EXISTS atesting`); err != nil { panic(err) }
+    if err = crud.ExecSQL(`CREATE TABLE atesting (id int auto_increment, x varchar(255), y varchar(255), primary key (id))`); err != nil { panic(err) }
 
     // 'create' 3 rows one by one using url.Values
     hash := url.Values{}
@@ -367,8 +358,7 @@ func main() {
     // 'read one' of the row of id=3. Only the columns x and y are reported
     lists := make([]map[string]interface{}, 0)
     label := []string{"x", "y"} // which columns to be reported
-    err = crud.EditHash(&lists, label, []interface{}{id})
-    if err != nil { panic(err) }
+    if err = crud.EditHash(&lists, label, []interface{}{id}); err != nil { panic(err) }
     log.Printf("row of id=2: %v", lists)
 
     // 'read all' rows with contraint "x='c'". Report columns id, x and y.
@@ -378,7 +368,7 @@ func main() {
     if err = crud.TopicsHash(&lists, label, extra); err != nil { panic(err) }
     log.Printf("all rows: %v", lists)
 
-    db.Close()
+    os.Exit(0)
 }
 ```
 Running the program will result in:
@@ -450,8 +440,9 @@ str := `[
     {"name":"user_table", "alias":"t", "type":"LEFT", "on":"c.tableid=t.tableid"}]`
 tables := make([]*Table, 0)
 if err := json.Unmarshal([]byte(str), &tables); err != nil { panic(err) }
+log.Printf("%s", TableString())
 ```
-And the statement will be
+will be
 ```
 user_project j
 INNER JOIN user_component c USING (projectid)
@@ -459,7 +450,6 @@ LEFT JOIN user_table t USING (c.tableid=t.tableid)
 ```
 
 By combining _selectPars_ in section 2.3.1 and _extra_ in section 2.3.2, we can construct very sophisticate search queries. The use cases will be discussed in _Advanced Usage_ below.
-
 
 
 <br /><br />
