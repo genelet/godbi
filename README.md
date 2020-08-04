@@ -195,7 +195,7 @@ _godbi_ runs stored procedures easily as well.
 ```
 func (*DBI) DoProc(res map[string]interface{}, names []string, proc_name string, args ...interface{}) error
 ```
-It runs a stored procedure *proc_name* with IN data in *args*. The OUT data will be placed in the map *res* using keys defined in *names*. Note that the output columns should have already been defined in *proc_name*.
+It runs a stored procedure *proc_name* with IN-data in *args*. The OUT-data will be placed in *res* with *names* as its keys. Note that the output variables should have already been defined in *proc_name*.
 
 If the procedure has no output data to receive, just assign *names* to be _nil_.
 
