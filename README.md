@@ -332,7 +332,8 @@ func main() {
     crud := &godbi.Crud{dbi, "atesting", nil, "id", nil, false}
 
     if err = crud.ExecSQL(`DROP TABLE IF EXISTS atesting`); err != nil { panic(err) }
-    if err = crud.ExecSQL(`CREATE TABLE atesting (id int auto_increment, x varchar(255), y varchar(255), primary key (id))`); err != nil { panic(err) }
+    if err = crud.ExecSQL(`CREATE TABLE atesting (
+        id int auto_increment, x varchar(255), y varchar(255), primary key (id))`); err != nil { panic(err) }
 
     // 'create' 3 rows one by one using url.Values
     hash := url.Values{}
