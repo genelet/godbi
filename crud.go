@@ -404,7 +404,7 @@ func (self *Crud) TopicsHash(lists *[]map[string]interface{}, selectPars interfa
 }
 
 // TopicsHashOrder is the same as TopicsHash with the order string
-// order: a string used in 'ORDER BY order'
+// order: a string like 'ORDER BY ...'
 //
 func (self *Crud) TopicsHashOrder(lists *[]map[string]interface{}, selectPars interface{}, order string, extra ...url.Values) error {
 	sql, labels, types := selectType(selectPars)
@@ -422,13 +422,13 @@ func (self *Crud) TopicsHashOrder(lists *[]map[string]interface{}, selectPars in
 			sql += "\nWHERE " + where
 		}
 		if order != "" {
-			sql += "\nORDER BY " + order
+			sql += "\n" + order
 		}
 		return self.SelectSQLTypeLabel(lists, types, labels, sql, values...)
 	}
 
 	if order != "" {
-		sql += "\nORDER BY " + order
+		sql += "\n" + order
 	}
 	return self.SelectSQLTypeLabel(lists, types, labels, sql)
 }

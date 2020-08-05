@@ -468,7 +468,7 @@ func (self *Model) OrderString() string {
 		}
 	}
 
-	order := column
+	order := "ORDER BY " + column
 	if ARGS.Get(self.Sortreverse) != "" {
 		order += " DESC"
 	}

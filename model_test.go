@@ -263,20 +263,20 @@ func TestModel(t *testing.T) {
 	if err != nil { panic(err) }
 
 	str := model.OrderString()
-	if str != "id" {
+	if str != "ORDER BY id" {
 		t.Errorf("id expected, got %s", str)
 	}
 
 	ARGS.Set("sortreverse","1")
 	ARGS.Set("rowcount","20")
 	str = model.OrderString()
-	if str != "id DESC LIMIT 20 OFFSET 0" {
+	if str != "ORDER BY id DESC LIMIT 20 OFFSET 0" {
 		t.Errorf("'id DESC LIMIT 20 OFFSET 0' expected, got %s", str)
 	}
 	ARGS.Set("pageno","5")
 	str = model.OrderString()
-	if str != "id DESC LIMIT 20 OFFSET 80" {
-		t.Errorf("'id DESC LIMIT 20 OFFSET 80' expected, got %s", str)
+	if str != "ORDER BY id DESC LIMIT 20 OFFSET 80" {
+		t.Errorf("'ORDER BY id DESC LIMIT 20 OFFSET 80' expected, got %s", str)
 	}
 
 	err = model.ExecSQL(`drop table if exists atesting`)
@@ -307,8 +307,8 @@ func TestModel(t *testing.T) {
 	model.ARGS.Set("rowcount","20")
 	model.ARGS.Set("pageno","5")
 	str = model.OrderString()
-	if str != "id DESC LIMIT 20 OFFSET 80" {
-		t.Errorf("'id DESC LIMIT 20 OFFSET 80' expected, got %s", str)
+	if str != "ORDER BY id DESC LIMIT 20 OFFSET 80" {
+		t.Errorf("'ORDER BY id DESC LIMIT 20 OFFSET 80' expected, got %s", str)
 	}
 	if model.ARGS["totalno"][0] != "100" {
 		t.Errorf("100 records expected, but %#v", model.ARGS)

@@ -395,6 +395,7 @@ func (self *DBI) SelectProc(lists *[]map[string]interface{}, proc_name string, a
 	return self.SelectDoProcLabel(lists, nil, nil, proc_name, nil, args...)
 }
 
+/*
 // SelectProcLabel runs the stored procedure 'proc_name' using input parameters 'args'.
 // The query result, 'lists', is received as a slice of maps.
 // The keys of the maps are renamed according to 'selectLabels'.
@@ -402,6 +403,7 @@ func (self *DBI) SelectProc(lists *[]map[string]interface{}, proc_name string, a
 func (self *DBI) SelectProcLabel(lists *[]map[string]interface{}, proc_name string, selectLabels []string, args ...interface{}) error {
 	return self.SelectDoProcLabel(lists, nil, nil, proc_name, selectLabels, args...)
 }
+*/
 
 // SelectDoProc runs the stored procedure 'proc_name' using input parameters 'args'.
 // The query result, 'lists', is received as a slice of maps,
