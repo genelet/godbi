@@ -1,16 +1,20 @@
 # godbi
-_godbi_ adds a set of high-level functions to the official SQL handle in GO, for easier database executions and queries. Check *godoc* from [here](https://godoc.org/github.com/genelet/godbi) for definitions.
+_godbi_ adds a set of high-level functions to the generic SQL handle in GO, for easier database executions and queries. 
 
+Check *godoc* for definitions:
 [![GoDoc](https://godoc.org/github.com/genelet/godbi?status.svg)](https://godoc.org/github.com/genelet/godbi)
 
 There are three levels of usages:
-- Basic: operating on raw SQL statements and stored procedures, and receiving data as a slice of rows. Each row is represented as a map between the column string names and column interface values.
-- Map: operating on a specific table and fulfiling the CRUD operations using map data.
-- Advanced: operating on multiple tables, called Models, as in MVC pattern and fulfilling the RESTful and GraphQL actions in web applications.
-
-_godbi_ is an ideal replacement of ORM. It lets one to achieve the common SQL, CRUD, RESTful and GraphQL tasks very easily and efficiently.
+- _Basic_: operating on raw SQL statements and stored procedures.
+- _Crud_: operating on specific table and fulfilling CRUD actions.
+- _Advanced_: operating on tables, called Models, as in MVC pattern in web applications, and fulfilling RESTful and GraphQL actions.
 
 
+_godbi_ is an ideal replacement of ORM. It runs SQL, CRUD, RESTful and GraphQL tasks gracefully and very efficiently.
+The package is fully tested in MySQL and PostgreSQL, and assumed to work with other relational databases.
+
+
+<br /><br />
 ### Installation
 
 ```
@@ -19,18 +23,18 @@ $ go get -u github.com/genelet/godbi
 <!-- go mod init github.com/genelet/godbi -->
 
 
-
+<br /><br />
 ## Chapter 1. BASIC USAGE
 
 
-### 1.1) Data Type _DBI_
+### 1.1) Type _DBI_
 
-The struct _DBI_ embeds the standard _database/sql_ handle.
+The _DBI_ type simply embeds the standard SQL handle.
 ```
 package godbi
 
 type DBI struct {
-    *sql.DB
+    *sql.DB          // Note this is the pointer to the handle
     LastId    int64  // read only, saves the last inserted id
     Affected  int64  // read only, saves the affected rows
 }
@@ -38,190 +42,465 @@ type DBI struct {
 ```
 
 
-#### Create a new handle
+#### 1.1.1) Create a new handle
 
-Use this function:
 ```
-dbi := &DBI{DB: the_offical_sql_handle}
+dbi := &DBI{DB: the_standard_sql_handle}
 ```
 
-#### Example
+#### 1.1.2) Example
 
-Create an instance; use it to create a new database and a table; add a row; and query the row:
+In this example, we create a MySQL handle using database credentials in the environment; then create a new table _letters_ and add 3 rows. We query the data using _SelectSQL_ and put the result into _lists_ as slice of maps.
+```
+package main
+
+import (
+    "os"
+    "log"
+    "database/sql"
+    "github.com/genelet/godbi"
+    _ "github.com/go-sql-driver/mysql"
+)
+    
+func main() {
+    dbUser := os.Getenv("DBUSER")
+    dbPass := os.Getenv("DBPASS")
+    dbName := os.Getenv("DBNAME")
+    db, err := sql.Open("mysql", dbUser + ":" + dbPass + "@/" + dbName)
+    if err != nil { panic(err) }
+    defer db.Close()
+
+    dbi := &godbi.DBI{DB:db}
+
+    // create a new table and insert some data using ExecSQL
+    //
+    if err = dbi.ExecSQL(`DROP TABLE IF EXISTS letters`); err != nil { panic(err) }
+    if err = dbi.ExecSQL(`CREATE TABLE letters (
+        id int auto_increment primary key, x varchar(1))`); err != nil { panic(err) }
+    if err = dbi.ExecSQL(`INSERT INTO letters (x) VALUES ('m')`); err != nil { panic(err) }
+    if err = dbi.ExecSQL(`INSERT INTO letters (x) VALUES ('n')`); err != nil { panic(err) }
+    if err = dbi.ExecSQL(`INSERT INTO letters (x) VALUES ('p')`); err != nil { panic(err) }
+
+    // select data from the table and put them into lists
+    //
+    lists := make([]map[string]interface{},0)
+    if err = dbi.SelectSQL(&lists, "SELECT id, x FROM letters"); err != nil { panic(err) }
+
+    // print it
+    log.Printf("%v", lists)
+
+    dbi.ExecSQL(`DROP TABLE letters`)
+
+    os.Exit(0)
+}
+```
+Running this example will result in something like
+```
+[map[id:1 x:m] map[id:2 x:n] map[id:3 x:p]]
+```
+
+
+<br /><br />
+### 1.2) Execution with _ExecSQL_ & _DoSQL_
+
+```
+func (*DBI) ExecSQL(query string, args ...interface{}) error
+func (*DBI) DoSQL  (query string, args ...interface{}) error
+```
+Similar to SQL's _Exec_, these functions execute *Do*-type (e.g. _INSERT_ or _UPDATE_) queries. The difference between the two functions is that _DoSQL_ runs a prepared statement and is safe for concurrent use by multiple goroutines.
+
+For all functions in this package, the returned value is always *error* which should be checked to assert if the execution is successful.
+
+
+
+<br /><br />
+### 1.3) Queries with _SELECT_ 
+
+#### 1.3.1)  *QuerySQL* & *SelectSQL*
+
+```
+func (*DBI) QuerySQL (lists *[]map[string]interface{}, query string, args ...interface{}) error
+func (*DBI) SelectSQL(lists *[]map[string]interface{}, query string, args ...interface{}) error
+```
+Run the *SELECT*-type query and put the result into *lists*, a slice of column name-value maps. The data types of the column are determined dynamically by the generic SQL handle. For example:
+```
+lists := make([]map[string]interface{})
+err = dbi.QuerySQL(&lists,
+    `SELECT ts, id, name, len, flag, fv FROM mytable WHERE id=?`, 1234)
+```
+will select all rows with _id=1234_.
+```
+    {"ts":"2019-12-15 01:01:01", "id":1234, "name":"company", "len":30, "flag":true, "fv":789.123},
+    ....
+```
+The difference between the two functions is that _SelectSQL_ runs a prepared statement.
+
+#### 1.3.2) *QuerySQLType* & *SelectSQLType*
+
+```
+func (*DBI) QuerySQLType (lists *[]map[string]interface{}, typeLabels []string, query string, args ...interface{}) error
+func (*DBI) SelectSQLType(lists *[]map[string]interface{}, typeLabels []string, query string, args ...interface{}) error
+```
+They differ from the above *QuerySQL* by specifying the data types. While the generic handle could correctly figure out them in most cases, it occasionally fails because there is no exact matching between SQL typies and GOLANG types.
+
+The following example assigns _string_, _int_, _string_, _int8_, _bool_ and _float32_ to the corresponding columns:
+```
+err = dbi.QuerySQLType(&lists, []string{"string", "int", "string", "int8", "bool", "float32},
+    `SELECT ts, id, name, len, flag, fv FROM mytable WHERE id=?`, 1234)
+```
+
+#### 1.3.3) *QuerySQLLabel* & *SelectSQLLable*
+
+```
+func (*DBI) QuerySQLLabel (lists *[]map[string]interface{}, selectLabels []string, query string, args ...interface{}) error
+func (*DBI) SelectSQLLabel(lists *[]map[string]interface{}, selectLabels []string, query string, args ...interface{}) error
+```
+They differ from the above *QuerySQL* by renaming the default column names to _selectLabels_. For example:
+```
+lists := make([]map[string]interface{})
+err = dbi.QuerySQLLabel(&lists, []string{"time stamp", "record ID", "recorder name", "length", "flag", "values"},
+    `SELECT ts, id, name, len, flag, fv FROM mytable WHERE id=?`, 1234)
+```
+The result has the renamed keys:
+```
+    {"time stamp":"2019-12-15 01:01:01", "record ID":1234, "recorder name":"company", "length":30, "flag":true, "values":789.123},
+```
+
+#### 1.3.4) *QuerySQLTypeLabel* & *SelectSQlTypeLabel*
+
+```
+func (*DBI) QuerySQLTypeLabel (lists *[]map[string]interface{}, typeLabels []string, selectLabels []string, query string, args ...interface{}) error
+func (*DBI) SelectSQLTypeLabel(lists *[]map[string]interface{}, typeLabels []string, selectLabels []string, query string, args ...interface{}) error
+```
+These functions re-assign both data types and column names in the queries.
+
+
+<br /><br />
+### 1.4) Query Single Row with _SELECT_ 
+
+In some cases we know there is only one row from a query. 
+
+#### 1.4.1) *GetSQLLable*
+
+```
+func (*DBI) GetSQLLabel(res map[string]interface{}, query string, selectLabels []string, args ...interface{}) error
+```
+which is similar to *SelectSQLLable* but has only single output to *res*.
+
+#### 1.4.2) *GetArgs*
+
+```
+func (*DBI) GetArgs(res url.Values, query string, args ...interface{}) error
+```
+which is similar to *SelectSQL* but has only sinlge output to *res* which uses type [url.Values](https://golang.org/pkg/net/url/). This function will be used mainly in web applications, where HTTP request data are expressed in _url.Values_.
+
+
+<br /><br />
+### 1.5) Stored Procedure
+
+_godbi_ runs stored procedures easily as well.
+
+#### 1.5.1) *DoProc*
+
+```
+func (*DBI) DoProc(res map[string]interface{}, names []string, proc_name string, args ...interface{}) error
+```
+It runs a stored procedure *proc_name* with IN data in *args*. The OUT data will be placed in *res* using *names* as its keys. Note that the OUT variables should have been defined separately in *proc_name*.
+
+If the procedure has no OUT to receive, just assign *names* to be _nil_.
+
+#### 1.5.2) *SelectDoProc*
+
+```
+func (*DBI) SelectDoProc(lists *[]map[string]interface{}, res map[string]interface{}, names []string, proc_name string, args ...interface{}) error
+```
+Similar to *DoProc* but it receives _SELECT_-type query data into *lists*, providing *proc_name* contains such a query. 
+
+Full example:
+```
+package main
+
+import (
+    "os"
+    "log"
+    "database/sql"
+    "github.com/genelet/godbi"
+    _ "github.com/go-sql-driver/mysql"
+)
+
+func main() {
+    dbUser := os.Getenv("DBUSER")
+    dbPass := os.Getenv("DBPASS")
+    dbName := os.Getenv("DBNAME")
+    db, err := sql.Open("mysql", dbUser + ":" + dbPass + "@/" + dbName)
+    if err != nil { panic(err) }
+    defer db.Close()
+
+    dbi := &godbi.DBI{DB:db}
+
+    if err = dbi.ExecSQL(`drop procedure if exists proc_w2`); err != nil { panic(err) }
+    if err = dbi.ExecSQL(`drop table if exists letters`); err != nil { panic(err) }
+    if err = dbi.ExecSQL(`create table letters(
+        id int auto_increment primary key, x varchar(1))`); err != nil { panic(err) }
+    if err = dbi.ExecSQL(`create procedure proc_w2(IN x0 varchar(1),OUT y0 int)
+        begin
+        delete from letters;
+        insert into letters (x) values('m');
+        insert into letters (x) values('n');
+        insert into letters (x) values('p');
+        insert into letters (x) values('m');
+        select id, x from letters where x=x0;
+        insert into letters (x) values('a');
+        set y0=100;
+        end`); err != nil { panic(err) }
+
+    hash := make(map[string]interface{})
+    lists := make([]map[string]interface{},0)
+    if err = dbi.SelectDoProc(&lists, hash, []string{"amount"}, "proc_w2", "m"); err != nil { panic(err) }
+
+    log.Printf("lists is: %v", lists)
+    log.Printf("OUT is: %v", hash)
+
+    dbi.ExecSQL(`drop table if exists letters`)
+    dbi.ExecSQL(`drop procedure if exists proc_w2`)
+
+    os.Exit(0)
+}
+```
+Running the program will result in:
+```
+ lists is: [map[id:1 x:m] map[id:4 x:m]]
+ OUT is: map[amount:100]
+```
+
+
+<br /><br />
+## Chapter 2. CRUD USAGE
+
+### 2.1) Type *Crud*
+
+Type *Crud* lets us to run CRUD verbs easily on a table.  
+```
+type Crud struct {
+    DBI
+    CurrentTable string    // the current table name 
+    CurrentTables []*Table // optional, for read-all SELECT with other joined tables 
+    CurrentKey string      // the single primary key of the table    
+    CurrentKeys []string   // optional, if the primary key has multiple columns   
+    Updated bool           // for Insupd() only, if the row is updated or new
+}
+```
+Just to note, the 4 letters in CRUD are: 
+- C: _Create_ a new row
+- R: _Read all_ rows, or _Read one_ row
+- U: _Update_ a row
+- D: _Delete_ a row
+
+#### 2.1.1) Create an instance
+
+Create a new instance:
+```
+crud := &godbi.Crud{DBI:dbi_created, CurrentTable:"mytable", CurrentKey:"mykey"}
+```
+
+#### 2.1.2) Example
+
+This example _Creates_ 3 rows. Then it _Updates_ one row, _Reads one_ row and _Reads all_ rows.
 ```
 package main
 
 import (
     "log"
+    "net/url"
     "os"
+    "database/sql"
     "github.com/genelet/godbi"
+    _ "github.com/go-sql-driver/mysql"
 )
 
 func main() {
-    db, err := godbi.Open("root:taosdata@/tcp(127.0.0.1:0)/");
+    dbUser := os.Getenv("DBUSER")
+    dbPass := os.Getenv("DBPASS")
+    dbName := os.Getenv("DBNAME")
+    db, err := sql.Open("mysql", dbUser + ":" + dbPass + "@/" + dbName)
     if err != nil { panic(err) }
     defer db.Close()
 
-    dbi := &godbi.DBI{Db: db}
+    // create a new instance for table "atesting"
+    //
+    dbi := godbi.DBI{DB:db}
+    crud := &godbi.Crud{dbi, "atesting", nil, "id", nil, false}
 
-    err = dbi.ExecSQL(`CREATE DATABASE IF NOT EXISTS mydbi precision "us"`)
-    if err != nil { panic(err) }
-    err = dbi.ExecSQL(`USE mydbi`)
-    if err != nil { panic(err) }
-    err = dbi.ExecSQL(`DROP TABLE IF EXISTS mytable`)
-    if err != nil { panic(err) }
-    err = dbi.ExecSQL(`CREATE TABLE mytable 
-(ts timestamp, id int, name binary(8), len tinyint, flag bool, notes binary(8), fv float, dv double)`)
-    if err != nil { panic(err) }
-    err = dbi.ExecSQL(`INSERT INTO mytable (ts, id, name, len, flag, notes, fv, dv)
-VALUES (now, ?, ?, 30, true, 'abcdefgh', 789.123, 456.789)`, 1234, `company`)
-    if err != nil { panic(err) }
-    lists := make([]map[string]interface{},0)
-    err = dbi.QuerySQL(&lists,
-`SELECT ts, id, name, len, flag, fv FROM mytable WHERE id=?`, 1234)
-    if err != nil { panic(err) }
+    if err = crud.ExecSQL(`DROP TABLE IF EXISTS atesting`); err != nil { panic(err) }
+    if err = crud.ExecSQL(`CREATE TABLE atesting (
+        id int auto_increment, x varchar(255), y varchar(255), primary key (id))`); err != nil { panic(err) }
+
+    // 'create' 3 rows one by one using url.Values
+    //
+    hash := url.Values{}
+    hash.Set("x", "a")
+    hash.Set("y", "b") 
+    if err = crud.InsertHash(hash); err != nil { panic(err) }
+    hash.Set("x", "c")
+    hash.Set("y", "d") 
+    if err = crud.InsertHash(hash); err != nil { panic(err) }
+    hash.Set("x", "c")
+    hash.Set("y", "e")  
+    if err = crud.InsertHash(hash); err != nil { panic(err) }
+
+    // now the id is 3
+    //
+    id := crud.LastId
+    log.Printf("last id=%d", id)
     
-    log.Printf("%v", lists)
+    // update the row of id=3, change column y to be "z"
+    //
+    hash1 := url.Values{}
+    hash1.Set("y", "z")
+    if err = crud.UpdateHash(hash1, []interface{}{id}); err != nil { panic(err) }
 
-    err = dbi.ExecSQL(`DROP DATABASE IF EXISTS mydbi`)
-    if err != nil { panic(err) }
+    // read one of the row of id=3. Only the columns x and y are reported
+    //
+    lists := make([]map[string]interface{}, 0)
+    label := []string{"x", "y"}
+    if err = crud.EditHash(&lists, label, []interface{}{id}); err != nil { panic(err) }
+    log.Printf("row of id=2: %v", lists)
+
+    // read all rows with contraint x='c'
+    //
+    lists = make([]map[string]interface{}, 0)
+    label = []string{"id", "x", "y"}
+    extra := url.Values{"x":[]string{"c"}}
+    if err = crud.TopicsHash(&lists, label, extra); err != nil { panic(err) }
+    log.Printf("all rows: %v", lists)
 
     os.Exit(0)
 }
 ```
-Running this example will report something like
+Running result:
 ```
-[map[flag:true fv:789.123 id:1234 len:30 name:company ts:2020-07-19 09:07:48.341270]]
-```
-
-
-### 1.2) Execute an action on database or table, _ExecSQL_
-
-```
-err = dbi.ExecSQL(`CREATE DATABASE mytest`)
-err = dbi.ExecSQL(`CREATE TABLE mytable 
-        (ts timestamp, id int, name binary(8), len tinyint, flag bool, notes binary(8), fv float, dv double)`)
-err = dbi.ExecSQL(`INSERT INTO mytable (ts, id, name, len, name, flag, notes, fv, dv)
-        VALUES (now, ?, ?, 30, true, 'abcdefgh', 789.123, 456.789)`, 1234, `company`)
-// after INSERT, dbi.Affected will be 1
+last id=3
+row of id=3: [map[x:c y:z]]
+all rows: [map[id:2 x:c y:d] map[id:3 x:c y:z]]
 ```
 
-Note that by default, any database function in this package will return *error* for errors, or *nil* for success. 
-
-
-### 1.3) Execute using _DoSQL_ 
-
-It does the same thing, but with a prepared statement and thus being safe for concurrent use by multiple goroutines.
-
-
-### 1.4) Select using *QuerySQL*, *QuerySQLType* and *QuerySQLTypeLabel*
+<br /><br />
+### 2.2) Create a New Row, *InsertHash*
 
 ```
-lists := make([]map[string]interface{})
-err = dbi.QuerySQL(&lists,
-        `SELECT ts, id, name, len, flag, fv FROM mytable WHERE id=?`, 1234)
+func (*Crud) InsertHash(fieldValues url.Values) error
 ```
-This will select all rows with _id=1234_ and put the result into *lists*, as an array of maps:
-```
-[
-        {"ts":"2019-12-15 01:01:01.1234", "id":1234, "name":"company", "len":30, "flag":true, "fv":789.123},
-        ....
-]
-```
-The generic _database/sql_ will assign correct data types on most named variables, but may fail in few cases. e.g. a _tinyint_ may be assigned to be _int_. 
-
-To get *EXACTLY* the needed data types, use *QuerySQLType*:
-```
-err = dbi.QuerySQLType(&lists, []string{"string", "int", "string", "int8", "bool", "float32},
-        `SELECT ts, id, name, len, flag, fv FROM mytable WHERE id=?`, 1234)
-```
-To change the columns names, use *QuerySQLTypeLabel*. E.g.
-```
-err = dbi.QuerySQLTypeLabel(&lists, []string{"string", "int", "string", "int8", "bool", "float32},
-        []string{"lable_ts", "label_id", "label_name", "other_name1", "other2", "last3"},
-        `SELECT ts, id, name, len, flag, fv FROM mytable WHERE id=?`, 1234)
-```
+where _fieldValues_ of type _url.Values_ stores column's names and values. The latest inserted id will be put in _LastId_ if the database driver supports it.
 
 
-### 1.5) Select using *SelectSQL*, *SelectSQLType* and *SelectSQlTypeLabel* 
+<br /><br />
+### 2.3) Read All Rows, *TopicsHash*
 
-They are similar to *QuerySQL*, *QuerySQLType* and *QuerySQLTypeLabel*, respectively, based on *prepared* statement.
-
-
-## Chapter 2. MAP USAGE
-
-
-Sometimes it is more flexible to insert data or search records by using *map* (i.e. *hash* or *associated array*). 
 ```
-type Crud struct {
-        DBI          
-        CurrentTable string                 `json:"current_table"`
-        CurrentKey   string                 `json:"current_key"`
-        LastID       int64                  
-        CurrentRow   map[string]interface{}
-        Updated      bool
+func (*Crud) TopicsHash(lists *[]map[string]interface{}, selectPars interface{}, extra ...url.Values) error
+```
+where _lists_ receives the query results.
+
+#### 2.3.1) Specify which columns to be reported
+
+Use _selectPars_ which is an interface to specify which column names and types in the query. There are 4 cases:
+interface | column names
+--------- | ------------
+ *[]string{name}* | just a list of column names
+ *[][2]string{name, type}* | a list of column names and associated data types
+ *map[string]string{name: label}* | rename the column names by labels
+ *map[string][2]string{name: label, type}* | rename the column names to labels and use the specific types
+
+If we don't specify type, the generic handle will decide one for us, which is most likely correct.
+
+#### 2.3.2) Constraints
+
+Use _extra_, which is type *url.Values* to contrain the *WHERE* statement. Currently we have supported 3 cases:
+key in *extra* | meaning
+--------------------------- | -------
+key has only one value | an EQUAL constraint
+key has multiple values | an IN constraint
+key is named *_gsql* | a raw SQL statement
+among multiple keys | AND conditions.
+
+#### 2.3.3) Use multiple JOIN tables
+
+The _R_ verb will use a JOIN SQL statement from related tables, if _CurrentTables_ of type *Table* exists in *Crud*.
+```
+type Table struct { 
+    Name string   `json:"name"`             // name of the table
+    Alias string  `json:"alias,omitempty"`  // optional alias of the table
+    Type string   `json:"type,omitempty"`   // INNER or LEFT, how the table is joined
+    Using string  `json:"using,omitempty"`  // optional, joining by USING table name
+    On string     `json:"on,omitempty"`     // optional, joining by ON condition
+    Sortby string `json:"sortby,omitempty"` // optional column to sort, only applied to the first table
 }
+```
+The tables in _CurrentTables_ should be arranged with correct orders. To output the SQL string, use
+```
+func TableString(tables []*Table) string
+```
+For example:
+```
+str := `[
+    {"name":"user_project", "alias":"j"},
+    {"name":"user_component", "alias":"c", "type":"INNER", "using":"projectid"},
+    {"name":"user_table", "alias":"t", "type":"LEFT", "on":"c.tableid=t.tableid"}]`
+tables := make([]*Table, 0)
+if err := json.Unmarshal([]byte(str), &tables); err != nil { panic(err) }
+log.Printf("%s", TableString())
+```
+will output
+```
+user_project j
+INNER JOIN user_component c USING (projectid)
+LEFT JOIN user_table t USING (c.tableid=t.tableid)
+```
+
+By combining _selectPars_ and _extra_, we can construct sophisticate search queries. More use cases will be discussed in _Advanced Usage_ below.
+
+
+<br /><br />
+### 2.4) Read One Row, *EditHash*
 
 ```
-where *CurrentTable* is the table you are working with, *CurrentKey* the primary key in the table, always a [*timestamp*](https://www.taosdata.com/en/documentation/taos-sql/#Data-Query). *LastID*, *CurrentRow* and *Updated* are for the last inserted row.
-
-You create an instance of *Crud* by
+func (*Crud) EditHash(lists *[]map[string]interface{}, editPars interface{}, ids []interface{}, extra ...url.Values) error
 ```
-crud := &godbi.Crud{Db:db, CurrentTable:mytable, CurrentKey:ts}
-```
+This will select rows having the specific primary key (*PK*) values *ids* and being constrained by *extra*. The query result is output to _lists_ with columns defined in *editPars*. For the slice of interface *ids*:
+- if PK is a single column, *ids* should be a slice of targeted PK values
+  - to select a single PK equaling to 1234, just use *ids = []int{1234}*
+- if PK has multiple columns, i.e. *CurrentKeys* exists, *ids* should be a slice of value arrays.
 
 
-### 2.1) Insert one row, *InsertHash*
-```
-err = crud.InsertHash(map[string]interface{}{
-        {"ts":"2019-12-31 23:59:59.9999", "id":7890, "name":"last day", "fv":123.456}
-})
-```
-If you miss the primary key, the package will automatically assign *now* to be the value.
-
-
-### 2.2) Insert or Retrieve an old row, *InsupdHash*
-
-Sometimes a record may already be existing in the table, so you'd like to insert if it is not there, or retrieve it. Function *InsupdHash* is for this purpose:
-```
-err = crud.InsupdHash(map[string]interface{}{
-        {"ts":"2019-12-31 23:59:59.9999", "id":7890, "name":"last day", "fv":123.456}},
-        []string{"id","name"},
-)
-```
-It identifies the uniqueness by the combined valuse of *id* and *name*. In both the cases, you get the ID in *crud.LastID*, the row in *CurrentRow*, and the case in *Updated* (true for old record, and false for new). 
-
-
-### 2.3) Select many rows, *TopicsHash*
-
-Search many by *TopicsHash*:
-```
-lists := make([]map[string]interface{})
-restriction := map[string]interface{}{"len":10}
-err = crud.TopicsHash(&lists, []string{"ts", "name", "id"}, restriction)
-```
-which returns all records with restriction *len=10*. You specifically define which columns to return in second argument,
-which are *ts*, *name* and *id* here. 
-
-Only three types of _restriction_ are supported in map:
-- _key:value_  The *key* has *value*.
-- _key:slice_  The *key* has one of values in *slice*.
-- _"_gsql":"row sql statement"_  Use the special key *_gsql* to write a raw SQL statment.
-
-
-### 2.4) Select one row, *EditHash*
+<br /><br />
+### 2.5) Update a Row, *UpdateHash*
 
 ```
-lists := make([]map[string]interface{})
-err = crud.EditHash(&lists, []string{"ts", "name", "id"}, "2019-12-31 23:59:59.9999")
+func (*Crud) UpdateHash(fieldValues url.Values, ids []interface{}, extra ...url.Values) error
 ```
-Here you select by its primary key value (the timestamp). 
-
-Optionally, you may input an array of few key values and get them all in *lists*. Or you may put a restriction map too.
+The rows having *ids* as PK and *extra* as constraint will be updated. The columns and the new values are defined in *fieldValues*.
 
 
+<br /><br />
+### 2.6) Create or Update a Row, *InsupdHash*
+
+```
+func (*Crud) InsupdTable(fieldValues url.Values, uniques []string) error
+```
+This function is not a part of CRUD, but is implemented as *PATCH* method in *http*. When we try create a row, it may already exist. If so, we will update it instead. The uniqueness is determined by *uniques* column names. The field *Updated* will tell if the verb is updated or not. 
 
 
+<br /><br />
+### 2.7) Delete a Row, *DeleteHash*
+
+```
+func (*Crud) DeleteHash(ids []interface{}, extra ...url.Values) error
+```
+This function deletes rows specified by *ids* and constrained by *extra*.
+
+
+
+<br /><br />
 ## Chapter 3. ADVANCED USAGE
 
 *Model* is even a more detailed class operation on TDengine table.
