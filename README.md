@@ -452,7 +452,7 @@ will output
 ```sql
 user_project j
 INNER JOIN user_component c USING (projectid)
-LEFT JOIN user_table t USING (c.tableid=t.tableid)
+LEFT JOIN user_table t ON (c.tableid=t.tableid)
 ```
 
 By combining _selectPars_ and _extra_, we can construct sophisticate search queries. More use cases will be discussed in _Advanced Usage_ below.
@@ -460,8 +460,8 @@ By combining _selectPars_ and _extra_, we can construct sophisticate search quer
 
 <br /><br />
 ### 2.4) Read One Row, *EditHash*
-go
-```
+
+```go
 func (*Crud) EditHash(lists *[]map[string]interface{}, editPars interface{}, ids []interface{}, extra ...url.Values) error
 ```
 This will select rows having the specific primary key (*PK*) values *ids* and being constrained by *extra*. The query result is output to _lists_ with columns defined in *editPars*. For the slice of interface *ids*:
