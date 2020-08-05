@@ -25,7 +25,7 @@ The package is fully tested in MySQL and PostgreSQL, and assumed to work with ot
 ## Chapter 1. BASIC USAGE
 
 
-### 1.1) Type _DBI_
+### 1.1  Type _DBI_
 
 The `DBI` type simply embeds the standard SQL handle.
 ```go
@@ -99,7 +99,7 @@ Running this example will result in something like
 
 
 <br /><br />
-### 1.2) Execution with `ExecSQL` & `DoSQL`
+### 1.2  Execution with `ExecSQL` & `DoSQL`
 
 ```go
 func (*DBI) ExecSQL(query string, args ...interface{}) error
@@ -112,7 +112,7 @@ For all functions in this package, the returned value is always `error` which sh
 
 
 <br /><br />
-### 1.3)  _SELECT_ Queries
+### 1.3   _SELECT_ Queries
 
 #### 1.3.1)  `QuerySQL` & `SelectSQL`
 
@@ -174,7 +174,7 @@ These functions re-assign both data types and column names in the queries.
 
 
 <br /><br />
-### 1.4) Query Single Row
+### 1.4  Query Single Row
 
 In some cases we know there is only one row from a query. 
 
@@ -194,7 +194,7 @@ which is similar to `SelectSQL` but has only sinlge output to `res` which uses t
 
 
 <br /><br />
-### 1.5) Stored Procedure
+### 1.5  Stored Procedure
 
 _godbi_ runs stored procedures easily as well.
 
@@ -275,7 +275,7 @@ Running the program will result in:
 <br /><br />
 ## Chapter 2. CRUD USAGE
 
-### 2.1) Type *Crud*
+### 2.1  Type *Crud*
 
 Type `Crud` lets us to run CRUD verbs easily on a table.  
 ```go
@@ -383,7 +383,7 @@ all rows: [map[id:2 x:c y:d] map[id:3 x:c y:z]]
 ```
 
 <br /><br />
-### 2.2) Create New Row
+### 2.2  Create New Row
 
 ```go
 func (*Crud) InsertHash(fieldValues url.Values) error
@@ -392,7 +392,7 @@ where `fieldValues` of type `url.Values` stores column's names and values. The l
 
 
 <br /><br />
-### 2.3) Read All Rows
+### 2.3  Read All Rows
 
 ```go
 func (*Crud) TopicsHash(lists *[]map[string]interface{}, selectPars interface{}, extra ...url.Values) error
@@ -459,7 +459,7 @@ By combining `selectPars` and `extra`, we can construct sophisticate search quer
 
 
 <br /><br />
-### 2.4) Read One Row
+### 2.4  Read One Row
 
 ```go
 func (*Crud) EditHash(lists *[]map[string]interface{}, editPars interface{}, ids []interface{}, extra ...url.Values) error
@@ -471,7 +471,7 @@ This will select rows having the specific primary key (*PK*) values `ids` and be
 
 
 <br /><br />
-### 2.5) Update Row
+### 2.5  Update Row
 
 ```go
 func (*Crud) UpdateHash(fieldValues url.Values, ids []interface{}, extra ...url.Values) error
@@ -480,7 +480,7 @@ The rows having `ids` as PK and `extra` as constraint will be updated. The colum
 
 
 <br /><br />
-### 2.6) Create or Update Row
+### 2.6  Create or Update Row
 
 ```go
 func (*Crud) InsupdTable(fieldValues url.Values, uniques []string) error
@@ -489,7 +489,7 @@ This function is not a part of CRUD, but is implemented as *PATCH* method in *ht
 
 
 <br /><br />
-### 2.7) Delete Row
+### 2.7  Delete Row
 
 ```go
 func (*Crud) DeleteHash(ids []interface{}, extra ...url.Values) error
@@ -503,7 +503,7 @@ This function deletes rows specified by `ids` and constrained by `extra`.
 
 *Model* is even a more detailed class operation on TDengine table.
 
-### 3.1) Class *Model*
+### 3.1  Class *Model*
 
 ```
 type Model struct {
