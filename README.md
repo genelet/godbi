@@ -501,7 +501,7 @@ This function deletes rows specified by `ids` and constrained by `extra`.
 <br /><br />
 ## Chapter 3. ADVANCED USAGE
 
-`Model` constructs a database *model*, as in the MVC Pattern, from JSON and run RESTful and GraphicQL verbs amongh each other in the schema. This would provides a easy to use, yet powerful tool in web applications.
+`Model` constructs a database *model*, as in the MVC Pattern, from JSON and runs RESTful and GraphicQL verbs in the schema. This a powerful tool in web application.
 
 <br /><br />
 ### 3.1  Type *Model*
@@ -517,7 +517,7 @@ type Model struct {
     // all the following fields will be parsed from JSON
     Nextpages map[string][]*Page     `json:"nextpages,omitempty"`       // to call other models' verbs
     CurrentIdAuto  string            `json:"current_id_auto,omitempty"` // this table has an auto id
-    KeyIn          map[string]string `json:"fk_in,omitempty"`           // columns are used as PKs in other tables
+    KeyIn          map[string]string `json:"fk_in,omitempty"`           // PK is used as FKs in other tables
     InsertPars     []string          `json:"insert_pars,omitempty"`     // columns to insert in C
     UpdatePars     []string          `json:"update_pars,omitempty"`     // columns to update in U
     InsupdPars     []string          `json:"insupd_pars,omitempty"`     // unique columns in PATCH
@@ -539,41 +539,121 @@ type Model struct {
     Sortby         string            `json:"sortby,omitempty"`          // sorting column
 }
 ```
-Where the interface `Navigate`:
-```
+where the interface `Navigate`:
+```go
 type Navigate interface {
     GetLists() []map[string]interface{}  // get lists
     UpdateModel(*sql.DB, url.Values)     // set up the database handle and the http request data
     CallOnce(map[string]interface{}, *Page, ...url.Values) error // calls another model's verb
 }
 ```
-and type `Schema`:
-```
+In *godbi*, the `Model` type has already implemented the 3 methods. To use them, just embed `godbi.Model`. See below.
+
+Type `Schema`:
+```go
 type Schema struct {
     Models  map[string]Navigate               // all models in the schema as model's name to Navigate map
-    Actions map[string]map[string]interface{} // all verbs as model's name to "action name to method" map
+    Actions map[string]map[string]interface{} // verbs as model's name to "verb to method" map
 }
 ```
+Note that ~Actions~ is used for ~Nextpages~. If no ~Nextpages~ is defined for an action, there is no need to put it ~Actions~.
+
 
 ####  3.1.1) What is `Model`?
 
-`Model` is powerful tool to run CRUD and generate RESTful API in web application, for the whole database schema! 
+`Model` runa CRUD and generatea RESTful & GraphQL APIs in web application, for the whole database schema at once! 
 It focuses on the standard CRUD verbs but can include custom web actions, so is ready for use in
 any web development envirionmen.
 
-`Model` uses JSON to define RESTful data, so we need only to build the JSON files once and the system will output
-the RESTful & GraphQL APIs. This has great advantage over ORM where one has to program sophisticate and cubsome logic
+`Model` uses JSON to define RESTful data, which has great advantage over ORM where one has to program sophisticate and cubsome logic
 manually as code.
 
-To implement all models of schema, follow the 4 steps:
+To implement and use models of a schema, follow the 5 steps:
 
 - Construct one JSON file for each table, and create an initial `Model` instance
-- Build `Schema` from all the models in the database, and assign them back to each model
-- During the run time, e.g. when web server serving a http request, use `UpdateModel(db, ARGS)` to dynamically set up database handle and feed client's *Form* data
-- Run an RESTful action. If the model has `Nextpages` defined for this action, the system will run other model's action automatically.
+- Build `Schema` from all the models in the database, and assign them to each model. 
+- During the run time, e.g. when serving a http request, use `UpdateModel(db, ARGS)` to dynamically set up database handle and to feed client's *Form* data
+- Run an RESTful action. If the model has `Nextpages` defined for this action, the system will run other model's action automatically. 
 - Use `GetLists()` to get the result.
 
-### 3.1.2) 
+### 3.1.2) Create `Model`
+
+Use
+```go
+func NewModel(filename string) (*Model, error)
+```
+to create a new `Model` instance, where `filename` is the JSON file for this table. 
+
+Here is an example, assuming we have 2 MySQL tables in the schema,  *test_a* & "test_b*:
+```sql
+CREATE TABLE test_a (
+  id int auto_increment not null primary key, 
+  x varchar(8),
+  y varchar(8),
+  z varchar(8)
+);
+
+CREATE TABLE test_b (
+  tid int auto_increment not null primary key,
+  child varchar(8),
+  id int
+);
+```
+The associated JSON file for *test_a.json*:
+```json
+{
+    "nextpages" : {
+        "topics" : [
+            {"model":"tb", "action":"edit", "relate_item":{"id":"id"}}
+        ]
+    }
+
+    "current_table" : "test_a",
+    "current_key" : "id",
+    "current_id_auto" : "id",
+    "insupd_pars" : ["x","y"],
+    "insert_pars" : ["x","y","z"],
+    "edit_pars"   : ["id","x","y","z"],
+    "topics_pars" : ["id","x","y","z"]
+}
+```
+The part of ~nextpages~ will be explained below. For *test_b.json*:
+```json
+{
+    "current_table": "test_b",
+    "current_key" : "tid",
+    "current_id_auto": "tid",
+    "insert_pars" : ["id","child"],
+    "edit_pars"   : ["tid","child","id"],
+    "topics_pars" : ["tid","child","id"]
+}
+```
+With the two files, we can create models and schema. Note that all the CRUD methods are already implemented in `Model`.
+```go
+    ta, err := NewModel("test_a.json")
+    if err != nil { panic(err) }    
+    tb, err := NewModel("test_b.json")
+    if err != nil { panic(err) }
+
+    models := make(map[string]Navigate)
+    models["ta"] = ta
+    models["tb"] = tb
+
+    // only "ta" has defined "nextpages", i.e. when run "topics" on "ta", call "tb"'s action "edit" 
+    // 
+    tt := make(map[string]interface{})
+    tt["topics"] = func(args ...url.Values) error {
+        return tb.Edit(args...)
+    }
+    actions := make(map[string]map[string]interface{})
+    actions["ta"] = tt
+
+    schema := &Schema{Models:methods, Actions:actions}
+    model.Scheme = schema
+```
+At this step, we have two models `ta`, `tb` and `schema`. Here is the full program to generate APIs of model `ta`:
+```go
+```
 `Model` is used for 
 - _InsertPars_ defines column names used for insert a new data
 - _InsupdPars_ defines column names used for uniqueness 
