@@ -411,15 +411,17 @@ interface | column names
  *map[string]string{name: label}* | rename the column names by labels
  *map[string][2]string{name: label, type}* | rename the column names to labels and use the specific types
 
-If you don't specify type, the generic handle will decide one for you, which is most likely correct.
+If we don't specify type, the generic handle will decide one for us, which is most likely correct.
 
 #### 2.3.2) Constraints
 
-Use _extra_ to contrain the *WHERE* statement. Currently we support 3 and only 3 cases:
-- a key has only single value, meaning an EQUAL constraint
-- a key has array string values, meaning an IN constraint
-- the key is named *_gsql*, meaning a raw SQL statement
-- if there are multiple keys in _extra_, they are AND conditions.
+Use _extra_ to contrain the *WHERE* statement. Currently we have supported 3 cases:
+key or values in url.Values | meaning
+--------------------------- | -------
+a key has only single value | an EQUAL constraint
+a key has array string values | an IN constraint
+the key is named *_gsql* | a raw SQL statement
+among multiple keys | AND conditions.
 
 #### 2.3.3) Use multiple JOIN tables
 
