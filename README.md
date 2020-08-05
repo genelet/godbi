@@ -174,7 +174,7 @@ These functions re-assign both data types and column names in the queries.
 
 
 <br /><br />
-### 1.4) Query Single Row with `SELECT`
+### 1.4) Query Single Row
 
 In some cases we know there is only one row from a query. 
 
@@ -277,7 +277,7 @@ Running the program will result in:
 
 ### 2.1) Type *Crud*
 
-Type *Crud* lets us to run CRUD verbs easily on a table.  
+Type `Crud` lets us to run CRUD verbs easily on a table.  
 ```go
 type Crud struct {
     DBI
@@ -289,10 +289,10 @@ type Crud struct {
 }
 ```
 Just to note, the 4 letters in CRUD are: 
-- C: _Create_ a new row
-- R: _Read all_ rows, or _Read one_ row
-- U: _Update_ a row
-- D: _Delete_ a row
+- C: **C**reate a new row
+- R: **R**ead all rows, or **R**ead one row
+- U: **U**pdate a row
+- D: **D**elete a row
 
 #### 2.1.1) Create an instance
 
@@ -303,7 +303,7 @@ crud := &godbi.Crud{DBI:dbi_created, CurrentTable:"mytable", CurrentKey:"mykey"}
 
 #### 2.1.2) Example
 
-This example _Creates_ 3 rows. Then it _Updates_ one row, _Reads one_ row and _Reads all_ rows.
+This example creates 3 rows. Then it updates one row, reads one row and reads all rows.
 ```go
 package main
 
@@ -333,7 +333,7 @@ func main() {
     if err = crud.ExecSQL(`CREATE TABLE atesting (
         id int auto_increment, x varchar(255), y varchar(255), primary key (id))`); err != nil { panic(err) }
 
-    // 'create' 3 rows one by one using url.Values
+    // create 3 rows one by one using url.Values
     //
     hash := url.Values{}
     hash.Set("x", "a")
@@ -383,25 +383,25 @@ all rows: [map[id:2 x:c y:d] map[id:3 x:c y:z]]
 ```
 
 <br /><br />
-### 2.2) Create a New Row, *InsertHash*
+### 2.2) Create a New Row, `InsertHash`
 
 ```go
 func (*Crud) InsertHash(fieldValues url.Values) error
 ```
-where _fieldValues_ of type _url.Values_ stores column's names and values. The latest inserted id will be put in _LastId_ if the database driver supports it.
+where `fieldValues` of type `url.Values` stores column's names and values. The latest inserted id will be put in `LastId` if the database driver supports it.
 
 
 <br /><br />
-### 2.3) Read All Rows, *TopicsHash*
+### 2.3) Read All Rows, `TopicsHash`
 
 ```go
 func (*Crud) TopicsHash(lists *[]map[string]interface{}, selectPars interface{}, extra ...url.Values) error
 ```
-where _lists_ receives the query results.
+where `lists` receives the query results.
 
 #### 2.3.1) Specify which columns to be reported
 
-Use _selectPars_ which is an interface to specify which column names and types in the query. There are 4 cases:
+Use `selectPars` which is an interface to specify which column names and types in the query. There are 4 cases:
 interface | column names
 --------- | ------------
  *[]string{name}* | just a list of column names
@@ -413,8 +413,8 @@ If we don't specify type, the generic handle will decide one for us, which is mo
 
 #### 2.3.2) Constraints
 
-Use _extra_, which is type *url.Values* to contrain the *WHERE* statement. Currently we have supported 3 cases:
-key in *extra* | meaning
+Use `extra`, which has type `url.Values` to contrain the *WHERE* statement. Currently we have supported 3 cases:
+key in `extra` | meaning
 --------------------------- | -------
 key has only one value | an EQUAL constraint
 key has multiple values | an IN constraint
@@ -423,7 +423,7 @@ among multiple keys | AND conditions.
 
 #### 2.3.3) Use multiple JOIN tables
 
-The _R_ verb will use a JOIN SQL statement from related tables, if _CurrentTables_ of type *Table* exists in *Crud*.
+The _R_ verb will use a JOIN SQL statement from related tables, if `CurrentTables` of type `Table` exists in `Crud`.
 ```go
 type Table struct { 
     Name string   `json:"name"`             // name of the table
@@ -434,7 +434,7 @@ type Table struct {
     Sortby string `json:"sortby,omitempty"` // optional column to sort, only applied to the first table
 }
 ```
-The tables in _CurrentTables_ should be arranged with correct orders. To output the SQL string, use
+The tables in `CurrentTables` should be arranged with correct orders. To output the SQL string, use
 ```go
 func TableString(tables []*Table) string
 ```
@@ -455,46 +455,46 @@ INNER JOIN user_component c USING (projectid)
 LEFT JOIN user_table t ON (c.tableid=t.tableid)
 ```
 
-By combining _selectPars_ and _extra_, we can construct sophisticate search queries. More use cases will be discussed in _Advanced Usage_ below.
+By combining `selectPars` and `extra`, we can construct sophisticate search queries. More use cases will be discussed in _Advanced Usage_ below.
 
 
 <br /><br />
-### 2.4) Read One Row, *EditHash*
+### 2.4) Read One Row, `EditHash`
 
 ```go
 func (*Crud) EditHash(lists *[]map[string]interface{}, editPars interface{}, ids []interface{}, extra ...url.Values) error
 ```
-This will select rows having the specific primary key (*PK*) values *ids* and being constrained by *extra*. The query result is output to _lists_ with columns defined in *editPars*. For the slice of interface *ids*:
-- if PK is a single column, *ids* should be a slice of targeted PK values
-  - to select a single PK equaling to 1234, just use *ids = []int{1234}*
-- if PK has multiple columns, i.e. *CurrentKeys* exists, *ids* should be a slice of value arrays.
+This will select rows having the specific primary key (*PK*) values `ids` and being constrained by `extra`. The query result is output to `lists` with columns defined in `editPars`. For the slice of interface `ids`:
+- if PK is a single column, `ids` should be a slice of targeted PK values
+  - to select a single PK equaling to 1234, just use `ids = []int{1234}`
+- if PK has multiple columns, i.e. `CurrentKeys` exists, `ids` should be a slice of value arrays.
 
 
 <br /><br />
-### 2.5) Update a Row, *UpdateHash*
+### 2.5) Update a Row, `UpdateHash`
 
 ```go
 func (*Crud) UpdateHash(fieldValues url.Values, ids []interface{}, extra ...url.Values) error
 ```
-The rows having *ids* as PK and *extra* as constraint will be updated. The columns and the new values are defined in *fieldValues*.
+The rows having `ids` as PK and `extra` as constraint will be updated. The columns and the new values are defined in `fieldValues`.
 
 
 <br /><br />
-### 2.6) Create or Update a Row, *InsupdHash*
+### 2.6) Create or Update a Row, `InsupdHash`
 
 ```go
 func (*Crud) InsupdTable(fieldValues url.Values, uniques []string) error
 ```
-This function is not a part of CRUD, but is implemented as *PATCH* method in *http*. When we try create a row, it may already exist. If so, we will update it instead. The uniqueness is determined by *uniques* column names. The field *Updated* will tell if the verb is updated or not. 
+This function is not a part of CRUD, but is implemented as *PATCH* method in *http*. When we try create a row, it may already exist. If so, we will update it instead. The uniqueness is determined by `uniques` column names. The field `Updated` will tell if the verb is updated or not. 
 
 
 <br /><br />
-### 2.7) Delete a Row, *DeleteHash*
+### 2.7) Delete a Row, `DeleteHash`
 
 ```go
 func (*Crud) DeleteHash(ids []interface{}, extra ...url.Values) error
 ```
-This function deletes rows specified by *ids* and constrained by *extra*.
+This function deletes rows specified by `ids` and constrained by `extra`.
 
 
 
