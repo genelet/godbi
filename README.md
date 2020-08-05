@@ -385,7 +385,7 @@ all rows: [map[id:2 x:c y:d] map[id:3 x:c y:z]]
 ```
 func (*Crud) InsertHash(fieldValues url.Values) error
 ```
-where _fieldValues_ of type _url.Values_ stores column's names and values. The lastest inserted id will be put in _LastId_ if the database driver supports it.
+where _fieldValues_ of type _url.Values_ stores column's names and values. The latest inserted id will be put in _LastId_ if the database driver supports it.
 
 
 <br /><br />
@@ -457,7 +457,7 @@ By combining _selectPars_ and _extra_, we can construct sophisticate search quer
 ```
 func (*Crud) EditHash(lists *[]map[string]interface{}, editPars interface{}, ids []interface{}, extra ...url.Values) error
 ```
-This will select rows having the specific primary key (*PK*) values *ids* and being constrainted by *extra*. The query result is output to _lists_ with columns defined in *editPars*. For *ids*:
+This will select rows having the specific primary key (*PK*) values *ids* and being constrained by *extra*. The query result is output to _lists_ with columns defined in *editPars*. For *ids*:
 - if PK is a single column, *ids* should be a slice of targeted PK values
   - to select a single PK equaling to 1234, just use *ids = []int{1234}*
 - if PK has multiple columns, i.e. *CurrentKeys* exists, *ids* should be a slice of value arrays.
@@ -482,12 +482,12 @@ This function is not a part of CRUD, but is implemented as *PATCH* method in *ht
 
 
 <br /><br />
-### 2.5) Delete a Row, *DeleteHash*
+### 2.7) Delete a Row, *DeleteHash*
 
 ```
 func (*Crud) DeleteHash(ids []interface{}, extra ...url.Values) error
 ```
-This function deletes rows specified by *ids* and constrainted by *extra*.
+This function deletes rows specified by *ids* and constrained by *extra*.
 
 
 
