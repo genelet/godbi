@@ -423,7 +423,7 @@ among multiple keys | AND conditions.
 
 #### 2.3.3) Use multiple JOIN tables
 
-The _R_ verb will use a JOIN SQL statement from related tables, if `CurrentTables` of type `Table` exists in `Crud`.
+The _R_ verb will use a JOIN SQL statement from related tables, if `CurrentTables` of type `Table` exists in `Crud`. Type `Table` is usually parsed from JSON.
 ```go
 type Table struct { 
     Name string   `json:"name"`             // name of the table
@@ -434,7 +434,7 @@ type Table struct {
     Sortby string `json:"sortby,omitempty"` // optional column to sort, only applied to the first table
 }
 ```
-The tables in `CurrentTables` should be arranged with correct orders. To output the SQL string, use
+The tables in `CurrentTables` should be arranged with correct orders. Use the following function to create a SQL logic: 
 ```go
 func TableString(tables []*Table) string
 ```
@@ -501,38 +501,41 @@ This function deletes rows specified by `ids` and constrained by `extra`.
 <br /><br />
 ## Chapter 3. ADVANCED USAGE
 
-*Model* is even a more detailed class operation on TDengine table.
+`Model` constructs a database *model*, as in the MVC Pattern, from JSON and run RESTful and GraphicQL verbs amongh each other in the schema. This would provides a easy to use, yet powerful tool in web applications.
 
+<br /><br />
 ### 3.1  Class *Model*
 
-```
+```go
 type Model struct {
-    Crud `json:"crud,omitempty"`
+    Crud
+    Navigate                         // interface has methods to implement 
+    ARGS   url.Values                // store http request data 
+    LISTS  []map[string]interface{}  // store output 
+    Scheme *Schema                   // pointer to all models in the schema
 
-    ARGS  map[string]interface{}   `json:"args,omitempty"`
-    LISTS []map[string]interface{} `json:"lists,omitempty"`
-    OTHER map[string]interface{}   `json:"other,omitempty"`
-
-    SORTBY      string `json:"sortby,omitempty"`
-    SORTREVERSE string `json:"sortreverse,omitempty"`
-    PAGENO      string `json:"pageno,omitempty"`
-    ROWCOUNT    string `json:"rowcount,omitempty"`
-    TOTALNO     string `json:"totalno,omitempty"`
-
-    Nextpages map[string][]map[string]interface{} `json:"nextpages,omitempty"`
-    Storage   map[string]map[string]interface{}   `json:"storage,omitempty"`
-
-    InsertPars []string `json:"insert_pars,omitempty"`
-    InsupdPars []string `json:"insupd_Pars,omitempty"`
-
-    EditPars   []string          `json:"edit_pars,omitempty"`
-    TopicsPars []string          `json:"topics_pars,omitempty"`
-    EditMap    map[string]string `json:"edit_map,omitempty"`
-    TopicsMap  map[string]string `json:"topics_map,omitempty"`
-
-    TotalForce int `json:"total_force,omitempty"`
+    // all the following fields will be parsed from JSON
+    Nextpages map[string][]*Page     `json:"nextpages,omitempty"`       // to call other models' verbs
+    CurrentIdAuto  string            `json:"current_id_auto,omitempty"` // this table has an auto id
+    KeyIn          map[string]string `json:"fk_in,omitempty"`           // some columns are used as PKs in other tables
+    InsertPars     []string          `json:"insert_pars,omitempty"`     // columns to insert in C
+    EditPars       []string          `json:"edit_pars,omitempty"`       // columns to query in R (one)
+    UpdatePars     []string          `json:"update_pars,omitempty"`     // columns to update in U
+    InsupdPars     []string          `json:"insupd_pars,omitempty"`     // unique columns in PATCH
+    TopicsPars     []string          `json:"topics_pars,omitempty"`     // columns to query in R (all)
+    TopicsHashPars map[string]string `json:"topics_hash,omitempty"`     // columns to query in R (all) and renamed in output
+    TotalForce     int               `json:"total_force,omitempty"`     // see below
+    Empties        string            `json:"empties,omitempty"`         // columns are forced to NULL if no input in verb R 
+    Fields         string            `json:"fields,omitempty"`          // narrow down the columns in R to this smaller set
+    
+    // these fields are for pagination in web application, default to themselves. e.g. "maxpageno" for Maxpageno 
+    Maxpageno      string            `json:"maxpageno,omitempty"`       // variable name to pass total page no. 
+    Totalno        string            `json:"totalno,omitempty"`         // variable name to pass total item no. 
+    Rowcount       string            `json:"rawcount,omitempty"`        // variable name to pass counts per page  
+    Pageno         string            `json:"pageno,omitempty"`          // variable name to pass current page no. 
+    Sortreverse    string            `json:"sortreverse,omitempty"`     // variable name to pass reverse sorting
+    Sortby         string            `json:"sortby,omitempty"`          // variable name to pass sorting column
 }
-
 ```
 
 ####  3.1.1) Table column names
