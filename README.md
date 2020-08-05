@@ -76,8 +76,7 @@ func main() {
     //
     if err = dbi.ExecSQL(`DROP TABLE IF EXISTS letters`); err != nil { panic(err) }
     if err = dbi.ExecSQL(`CREATE TABLE letters (
-        id int auto_increment primary key,
-        x varchar(1))`); err != nil { panic(err) }
+        id int auto_increment primary key, x varchar(1))`); err != nil { panic(err) }
     if err = dbi.ExecSQL(`INSERT INTO letters (x) VALUES ('m')`); err != nil { panic(err) }
     if err = dbi.ExecSQL(`INSERT INTO letters (x) VALUES ('n')`); err != nil { panic(err) }
     if err = dbi.ExecSQL(`INSERT INTO letters (x) VALUES ('p')`); err != nil { panic(err) }
@@ -240,7 +239,8 @@ func main() {
 
     if err = dbi.ExecSQL(`drop procedure if exists proc_w2`); err != nil { panic(err) }
     if err = dbi.ExecSQL(`drop table if exists letters`); err != nil { panic(err) }
-    if err = dbi.ExecSQL(`create table letters(id int auto_increment primary key, x varchar(1))`); err != nil { panic(err) }
+    if err = dbi.ExecSQL(`create table letters(
+        id int auto_increment primary key, x varchar(1))`); err != nil { panic(err) }
 
     err = dbi.ExecSQL(`create procedure proc_w2(IN x0 varchar(1),OUT y0 int)
         begin
