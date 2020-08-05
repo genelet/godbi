@@ -112,7 +112,7 @@ For all functions in this package, the returned value is always `error` which sh
 
 
 <br /><br />
-### 1.3) Queries with _SELECT_ 
+### 1.3)  _SELECT_ Queries
 
 #### 1.3.1)  `QuerySQL` & `SelectSQL`
 
@@ -164,7 +164,7 @@ The result has the renamed keys:
     {"time stamp":"2019-12-15 01:01:01", "record ID":1234, "recorder name":"company", "length":30, "flag":true, "values":789.123},
 ```
 
-#### 1.3.4) `uerySQLTypeLabel`& `electSQlTypeLabel`
+#### 1.3.4) `QuerySQLTypeLabel`& `SelectSQlTypeLabel`
 
 ```go
 func (*DBI) QuerySQLTypeLabel (lists *[]map[string]interface{}, typeLabels []string, selectLabels []string, query string, args ...interface{}) error
