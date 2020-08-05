@@ -17,9 +17,7 @@ The package is fully tested in MySQL and PostgreSQL, and assumed to work with ot
 <br /><br />
 ### Installation
 
-```
-$ go get -u github.com/genelet/godbi
-```
+> $ go get -u github.com/genelet/godbi
 <!-- go mod init github.com/genelet/godbi -->
 
 
@@ -30,7 +28,7 @@ $ go get -u github.com/genelet/godbi
 ### 1.1) Type _DBI_
 
 The _DBI_ type simply embeds the standard SQL handle.
-```
+```go
 package godbi
 
 type DBI struct {
@@ -44,7 +42,7 @@ type DBI struct {
 
 #### 1.1.1) Create a new handle
 
-```
+```go
 dbi := &DBI{DB: the_standard_sql_handle}
 ```
 
@@ -103,7 +101,7 @@ Running this example will result in something like
 <br /><br />
 ### 1.2) Execution with _ExecSQL_ & _DoSQL_
 
-```
+```go
 func (*DBI) ExecSQL(query string, args ...interface{}) error
 func (*DBI) DoSQL  (query string, args ...interface{}) error
 ```
@@ -118,18 +116,18 @@ For all functions in this package, the returned value is always *error* which sh
 
 #### 1.3.1)  *QuerySQL* & *SelectSQL*
 
-```
+```go
 func (*DBI) QuerySQL (lists *[]map[string]interface{}, query string, args ...interface{}) error
 func (*DBI) SelectSQL(lists *[]map[string]interface{}, query string, args ...interface{}) error
 ```
 Run the *SELECT*-type query and put the result into *lists*, a slice of column name-value maps. The data types of the column are determined dynamically by the generic SQL handle. For example:
-```
+```go
 lists := make([]map[string]interface{})
 err = dbi.QuerySQL(&lists,
     `SELECT ts, id, name, len, flag, fv FROM mytable WHERE id=?`, 1234)
 ```
 will select all rows with _id=1234_.
-```
+```json
     {"ts":"2019-12-15 01:01:01", "id":1234, "name":"company", "len":30, "flag":true, "fv":789.123},
     ....
 ```
@@ -137,38 +135,38 @@ The difference between the two functions is that _SelectSQL_ runs a prepared sta
 
 #### 1.3.2) *QuerySQLType* & *SelectSQLType*
 
-```
+```go
 func (*DBI) QuerySQLType (lists *[]map[string]interface{}, typeLabels []string, query string, args ...interface{}) error
 func (*DBI) SelectSQLType(lists *[]map[string]interface{}, typeLabels []string, query string, args ...interface{}) error
 ```
 They differ from the above *QuerySQL* by specifying the data types. While the generic handle could correctly figure out them in most cases, it occasionally fails because there is no exact matching between SQL typies and GOLANG types.
 
 The following example assigns _string_, _int_, _string_, _int8_, _bool_ and _float32_ to the corresponding columns:
-```
+```go
 err = dbi.QuerySQLType(&lists, []string{"string", "int", "string", "int8", "bool", "float32},
     `SELECT ts, id, name, len, flag, fv FROM mytable WHERE id=?`, 1234)
 ```
 
 #### 1.3.3) *QuerySQLLabel* & *SelectSQLLable*
 
-```
+```go
 func (*DBI) QuerySQLLabel (lists *[]map[string]interface{}, selectLabels []string, query string, args ...interface{}) error
 func (*DBI) SelectSQLLabel(lists *[]map[string]interface{}, selectLabels []string, query string, args ...interface{}) error
 ```
 They differ from the above *QuerySQL* by renaming the default column names to _selectLabels_. For example:
-```
+```go
 lists := make([]map[string]interface{})
 err = dbi.QuerySQLLabel(&lists, []string{"time stamp", "record ID", "recorder name", "length", "flag", "values"},
     `SELECT ts, id, name, len, flag, fv FROM mytable WHERE id=?`, 1234)
 ```
 The result has the renamed keys:
-```
+```json
     {"time stamp":"2019-12-15 01:01:01", "record ID":1234, "recorder name":"company", "length":30, "flag":true, "values":789.123},
 ```
 
 #### 1.3.4) *QuerySQLTypeLabel* & *SelectSQlTypeLabel*
 
-```
+```go
 func (*DBI) QuerySQLTypeLabel (lists *[]map[string]interface{}, typeLabels []string, selectLabels []string, query string, args ...interface{}) error
 func (*DBI) SelectSQLTypeLabel(lists *[]map[string]interface{}, typeLabels []string, selectLabels []string, query string, args ...interface{}) error
 ```
@@ -182,14 +180,14 @@ In some cases we know there is only one row from a query.
 
 #### 1.4.1) *GetSQLLable*
 
-```
+```go
 func (*DBI) GetSQLLabel(res map[string]interface{}, query string, selectLabels []string, args ...interface{}) error
 ```
 which is similar to *SelectSQLLable* but has only single output to *res*.
 
 #### 1.4.2) *GetArgs*
 
-```
+```go
 func (*DBI) GetArgs(res url.Values, query string, args ...interface{}) error
 ```
 which is similar to *SelectSQL* but has only sinlge output to *res* which uses type [url.Values](https://golang.org/pkg/net/url/). This function will be used mainly in web applications, where HTTP request data are expressed in _url.Values_.
@@ -202,7 +200,7 @@ _godbi_ runs stored procedures easily as well.
 
 #### 1.5.1) *DoProc*
 
-```
+```go
 func (*DBI) DoProc(res map[string]interface{}, names []string, proc_name string, args ...interface{}) error
 ```
 It runs a stored procedure *proc_name* with IN data in *args*. The OUT data will be placed in *res* using *names* as its keys. Note that the OUT variables should have been defined separately in *proc_name*.
@@ -211,13 +209,13 @@ If the procedure has no OUT to receive, just assign *names* to be _nil_.
 
 #### 1.5.2) *SelectDoProc*
 
-```
+```go
 func (*DBI) SelectDoProc(lists *[]map[string]interface{}, res map[string]interface{}, names []string, proc_name string, args ...interface{}) error
 ```
 Similar to *DoProc* but it receives _SELECT_-type query data into *lists*, providing *proc_name* contains such a query. 
 
 Full example:
-```
+```go
 package main
 
 import (
@@ -280,7 +278,7 @@ Running the program will result in:
 ### 2.1) Type *Crud*
 
 Type *Crud* lets us to run CRUD verbs easily on a table.  
-```
+```go
 type Crud struct {
     DBI
     CurrentTable string    // the current table name 
@@ -299,14 +297,14 @@ Just to note, the 4 letters in CRUD are:
 #### 2.1.1) Create an instance
 
 Create a new instance:
-```
+```go
 crud := &godbi.Crud{DBI:dbi_created, CurrentTable:"mytable", CurrentKey:"mykey"}
 ```
 
 #### 2.1.2) Example
 
 This example _Creates_ 3 rows. Then it _Updates_ one row, _Reads one_ row and _Reads all_ rows.
-```
+```go
 package main
 
 import (
@@ -387,7 +385,7 @@ all rows: [map[id:2 x:c y:d] map[id:3 x:c y:z]]
 <br /><br />
 ### 2.2) Create a New Row, *InsertHash*
 
-```
+```go
 func (*Crud) InsertHash(fieldValues url.Values) error
 ```
 where _fieldValues_ of type _url.Values_ stores column's names and values. The latest inserted id will be put in _LastId_ if the database driver supports it.
@@ -396,7 +394,7 @@ where _fieldValues_ of type _url.Values_ stores column's names and values. The l
 <br /><br />
 ### 2.3) Read All Rows, *TopicsHash*
 
-```
+```go
 func (*Crud) TopicsHash(lists *[]map[string]interface{}, selectPars interface{}, extra ...url.Values) error
 ```
 where _lists_ receives the query results.
@@ -426,7 +424,7 @@ among multiple keys | AND conditions.
 #### 2.3.3) Use multiple JOIN tables
 
 The _R_ verb will use a JOIN SQL statement from related tables, if _CurrentTables_ of type *Table* exists in *Crud*.
-```
+```go
 type Table struct { 
     Name string   `json:"name"`             // name of the table
     Alias string  `json:"alias,omitempty"`  // optional alias of the table
@@ -437,11 +435,11 @@ type Table struct {
 }
 ```
 The tables in _CurrentTables_ should be arranged with correct orders. To output the SQL string, use
-```
+```go
 func TableString(tables []*Table) string
 ```
 For example:
-```
+```go
 str := `[
     {"name":"user_project", "alias":"j"},
     {"name":"user_component", "alias":"c", "type":"INNER", "using":"projectid"},
@@ -451,7 +449,7 @@ if err := json.Unmarshal([]byte(str), &tables); err != nil { panic(err) }
 log.Printf("%s", TableString())
 ```
 will output
-```
+```sql
 user_project j
 INNER JOIN user_component c USING (projectid)
 LEFT JOIN user_table t USING (c.tableid=t.tableid)
@@ -462,7 +460,7 @@ By combining _selectPars_ and _extra_, we can construct sophisticate search quer
 
 <br /><br />
 ### 2.4) Read One Row, *EditHash*
-
+go
 ```
 func (*Crud) EditHash(lists *[]map[string]interface{}, editPars interface{}, ids []interface{}, extra ...url.Values) error
 ```
@@ -475,7 +473,7 @@ This will select rows having the specific primary key (*PK*) values *ids* and be
 <br /><br />
 ### 2.5) Update a Row, *UpdateHash*
 
-```
+```go
 func (*Crud) UpdateHash(fieldValues url.Values, ids []interface{}, extra ...url.Values) error
 ```
 The rows having *ids* as PK and *extra* as constraint will be updated. The columns and the new values are defined in *fieldValues*.
@@ -484,7 +482,7 @@ The rows having *ids* as PK and *extra* as constraint will be updated. The colum
 <br /><br />
 ### 2.6) Create or Update a Row, *InsupdHash*
 
-```
+```go
 func (*Crud) InsupdTable(fieldValues url.Values, uniques []string) error
 ```
 This function is not a part of CRUD, but is implemented as *PATCH* method in *http*. When we try create a row, it may already exist. If so, we will update it instead. The uniqueness is determined by *uniques* column names. The field *Updated* will tell if the verb is updated or not. 
@@ -493,7 +491,7 @@ This function is not a part of CRUD, but is implemented as *PATCH* method in *ht
 <br /><br />
 ### 2.7) Delete a Row, *DeleteHash*
 
-```
+```go
 func (*Crud) DeleteHash(ids []interface{}, extra ...url.Values) error
 ```
 This function deletes rows specified by *ids* and constrained by *extra*.
