@@ -10,7 +10,7 @@ import (
 // Actions: map between model name and actions,
 // represented as a map between action name and action method
 type Schema struct {
-	Models  map[string]Restful
+	Models  map[string]Navigate
 	Actions map[string]map[string]interface{}
 }
 
@@ -85,7 +85,7 @@ func (self *Model) CallOnce(item map[string]interface{}, page *Page, extra ...ur
 		extra[0] = hash
 	}
 
-	modelObj.UpdateModel(self.DB, args, schema)
+	modelObj.UpdateModel(self.DB, args)
 	finalAction := actionFunc.(func(...url.Values) error)
 	if err := finalAction(extra...); err != nil {
 		return err
@@ -95,7 +95,7 @@ func (self *Model) CallOnce(item map[string]interface{}, page *Page, extra ...ur
 	if hasValue(lists) {
 		item[marker] = lists
 	}
-	modelObj.UpdateModel(nil, nil, nil)
+	modelObj.UpdateModel(nil, nil)
 
 	return nil
 }

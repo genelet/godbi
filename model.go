@@ -13,16 +13,16 @@ import (
 	"strings"
 )
 
-// Restful is interface to implement Model
+// Navigate is interface to implement Model
 //
-type Restful interface {
+type Navigate interface {
 	// GetLists: get the main data
 	GetLists() []map[string]interface{}
 
-	// UpdateModel: initiate the model with DB handle, input and database schema
-	UpdateModel(*sql.DB, url.Values, *Schema)
+	// UpdateModel: initiate the model with DB handle and input
+	UpdateModel(*sql.DB, url.Values)
 
-	// CallOnce calls SQL operation on another model using defined page information
+	// CallOnce calls SQL operation on another model defined in page
 	CallOnce(map[string]interface{}, *Page, ...url.Values) error
 }
 
@@ -30,7 +30,7 @@ type Restful interface {
 //
 type Model struct {
 	Crud
-	Restful
+	Navigate
 
 	// ARGS: the input data received by the web request
 	ARGS url.Values
@@ -45,8 +45,8 @@ type Model struct {
 	Nextpages map[string][]*Page `json:"nextpages,omitempty"`
 
 	//
-	CurrentIdAuto string            `json:"current_id_auto,omitempty"`
-	KeyIn         map[string]string `json:"fk_in,omitempty"`
+	CurrentIdAuto string             `json:"current_id_auto,omitempty"`
+	KeyIn         map[string]string  `json:"fk_in,omitempty"`
 
 	InsertPars     []string          `json:"insert_pars,omitempty"`
 	EditPars       []string          `json:"edit_pars,omitempty"`
@@ -111,10 +111,9 @@ func (self *Model) GetLists() []map[string]interface{} {
 }
 
 // UpdateModel updates the DB handle, the arguments and schema
-func (self *Model) UpdateModel(db *sql.DB, args url.Values, schema *Schema) {
+func (self *Model) UpdateModel(db *sql.DB, args url.Values) {
 	self.DB = db
 	self.ARGS = args
-	self.Scheme = schema
 	self.LISTS = make([]map[string]interface{}, 0)
 }
 
@@ -278,7 +277,10 @@ func (self *Model) Insupd(extra ...url.Values) error {
 	}
 	self.LISTS = fromFv(fieldValues)
 
-	return self.ProcessAfter("insupd", extra...)
+	if self.Updated {
+		return self.ProcessAfter("update", extra...)
+	}
+	return self.ProcessAfter("insert", extra...)
 }
 
 // Update updates a row using values defined in ARGS

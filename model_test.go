@@ -35,8 +35,7 @@ func TestModelSimple(t *testing.T) {
 	}
 
 	args := make(url.Values)
-	schema := new(Schema)
-	model.UpdateModel(db, args, schema)
+	model.UpdateModel(db, args)
 
 	model.CurrentKey = "id"
 	model.CurrentIdAuto = "id"
@@ -255,8 +254,7 @@ func TestModel(t *testing.T) {
 	model, err := NewModel("m1.json")
 	if err != nil { panic(err) }
 	ARGS := url.Values{}
-	schema := new(Schema)
-	model.UpdateModel(db, ARGS, schema)
+	model.UpdateModel(db, ARGS)
 	err = model.ExecSQL(`drop table if exists atesting`)
 	if err != nil { panic(err) }
 	err = model.ExecSQL(`CREATE TABLE atesting (id int auto_increment not null primary key, x varchar(8), y varchar(8), z varchar(8))`)
@@ -378,7 +376,7 @@ func TestNextPages(t *testing.T) {
 	st, err := NewModel("m3.json")
     if err != nil { panic(err) }
 
-	methods := make(map[string]Restful)
+	methods := make(map[string]Navigate)
 	methods["testing"] = st
 
 	tt := make(map[string]interface{})

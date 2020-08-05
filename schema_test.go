@@ -66,7 +66,7 @@ func TestPage(t *testing.T) {
 	st, err := NewTwo("m3.json")
     if err != nil { panic(err) }
 
-	models := make(map[string]Restful)
+	models := make(map[string]Navigate)
 	models["testing"] = st
 
 	tt := make(map[string]interface{})
@@ -136,7 +136,7 @@ func (self *modelTwo) Customtwo(extra ...url.Values) error {
 "SELECT 3 AS three, 4 AS four")
 }
 
-func TestRestful(t *testing.T) {
+func TestNavigate(t *testing.T) {
 	db, err := getdb()
 	if err != nil {
 		panic(err)
@@ -246,7 +246,7 @@ func TestSchema(t *testing.T) {
 	st, err := NewTwo("m3.json")
     if err != nil { panic(err) }
 
-	models := make(map[string]Restful)
+	models := make(map[string]Navigate)
 	models["testing"] = st
 
 	tt := make(map[string]interface{})
