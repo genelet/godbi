@@ -82,6 +82,7 @@ func main() {
     if err = dbi.ExecSQL(`INSERT INTO letters (x) VALUES ('p')`); err != nil { panic(err) }
 
     // select data from the table and put them into lists
+    //
     lists := make([]map[string]interface{},0)
     if err = dbi.SelectSQL(&lists, "SELECT id, x FROM letters"); err != nil { panic(err) }
 
@@ -241,8 +242,7 @@ func main() {
     if err = dbi.ExecSQL(`drop table if exists letters`); err != nil { panic(err) }
     if err = dbi.ExecSQL(`create table letters(
         id int auto_increment primary key, x varchar(1))`); err != nil { panic(err) }
-
-    err = dbi.ExecSQL(`create procedure proc_w2(IN x0 varchar(1),OUT y0 int)
+    if err = dbi.ExecSQL(`create procedure proc_w2(IN x0 varchar(1),OUT y0 int)
         begin
         delete from letters;
         insert into letters (x) values('m');
@@ -252,8 +252,7 @@ func main() {
         select id, x from letters where x=x0;
         insert into letters (x) values('a');
         set y0=100;
-        end`)
-    if err != nil { panic(err) }
+        end`); err != nil { panic(err) }
 
     hash := make(map[string]interface{})
     lists := make([]map[string]interface{},0)
@@ -328,6 +327,7 @@ func main() {
     defer db.Close()
 
     // create a new instance for table "atesting"
+    //
     dbi := godbi.DBI{DB:db}
     crud := &godbi.Crud{dbi, "atesting", nil, "id", nil, false}
 
@@ -336,6 +336,7 @@ func main() {
         id int auto_increment, x varchar(255), y varchar(255), primary key (id))`); err != nil { panic(err) }
 
     // 'create' 3 rows one by one using url.Values
+    //
     hash := url.Values{}
     hash.Set("x", "a")
     hash.Set("y", "b") 
@@ -348,21 +349,25 @@ func main() {
     if err = crud.InsertHash(hash); err != nil { panic(err) }
 
     // now the id is 3
+    //
     id := crud.LastId
     log.Printf("last id=%d", id)
     
     // update the row of id=3, change column y to be "z"
+    //
     hash1 := url.Values{}
     hash1.Set("y", "z")
     if err = crud.UpdateHash(hash1, []interface{}{id}); err != nil { panic(err) }
 
     // read one of the row of id=3. Only the columns x and y are reported
+    //
     lists := make([]map[string]interface{}, 0)
-    label := []string{"x", "y"} // defining columns to be reported
+    label := []string{"x", "y"}
     if err = crud.EditHash(&lists, label, []interface{}{id}); err != nil { panic(err) }
     log.Printf("row of id=2: %v", lists)
 
     // read all rows with contraint x='c'
+    //
     lists = make([]map[string]interface{}, 0)
     label = []string{"id", "x", "y"}
     extra := url.Values{"x":[]string{"c"}}
@@ -399,10 +404,12 @@ where _lists_ receives the query results.
 #### 2.3.1) Specify which columns to be reported
 
 Use _selectPars_ which is an interface to specify which column names and types in the query. There are 4 cases:
-- *[]string{name}*, just a list of column names
-- *[][2]string{name, type}*, a list of column names and associated data types
-- *map[string]string{name: label}*, rename the column names by labels
-- *map[string][2]string{name: label, type}*, rename the column names to labels and use the specific types
+interface | column names
+--------- | ------------
+ *[]string{name}* | just a list of column names
+ *[][2]string{name, type}* | a list of column names and associated data types
+ *map[string]string{name: label}* | rename the column names by labels
+ *map[string][2]string{name: label, type}* | rename the column names to labels and use the specific types
 
 If you don't specify type, the generic handle will decide one for you, which is most likely correct.
 
@@ -457,7 +464,7 @@ By combining _selectPars_ and _extra_, we can construct sophisticate search quer
 ```
 func (*Crud) EditHash(lists *[]map[string]interface{}, editPars interface{}, ids []interface{}, extra ...url.Values) error
 ```
-This will select rows having the specific primary key (*PK*) values *ids* and being constrained by *extra*. The query result is output to _lists_ with columns defined in *editPars*. For *ids*:
+This will select rows having the specific primary key (*PK*) values *ids* and being constrained by *extra*. The query result is output to _lists_ with columns defined in *editPars*. For the slice of interface *ids*:
 - if PK is a single column, *ids* should be a slice of targeted PK values
   - to select a single PK equaling to 1234, just use *ids = []int{1234}*
 - if PK has multiple columns, i.e. *CurrentKeys* exists, *ids* should be a slice of value arrays.
