@@ -556,7 +556,7 @@ type Schema struct {
     Actions map[string]map[string]interface{} // verbs as model's name to "verb to method" map
 }
 ```
-Note that ~Actions~ is used for ~Nextpages~. If no ~Nextpages~ is defined for an action, there is no need to put it ~Actions~.
+Note that `Actions` is used for `Nextpages`. If no `Nextpages` is defined for a model or an action, there is no need to put the model name or the action name as keys in `Actions`.
 
 
 ####  3.1.1) What is `Model`?
