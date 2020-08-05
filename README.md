@@ -415,12 +415,12 @@ If we don't specify type, the generic handle will decide one for us, which is mo
 
 #### 2.3.2) Constraints
 
-Use _extra_ to contrain the *WHERE* statement. Currently we have supported 3 cases:
-key or values in url.Values | meaning
+Use _extra_, which is type *url.Values* to contrain the *WHERE* statement. Currently we have supported 3 cases:
+key in *extra* | meaning
 --------------------------- | -------
-a key has only single value | an EQUAL constraint
-a key has array string values | an IN constraint
-the key is named *_gsql* | a raw SQL statement
+key has only one value | an EQUAL constraint
+key has multiple values | an IN constraint
+key is named *_gsql* | a raw SQL statement
 among multiple keys | AND conditions.
 
 #### 2.3.3) Use multiple JOIN tables
