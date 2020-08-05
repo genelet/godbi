@@ -281,10 +281,10 @@ Type `Crud` lets us to run CRUD verbs easily on a table.
 ```go
 type Crud struct {
     DBI
-    CurrentTable string    // the current table name 
-    CurrentTables []*Table // optional, for read-all SELECT with other joined tables 
-    CurrentKey string      // the single primary key of the table    
-    CurrentKeys []string   // optional, if the primary key has multiple columns   
+    CurrentTable string    `json:"current_table,omitempty"`  // the current table name 
+    CurrentTables []*Table `json:"current_tables,omitempty"` // optional, use multiple table JOINs in Read All 
+    CurrentKey string      `json:"current_key,omitempty"`    // the single primary key of the table    
+    CurrentKeys []string   `json:"current_keys,omitempty"`   // optional, if the primary key has multiple columns   
     Updated bool           // for Insupd() only, if the row is updated or new
 }
 ```
@@ -504,7 +504,7 @@ This function deletes rows specified by `ids` and constrained by `extra`.
 `Model` constructs a database *model*, as in the MVC Pattern, from JSON and run RESTful and GraphicQL verbs amongh each other in the schema. This would provides a easy to use, yet powerful tool in web applications.
 
 <br /><br />
-### 3.1  Class *Model*
+### 3.1  Type *Model*
 
 ```go
 type Model struct {
@@ -517,28 +517,64 @@ type Model struct {
     // all the following fields will be parsed from JSON
     Nextpages map[string][]*Page     `json:"nextpages,omitempty"`       // to call other models' verbs
     CurrentIdAuto  string            `json:"current_id_auto,omitempty"` // this table has an auto id
-    KeyIn          map[string]string `json:"fk_in,omitempty"`           // some columns are used as PKs in other tables
+    KeyIn          map[string]string `json:"fk_in,omitempty"`           // columns are used as PKs in other tables
     InsertPars     []string          `json:"insert_pars,omitempty"`     // columns to insert in C
-    EditPars       []string          `json:"edit_pars,omitempty"`       // columns to query in R (one)
     UpdatePars     []string          `json:"update_pars,omitempty"`     // columns to update in U
     InsupdPars     []string          `json:"insupd_pars,omitempty"`     // unique columns in PATCH
+    EditPars       []string          `json:"edit_pars,omitempty"`       // columns to query in R (one)
     TopicsPars     []string          `json:"topics_pars,omitempty"`     // columns to query in R (all)
-    TopicsHashPars map[string]string `json:"topics_hash,omitempty"`     // columns to query in R (all) and renamed in output
-    TotalForce     int               `json:"total_force,omitempty"`     // see below
-    Empties        string            `json:"empties,omitempty"`         // columns are forced to NULL if no input in verb R 
-    Fields         string            `json:"fields,omitempty"`          // narrow down the columns in R to this smaller set
+    TopicsHashPars map[string]string `json:"topics_hash,omitempty"`     // columns to rename in R (all)
+    TotalForce     int               `json:"total_force,omitempty"`     // if to calculate total coutns in R (all)
     
-    // these fields are for pagination in web application, default to themselves. e.g. "maxpageno" for Maxpageno 
-    Maxpageno      string            `json:"maxpageno,omitempty"`       // variable name to pass total page no. 
-    Totalno        string            `json:"totalno,omitempty"`         // variable name to pass total item no. 
-    Rowcount       string            `json:"rawcount,omitempty"`        // variable name to pass counts per page  
-    Pageno         string            `json:"pageno,omitempty"`          // variable name to pass current page no. 
-    Sortreverse    string            `json:"sortreverse,omitempty"`     // variable name to pass reverse sorting
-    Sortby         string            `json:"sortby,omitempty"`          // variable name to pass sorting column
+    // The following fields are just variable names to pass in a web request,
+    // default to themselves. e.g. "empties" for "Empties", "maxpageno" for Maxpageno etc.
+    Empties        string            `json:"empties,omitempty"`         // columns are updated to NULL if no input 
+    Fields         string            `json:"fields,omitempty"`          // use this smaller set of columns in R 
+    // these fields are for pagination. Their values have meanings
+    Maxpageno      string            `json:"maxpageno,omitempty"`       // total page no. 
+    Totalno        string            `json:"totalno,omitempty"`         // total item no. 
+    Rowcount       string            `json:"rawcount,omitempty"`        // counts per page  
+    Pageno         string            `json:"pageno,omitempty"`          // current page no. 
+    Sortreverse    string            `json:"sortreverse,omitempty"`     // if reverse sorting
+    Sortby         string            `json:"sortby,omitempty"`          // sorting column
+}
+```
+Where the interface `Navigate`:
+```
+type Navigate interface {
+    GetLists() []map[string]interface{}  // get lists
+    UpdateModel(*sql.DB, url.Values)     // set up the database handle and the http request data
+    CallOnce(map[string]interface{}, *Page, ...url.Values) error // calls another model's verb
+}
+```
+and type `Schema`:
+```
+type Schema struct {
+    Models  map[string]Navigate               // all models in the schema as model's name to Navigate map
+    Actions map[string]map[string]interface{} // all verbs as model's name to "action name to method" map
 }
 ```
 
-####  3.1.1) Table column names
+####  3.1.1) What is `Model`?
+
+`Model` is powerful tool to run CRUD and generate RESTful API in web application, for the whole database schema! 
+It focuses on the standard CRUD verbs but can include custom web actions, so is ready for use in
+any web development envirionmen.
+
+`Model` uses JSON to define RESTful data, so we need only to build the JSON files once and the system will output
+the RESTful & GraphQL APIs. This has great advantage over ORM where one has to program sophisticate and cubsome logic
+manually as code.
+
+To implement all models of schema, follow the 4 steps:
+
+- Construct one JSON file for each table, and create an initial `Model` instance
+- Build `Schema` from all the models in the database, and assign them back to each model
+- During the run time, e.g. when web server serving a http request, use `UpdateModel(db, ARGS)` to dynamically set up database handle and feed client's *Form* data
+- Run an RESTful action. If the model has `Nextpages` defined for this action, the system will run other model's action automatically.
+- Use `GetLists()` to get the result.
+
+### 3.1.2) 
+`Model` is used for 
 - _InsertPars_ defines column names used for insert a new data
 - _InsupdPars_ defines column names used for uniqueness 
 - _EditPars_ defines which columns to be returned in *search one* action *Edit*.
