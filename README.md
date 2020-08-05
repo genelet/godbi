@@ -10,7 +10,7 @@ There are three levels of usages:
 - _Advanced_: operating on tables, called Models, as in MVC pattern in web applications, and fulfilling RESTful and GraphQL actions.
 
 
-_godbi_ is an ideal replacement of ORM. It achieves SQL, CRUD, RESTful and GraphQL tasks gracefully and very efficiently.
+_godbi_ is an ideal replacement of ORM. It runs SQL, CRUD, RESTful and GraphQL tasks gracefully and very efficiently.
 The package is fully tested in MySQL and PostgreSQL, and assumed to work with other relational databases.
 
 
@@ -54,6 +54,15 @@ In this example, we create a MySQL handle using database credentials in the envi
 ```
 package main
 
+import (
+    "os"
+    "log"
+    "database/sql"
+    "github.com/genelet/godbi"
+    _ "github.com/go-sql-driver/mysql"
+)
+    
+func main() {
     dbUser := os.Getenv("DBUSER")
     dbPass := os.Getenv("DBPASS")
     dbName := os.Getenv("DBNAME")
@@ -98,9 +107,10 @@ Running this example will report something like
 func (*DBI) ExecSQL(query string, args ...interface{}) error
 func (*DBI) DoSQL  (query string, args ...interface{}) error
 ```
-Similar to SQL's _Exec_, these functions execute _INSERT_ or _UPDATE_ queries. The returned value should be checked to assert if the executions are successful.
+Similar to SQL's _Exec_, these functions execute *Do*-type (e.g. _INSERT_ or _UPDATE_) queries. The difference between the two functions is that _DoSQL_ runs a prepared statement and is safe for concurrent use by multiple goroutines.
 
-The difference between the two functions is that _DoSQL_ runs a prepared statement and is safe for concurrent use by multiple goroutines.
+For all functions in this package, the returned value is always *error* which should be checked to assert if the execution is successful.
+
 
 
 <br /><br />
@@ -112,7 +122,7 @@ The difference between the two functions is that _DoSQL_ runs a prepared stateme
 func (*DBI) QuerySQL (lists *[]map[string]interface{}, query string, args ...interface{}) error
 func (*DBI) SelectSQL(lists *[]map[string]interface{}, query string, args ...interface{}) error
 ```
-Run query and put the result into *lists*. The data types are determined automatically by the generic SQL handle. For example:
+Run the *SELECT*-type query and put the result into *lists*. The data types are determined automatically by the generic SQL handle. For example:
 ```
 lists := make([]map[string]interface{})
 err = dbi.QuerySQL(&lists,
