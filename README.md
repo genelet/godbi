@@ -27,7 +27,7 @@ The package is fully tested in MySQL and PostgreSQL, and assumed to work with ot
 
 ### 1.1) Type _DBI_
 
-The _DBI_ type simply embeds the standard SQL handle.
+The `DBI` type simply embeds the standard SQL handle.
 ```go
 package godbi
 
@@ -48,7 +48,7 @@ dbi := &DBI{DB: the_standard_sql_handle}
 
 #### 1.1.2) Example
 
-In this example, we create a MySQL handle using database credentials in the environment; then create a new table _letters_ and add 3 rows. We query the data using _SelectSQL_ and put the result into _lists_ as slice of maps.
+In this example, we create a MySQL handle using database credentials in the environment; then create a new table _letters_ and add 3 rows. We query the data using `SelectSQL` and put the result into `lists` as slice of maps.
 ```go
 package main
 
@@ -99,47 +99,47 @@ Running this example will result in something like
 
 
 <br /><br />
-### 1.2) Execution with _ExecSQL_ & _DoSQL_
+### 1.2) Execution with `ExecSQL` & `DoSQL`
 
 ```go
 func (*DBI) ExecSQL(query string, args ...interface{}) error
 func (*DBI) DoSQL  (query string, args ...interface{}) error
 ```
-Similar to SQL's _Exec_, these functions execute *Do*-type (e.g. _INSERT_ or _UPDATE_) queries. The difference between the two functions is that _DoSQL_ runs a prepared statement and is safe for concurrent use by multiple goroutines.
+Similar to SQL's `Exec`, these functions execute *Do*-type (e.g. _INSERT_ or _UPDATE_) queries. The difference between the two functions is that `DoSQL` runs a prepared statement and is safe for concurrent use by multiple goroutines.
 
-For all functions in this package, the returned value is always *error* which should be checked to assert if the execution is successful.
+For all functions in this package, the returned value is always `error` which should be checked to assert if the execution is successful.
 
 
 
 <br /><br />
 ### 1.3) Queries with _SELECT_ 
 
-#### 1.3.1)  *QuerySQL* & *SelectSQL*
+#### 1.3.1)  `QuerySQL` & `SelectSQL`
 
 ```go
 func (*DBI) QuerySQL (lists *[]map[string]interface{}, query string, args ...interface{}) error
 func (*DBI) SelectSQL(lists *[]map[string]interface{}, query string, args ...interface{}) error
 ```
-Run the *SELECT*-type query and put the result into *lists*, a slice of column name-value maps. The data types of the column are determined dynamically by the generic SQL handle. For example:
+Run the *SELECT*-type query and put the result into `lists`, a slice of column name-value maps. The data types of the column are determined dynamically by the generic SQL handle. For example:
 ```go
 lists := make([]map[string]interface{})
 err = dbi.QuerySQL(&lists,
     `SELECT ts, id, name, len, flag, fv FROM mytable WHERE id=?`, 1234)
 ```
-will select all rows with _id=1234_.
+will select all rows with *id=1234*.
 ```json
     {"ts":"2019-12-15 01:01:01", "id":1234, "name":"company", "len":30, "flag":true, "fv":789.123},
     ....
 ```
-The difference between the two functions is that _SelectSQL_ runs a prepared statement.
+The difference between the two functions is that `SelectSQL` runs a prepared statement.
 
-#### 1.3.2) *QuerySQLType* & *SelectSQLType*
+#### 1.3.2) `QuerySQLType` & `SelectSQLType`
 
 ```go
 func (*DBI) QuerySQLType (lists *[]map[string]interface{}, typeLabels []string, query string, args ...interface{}) error
 func (*DBI) SelectSQLType(lists *[]map[string]interface{}, typeLabels []string, query string, args ...interface{}) error
 ```
-They differ from the above *QuerySQL* by specifying the data types. While the generic handle could correctly figure out them in most cases, it occasionally fails because there is no exact matching between SQL typies and GOLANG types.
+They differ from the above `QuerySQL` by specifying the data types. While the generic handle could correctly figure out them in most cases, it occasionally fails because there is no exact matching between SQL typies and GOLANG types.
 
 The following example assigns _string_, _int_, _string_, _int8_, _bool_ and _float32_ to the corresponding columns:
 ```go
@@ -147,13 +147,13 @@ err = dbi.QuerySQLType(&lists, []string{"string", "int", "string", "int8", "bool
     `SELECT ts, id, name, len, flag, fv FROM mytable WHERE id=?`, 1234)
 ```
 
-#### 1.3.3) *QuerySQLLabel* & *SelectSQLLable*
+#### 1.3.3) `QuerySQLLabel` & `SelectSQLLable`
 
 ```go
 func (*DBI) QuerySQLLabel (lists *[]map[string]interface{}, selectLabels []string, query string, args ...interface{}) error
 func (*DBI) SelectSQLLabel(lists *[]map[string]interface{}, selectLabels []string, query string, args ...interface{}) error
 ```
-They differ from the above *QuerySQL* by renaming the default column names to _selectLabels_. For example:
+They differ from the above `QuerySQL`by renaming the default column names to `electLabels` For example:
 ```go
 lists := make([]map[string]interface{})
 err = dbi.QuerySQLLabel(&lists, []string{"time stamp", "record ID", "recorder name", "length", "flag", "values"},
@@ -164,7 +164,7 @@ The result has the renamed keys:
     {"time stamp":"2019-12-15 01:01:01", "record ID":1234, "recorder name":"company", "length":30, "flag":true, "values":789.123},
 ```
 
-#### 1.3.4) *QuerySQLTypeLabel* & *SelectSQlTypeLabel*
+#### 1.3.4) `uerySQLTypeLabel`& `electSQlTypeLabel`
 
 ```go
 func (*DBI) QuerySQLTypeLabel (lists *[]map[string]interface{}, typeLabels []string, selectLabels []string, query string, args ...interface{}) error
@@ -174,23 +174,23 @@ These functions re-assign both data types and column names in the queries.
 
 
 <br /><br />
-### 1.4) Query Single Row with _SELECT_ 
+### 1.4) Query Single Row with `SELECT`
 
 In some cases we know there is only one row from a query. 
 
-#### 1.4.1) *GetSQLLable*
+#### 1.4.1) `GetSQLLable`
 
 ```go
 func (*DBI) GetSQLLabel(res map[string]interface{}, query string, selectLabels []string, args ...interface{}) error
 ```
-which is similar to *SelectSQLLable* but has only single output to *res*.
+which is similar to `SelectSQLLable` but has only single output to `res`.
 
-#### 1.4.2) *GetArgs*
+#### 1.4.2) `GetArgs`
 
 ```go
 func (*DBI) GetArgs(res url.Values, query string, args ...interface{}) error
 ```
-which is similar to *SelectSQL* but has only sinlge output to *res* which uses type [url.Values](https://golang.org/pkg/net/url/). This function will be used mainly in web applications, where HTTP request data are expressed in _url.Values_.
+which is similar to `SelectSQL` but has only sinlge output to `res` which uses type [url.Values](https://golang.org/pkg/net/url/). This function will be used mainly in web applications, where HTTP request data are expressed in `url.Values`.
 
 
 <br /><br />
@@ -198,21 +198,21 @@ which is similar to *SelectSQL* but has only sinlge output to *res* which uses t
 
 _godbi_ runs stored procedures easily as well.
 
-#### 1.5.1) *DoProc*
+#### 1.5.1) `DoProc`
 
 ```go
 func (*DBI) DoProc(res map[string]interface{}, names []string, proc_name string, args ...interface{}) error
 ```
-It runs a stored procedure *proc_name* with IN data in *args*. The OUT data will be placed in *res* using *names* as its keys. Note that the OUT variables should have been defined separately in *proc_name*.
+It runs a stored procedure `proc_name` with IN data in `args`. The OUT data will be placed in `res` using `names` as its keys. Note that the OUT variables should have been defined separately in `proc_name`.
 
-If the procedure has no OUT to receive, just assign *names* to be _nil_.
+If the procedure has no OUT to receive, just assign `names` to be `nil`.
 
-#### 1.5.2) *SelectDoProc*
+#### 1.5.2) `SelectDoProc`
 
 ```go
 func (*DBI) SelectDoProc(lists *[]map[string]interface{}, res map[string]interface{}, names []string, proc_name string, args ...interface{}) error
 ```
-Similar to *DoProc* but it receives _SELECT_-type query data into *lists*, providing *proc_name* contains such a query. 
+Similar to `DoProc` but it receives _SELECT_-type query data into `lists`, providing `proc_name` contains such a query. 
 
 Full example:
 ```go
