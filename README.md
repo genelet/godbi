@@ -404,14 +404,14 @@ Use _selectPars_ which is an interface to specify which column names and types i
 - *map[string]string{name: label}*, rename the column names by labels
 - *map[string][2]string{name: label, type}*, rename the column names to labels and use the specific types
 
-If you don't specify types, the generic handle will decide one for you, which is most likely correct.
+If you don't specify type, the generic handle will decide one for you, which is most likely correct.
 
 #### 2.3.2) Constraints
 
-Use _extra_ to contrain the *WHERE* statement. <Currently we support 3 and only 3 cases:
-- a key has only single value, which means an EQUAL constraint
-- a key has array string values, which means an IN constraint
-- the key is named *_gsql*, which means a raw SQL statement
+Use _extra_ to contrain the *WHERE* statement. Currently we support 3 and only 3 cases:
+- a key has only single value, meaning an EQUAL constraint
+- a key has array string values, meaning an IN constraint
+- the key is named *_gsql*, meaning a raw SQL statement
 - if there are multiple keys in _extra_, they are AND conditions.
 
 #### 2.3.3) Use multiple JOIN tables
@@ -427,7 +427,7 @@ type Table struct {
     Sortby string `json:"sortby,omitempty"` // optional column to sort, only applied to the first table
 }
 ```
-The tables in _CurrentTables_ should be placed with corrent orders. To output the SQL string, use
+The tables in _CurrentTables_ should be arranged with correct orders. To output the SQL string, use
 ```
 func TableString(tables []*Table) string
 ```
@@ -448,39 +448,37 @@ INNER JOIN user_component c USING (projectid)
 LEFT JOIN user_table t USING (c.tableid=t.tableid)
 ```
 
-By combining _selectPars_ and _extra_, we can construct sophisticate search queries. The use cases will be discussed in _Advanced Usage_ below.
+By combining _selectPars_ and _extra_, we can construct sophisticate search queries. More use cases will be discussed in _Advanced Usage_ below.
 
 
 <br /><br />
-### 2.3) Read One Row, *EditHash*
+### 2.4) Read One Row, *EditHash*
 
 ```
 func (*Crud) EditHash(lists *[]map[string]interface{}, editPars interface{}, ids []interface{}, extra ...url.Values) error
 ```
-This will select rows which have the specific primary key (*PK*) values *ids* and are constrainted by *extra*. The query result is put in _lists_ with columns defined in *editPars*. *ids* should be: 
-- if PK is a single column, *ids* should be a slice of targed PK values
+This will select rows having the specific primary key (*PK*) values *ids* and being constrainted by *extra*. The query result is output to _lists_ with columns defined in *editPars*. For *ids*:
+- if PK is a single column, *ids* should be a slice of targeted PK values
   - to select a single PK equaling to 1234, just use *ids = []int{1234}*
 - if PK has multiple columns, i.e. *CurrentKeys* exists, *ids* should be a slice of value arrays.
 
 
 <br /><br />
-### 2.4) Update a Row, *UpdateHash*
+### 2.5) Update a Row, *UpdateHash*
 
 ```
 func (*Crud) UpdateHash(fieldValues url.Values, ids []interface{}, extra ...url.Values) error
 ```
-The rows having *ids* as PK values and *extra* as constraint will be updated by *fieldValues*, which uses column names as its keys.
+The rows having *ids* as PK and *extra* as constraint will be updated. The columns and the new values are defined in *fieldValues*.
 
 
 <br /><br />
-### 2.4) Create or Update a Row, *InsupdHash*
+### 2.6) Create or Update a Row, *InsupdHash*
 
 ```
 func (*Crud) InsupdTable(fieldValues url.Values, uniques []string) error
 ```
-This function is not a part of CRUD, but is implemented as *PATCH* method in *http*. When we try create a row,
-it may already exist. If so, we will update it instead. The uniqueness is determined by *uniques* column names.
-The field *Updated* will tell if the verb is *Update* or not. 
+This function is not a part of CRUD, but is implemented as *PATCH* method in *http*. When we try create a row, it may already exist. If so, we will update it instead. The uniqueness is determined by *uniques* column names. The field *Updated* will tell if the verb is updated or not. 
 
 
 <br /><br />
@@ -489,7 +487,7 @@ The field *Updated* will tell if the verb is *Update* or not.
 ```
 func (*Crud) DeleteHash(ids []interface{}, extra ...url.Values) error
 ```
-This function deletes row specified by *ids* and constraint *extra*.
+This function deletes rows specified by *ids* and constrainted by *extra*.
 
 
 
