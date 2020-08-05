@@ -383,7 +383,7 @@ all rows: [map[id:2 x:c y:d] map[id:3 x:c y:z]]
 ```
 
 <br /><br />
-### 2.2) Create a New Row, `InsertHash`
+### 2.2) Create New Row
 
 ```go
 func (*Crud) InsertHash(fieldValues url.Values) error
@@ -392,7 +392,7 @@ where `fieldValues` of type `url.Values` stores column's names and values. The l
 
 
 <br /><br />
-### 2.3) Read All Rows, `TopicsHash`
+### 2.3) Read All Rows
 
 ```go
 func (*Crud) TopicsHash(lists *[]map[string]interface{}, selectPars interface{}, extra ...url.Values) error
@@ -459,7 +459,7 @@ By combining `selectPars` and `extra`, we can construct sophisticate search quer
 
 
 <br /><br />
-### 2.4) Read One Row, `EditHash`
+### 2.4) Read One Row
 
 ```go
 func (*Crud) EditHash(lists *[]map[string]interface{}, editPars interface{}, ids []interface{}, extra ...url.Values) error
@@ -471,7 +471,7 @@ This will select rows having the specific primary key (*PK*) values `ids` and be
 
 
 <br /><br />
-### 2.5) Update a Row, `UpdateHash`
+### 2.5) Update Row
 
 ```go
 func (*Crud) UpdateHash(fieldValues url.Values, ids []interface{}, extra ...url.Values) error
@@ -480,7 +480,7 @@ The rows having `ids` as PK and `extra` as constraint will be updated. The colum
 
 
 <br /><br />
-### 2.6) Create or Update a Row, `InsupdHash`
+### 2.6) Create or Update Row
 
 ```go
 func (*Crud) InsupdTable(fieldValues url.Values, uniques []string) error
@@ -489,7 +489,7 @@ This function is not a part of CRUD, but is implemented as *PATCH* method in *ht
 
 
 <br /><br />
-### 2.7) Delete a Row, `DeleteHash`
+### 2.7) Delete Row
 
 ```go
 func (*Crud) DeleteHash(ids []interface{}, extra ...url.Values) error
