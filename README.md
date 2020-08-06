@@ -317,7 +317,7 @@ type Crud struct {
 ```
 Just to note, the 4 letters in CRUD are: 
 C | R | U | D
-- | - | - | -
+---- | ---- | ---- | ----
 create a new row | read all rows, or read one row | update a row | delete a row
 
 #### 2.1.1) Create an instance
