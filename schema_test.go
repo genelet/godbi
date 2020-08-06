@@ -21,17 +21,18 @@ func TestPage(t *testing.T) {
 	if err != nil { panic(err) }
 
     hash := url.Values{"x":[]string{"a1234567"},"y":[]string{"b1234567"}}
-    model.ARGS = hash
+    model.SetDB(db)
+    model.SetArgs(hash)
     err = model.Insupd()
     if err != nil { panic(err) }
 
     hash = url.Values{"x":[]string{"c1234567"},"y":[]string{"d1234567"},"z":[]string{"e1234"}}
-    model.ARGS = hash
+    model.SetArgs(hash)
     err = model.Insupd()
     if err != nil { panic(err) }
 
     hash = url.Values{"x":[]string{"e1234567"},"y":[]string{"f1234567"},"z":[]string{"e1234"}}
-    model.ARGS = hash
+    model.SetArgs(hash)
     err = model.Insupd()
     if err != nil { panic(err) }
 
@@ -44,22 +45,22 @@ func TestPage(t *testing.T) {
     if err != nil { panic(err) }
 
     hash = url.Values{"id":[]string{"1"},"child":[]string{"john"}}
-    supp.ARGS = hash
+    supp.SetArgs(hash)
     err = supp.Insert()
     if err != nil { panic(err) }
 
     hash = url.Values{"id":[]string{"1"},"child":[]string{"sam"}}
-    supp.ARGS = hash
+    supp.SetArgs(hash)
     err = supp.Insert()
     if err != nil { panic(err) }
 
     hash = url.Values{"id":[]string{"2"},"child":[]string{"mary"}}
-    supp.ARGS = hash
+    supp.SetArgs(hash)
     err = supp.Insert()
     if err != nil { panic(err) }
 
     hash = url.Values{"id":[]string{"3"},"child":[]string{"kkk"}}
-    supp.ARGS = hash
+    supp.SetArgs(hash)
     err = supp.Insert()
     if err != nil { panic(err) }
 

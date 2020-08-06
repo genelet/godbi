@@ -521,40 +521,40 @@ Futhermore, we have set up type `Schema` for whole database schema, which allow 
 ```go
 type Model struct {
     Crud
-    Navigate                         // interface has methods to implement 
-    ARGS   url.Values                // store http request data 
+    Navigate                          // interface has methods to implement 
 
-    // all the following fields will be parsed from JSON
-    Nextpages     map[string][]*Page `json:"nextpages,omitempty"`       // to call other models' verbs
-    CurrentIdAuto  string            `json:"current_id_auto,omitempty"` // this table has an auto id
-    InsertPars     []string          `json:"insert_pars,omitempty"`     // columns to insert in C
-    UpdatePars     []string          `json:"update_pars,omitempty"`     // columns to update in U
-    InsupdPars     []string          `json:"insupd_pars,omitempty"`     // unique columns in PATCH
-    EditPars       []string          `json:"edit_pars,omitempty"`       // columns to query in R (one)
-    TopicsPars     []string          `json:"topics_pars,omitempty"`     // columns to query in R (all)
-    TopicsHashPars map[string]string `json:"topics_hash,omitempty"`     // columns to rename in R (all)
-    TotalForce     int               `json:"total_force,omitempty"`     // if to calculate total coutns in R (all)
+    Nextpages      map[string][]*Page `json:"nextpages,omitempty"`       // to call other models' verbs
+    CurrentIdAuto  string             `json:"current_id_auto,omitempty"` // this table has an auto id
+    InsertPars     []string           `json:"insert_pars,omitempty"`     // columns to insert in C
+    UpdatePars     []string           `json:"update_pars,omitempty"`     // columns to update in U
+    InsupdPars     []string           `json:"insupd_pars,omitempty"`     // unique columns in PATCH
+    EditPars       []string           `json:"edit_pars,omitempty"`       // columns to query in R (one)
+    TopicsPars     []string           `json:"topics_pars,omitempty"`     // columns to query in R (all)
+    TopicsHashPars map[string]string  `json:"topics_hash,omitempty"`     // columns to rename in R (all)
+    TotalForce     int                `json:"total_force,omitempty"`     // if to calculate total coutns in R (all)
     
     // The following fields are just variable names to pass in a web request,
     // default to themselves. e.g. "empties" for "Empties", "maxpageno" for Maxpageno etc.
-    Empties        string            `json:"empties,omitempty"`         // columns are updated to NULL if no input 
-    Fields         string            `json:"fields,omitempty"`          // use this smaller set of columns in R 
-    // these fields are for pagination. Their values have meanings
-    Maxpageno      string            `json:"maxpageno,omitempty"`       // total page no. 
-    Totalno        string            `json:"totalno,omitempty"`         // total item no. 
-    Rowcount       string            `json:"rawcount,omitempty"`        // counts per page  
-    Pageno         string            `json:"pageno,omitempty"`          // current page no. 
-    Sortreverse    string            `json:"sortreverse,omitempty"`     // if reverse sorting
-    Sortby         string            `json:"sortby,omitempty"`          // sorting column
+    Empties        string             `json:"empties,omitempty"`         // columns are updated to NULL if no input 
+    Fields         string             `json:"fields,omitempty"`          // use this smaller set of columns in R 
+
+    // these fields are for pagination.
+    Maxpageno      string             `json:"maxpageno,omitempty"`       // total page no. 
+    Totalno        string             `json:"totalno,omitempty"`         // total item no. 
+    Rowcount       string             `json:"rawcount,omitempty"`        // counts per page  
+    Pageno         string             `json:"pageno,omitempty"`          // current page no. 
+    Sortreverse    string             `json:"sortreverse,omitempty"`     // if reverse sorting
+    Sortby         string             `json:"sortby,omitempty"`          // sorting column
 }
 ```
 where the interface `Navigate`:
 ```go
 type Navigate interface {
     GetLists()           []map[string]interface{} // get result after an action
-    GetArgs()            url.Values               // get http request data for the nextpage to use
-    GetNextpages(string) []*Page                 // get the nextpages
-    UpdateModel(*sql.DB, url.Values)             // set up the database handle and the http request data
+    GetArgs(...bool)     url.Values               // get http request data for the nextpage to use
+    SetArgs(url.Values)                           // set http request data
+    GetNextpages(string) []*Page                  // get the nextpages
+    SetDB(*sql.DB)                                // set the database handle 
 }
 ```
 In *godbi*, the `Model` type has already implemented the 4 methods. 
@@ -585,10 +585,12 @@ TotalForce     | total_force | if to calculate total counts in R (all)
 
 #### 3.1.2) Feed Database Handle and Input Data
 
-After we have constructed database handle, `db`, and input data, `args` such as http request's *Form*, which is of type `url.Values`, we can feed them into `Model`:
+Use 
 ```go
-func (*Model) UpdateModel(db *sql.DB, args url.Values)
+func (*Model) SetDB(db *sql.DB)
+func (*Model) SetArgs(args url.Values)
 ```
+to set database handle, `db`, and input data, `args` like http request's *Form* into `Model`:
 
 #### 3.1.3) Returning Data
 
@@ -596,22 +598,67 @@ After we have run an action on the model, we can retrieve data using
 ```go
 (*Model) GetLists()
 ```
-We may also check *totalno*, *maxpageno* and *rowcount* in `args`, to see if this is the first page in pagination.
+The input data `args` may has been modified too. To get it back use
+```go
+(*Model) GetArgs(ignore ...bool)
+```
+`ignore=true` will turn off the pagination information of *totalno*, *maxpageno* and *rowcount*.
 
-#### 3.1.4) GET (Read All)
+#### 3.1.4) Http METHOD: GET (read all)
 
 ```
 func (*Model) Topics(extra ...url.Values) error
 ```
 It selects all records in model's table, constrained optionally by `extra`. 
 
-If variable `rowcount`, which means *number of records per page*, is set in `args`, and field `TotalForce` is not 0, then pagination will be triggered. The total  count and total pages will be calculatd and put back in `args`. Field `TotalForce` defines how to calculate the total count.
+If variable `rowcount` (*number of records per page*) is set in `args`, and field `TotalForce` is not 0, then pagination will be triggered. The total count and total pages will be calculatd and put back in `args`. `TotalForce` defines how to calculate the total count.
 Value | Meaning
 ----- | -------
 <-1  | use ABS(TotalForce) as the total count 
 -1   | always calculate the total count
 0    | don't calculate the total count
->0   | calculate only if the total count is not passed in `args`
+&gt; 0  | calculate only if the total count is not passed in `args`
+
+#### 3.1.4) Http METHOD: GET (read one)
+
+> Note: the database table columns in the following RESTful actions are already defined in the model.
+
+```
+func (*Model) Edit(extra ...url.Values) error
+```
+It selects one records according to the PK value in the input data, constrained optionally by `extra`. 
+
+#### 3.1.5) Http METHOD: POST
+
+```
+func (*Model) Insert(extra ...url.Values) error
+```
+It inserts a new record using the input data. If `extra` is passed in, it will override the input data.
+
+#### 3.1.6) Http METHOD: PUT
+
+```
+func (*Model) Update(extra ...url.Values) error
+```
+It updates a row according to the PK and the input data, constrained optionally by `extra`.
+
+#### 3.1.7) Http METHOD: PATCH
+
+```
+func (*Model) Insupd(extra ...url.Values) error
+```
+It inserts or updates a row using the input data, constrained optionally by `extra`.
+
+#### 3.1.8) Http METHOD: DELETE
+
+```
+func (*Model) Delete(extra ...url.Values) error
+```
+It rows constrained by `extra`. For this function, the input data will NOT be used.
+
+#### 3.1.9）Example
+
+This example shows how to run RESTful actions on a
 
 If yo
 

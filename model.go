@@ -19,17 +19,17 @@ type Navigate interface {
 	// GetLists: get the main data
 	GetLists() []map[string]interface{}
 
-	// GetArgs: get new ARGS for the nextpage to use
-	GetArgs() url.Values
+	// GetArgs: get ARGS; pass "true" for nextpages
+	GetArgs(...bool) url.Values
+
+	// SetArgs: set new input
+	SetArgs(url.Values)
 
 	// GetNextpages: get the nextpages
 	GetNextpages(string) []*Page
 
-	// UpdateModel: initiate the model with DB handle and input
-	UpdateModel(*sql.DB, url.Values)
-
-	// CallOnce calls SQL operation on another model defined in page
-//	CallOnce(map[string]interface{}, *Page, ...url.Values) error
+	// SetDB: set SQL handle
+	SetDB(*sql.DB)
 }
 
 // Model works on table's CRUD in web applications.
@@ -38,18 +38,15 @@ type Model struct {
 	Crud
 	Navigate
 
-	// ARGS: the input data received by the web request
-	ARGS url.Values
+	// aARGS: the input data received by the web request
+	aARGS url.Values
 
 	// aLISTS: output data as slice of map, which represents a table row
 	aLISTS []map[string]interface{}
 
 	// Nextpages: defining how to call other models' actions
-	Nextpages map[string][]*Page `json:"nextpages,omitempty"`
-
-	//
+	Nextpages map[string][]*Page     `json:"nextpages,omitempty"`
 	CurrentIdAuto string             `json:"current_id_auto,omitempty"`
-
 	InsertPars     []string          `json:"insert_pars,omitempty"`
 	EditPars       []string          `json:"edit_pars,omitempty"`
 	UpdatePars     []string          `json:"update_pars,omitempty"`
@@ -112,9 +109,13 @@ func (self *Model) GetLists() []map[string]interface{} {
 	return self.aLISTS
 }
 
-func (self *Model) GetArgs() url.Values {
+func (self *Model) GetArgs(is ...bool) url.Values {
+	if is == nil || is[0] == false {
+		return self.aARGS
+	}
+
     args := url.Values{}
-    for k, v := range self.ARGS {
+    for k, v := range self.aARGS {
         if grep([]string{self.Sortby, self.Sortreverse, self.Rowcount, self.Totalno, self.Pageno, self.Maxpageno}, k) {
             continue
         }
@@ -122,6 +123,11 @@ func (self *Model) GetArgs() url.Values {
     }
 
 	return args
+}
+
+// feed input
+func (self *Model) SetArgs(args url.Values) {
+	self.aARGS = args
 }
 
 func (self *Model) GetNextpages(action string) []*Page {
@@ -135,15 +141,14 @@ func (self *Model) GetNextpages(action string) []*Page {
 	return nps
 }
 
-// UpdateModel updates the DB handle, the arguments and schema
-func (self *Model) UpdateModel(db *sql.DB, args url.Values) {
+// updates the DB handle
+func (self *Model) SetDB(db *sql.DB) {
 	self.DB = db
-	self.ARGS = args
 	self.aLISTS = make([]map[string]interface{}, 0)
 }
 
 func (self *Model) filteredFields(pars []string) []string {
-	ARGS := self.ARGS
+	ARGS := self.aARGS
 	fields, ok := ARGS[self.Fields]
 	if !ok {
 		return pars
@@ -162,7 +167,7 @@ func (self *Model) filteredFields(pars []string) []string {
 }
 
 func (self *Model) getFv(pars []string) url.Values {
-	ARGS := self.ARGS
+	ARGS := self.aARGS
 	fieldValues := url.Values{}
 	for _, f := range self.filteredFields(pars) {
 		if v, ok := ARGS[f]; ok {
@@ -187,7 +192,7 @@ func (self *Model) getIdVal(extra ...url.Values) []interface{} {
 
 // Topics selects many rows, optionally with restriction defined in 'extra'.
 func (self *Model) Topics(extra ...url.Values) error {
-	ARGS := self.ARGS
+	ARGS := self.aARGS
 	totalForce := self.TotalForce // 0 means no total calculation
 	if totalForce != 0 && ARGS.Get(self.Rowcount) != "" && (ARGS.Get(self.Pageno) == "" || ARGS.Get(self.Pageno) == "1") {
 		nt := int64(0)
@@ -255,7 +260,7 @@ func (self *Model) Insert(extra ...url.Values) error {
 	if self.CurrentIdAuto != "" {
 		autoId := strconv.FormatInt(self.LastId, 10)
 		fieldValues.Set(self.CurrentIdAuto, autoId)
-		self.ARGS.Set(self.CurrentIdAuto, autoId)
+		self.aARGS.Set(self.CurrentIdAuto, autoId)
 	}
 	self.aLISTS = fromFv(fieldValues)
 
@@ -311,7 +316,7 @@ func (self *Model) Update(extra ...url.Values) error {
 		return nil
 	}
 
-	if err := self.UpdateHashNulls(fieldValues, val, self.ARGS[self.Empties], extra...); err != nil {
+	if err := self.UpdateHashNulls(fieldValues, val, self.aARGS[self.Empties], extra...); err != nil {
 		return err
 	}
 
@@ -357,7 +362,7 @@ func (self *Model) Existing(table string, field string, val interface{}) error {
 
 // Randomid create PK field's int value that does not exists in the table
 func (self *Model) Randomid(table string, field string, m ...interface{}) (int, error) {
-	ARGS := self.ARGS
+	ARGS := self.aARGS
 	var min, max, trials int
 	if m == nil {
 		min = 0
@@ -388,7 +393,7 @@ func (self *Model) Randomid(table string, field string, m ...interface{}) (int, 
 // ProperValue returns the value of key 'v' from extra.
 // In case it does not exist, it tries to get from ARGS.
 func (self *Model) ProperValue(v string, extra url.Values) interface{} {
-	ARGS := self.ARGS
+	ARGS := self.aARGS
 	if !hasValue(extra) {
 		return ARGS.Get(v)
 	}
@@ -401,7 +406,7 @@ func (self *Model) ProperValue(v string, extra url.Values) interface{} {
 // ProperValues returns the values of multiple keys 'vs' from extra.
 // In case it does not exists, it tries to get from ARGS.
 func (self *Model) ProperValues(vs []string, extra url.Values) []interface{} {
-	ARGS := self.ARGS
+	ARGS := self.aARGS
 	outs := make([]interface{}, len(vs))
 	if !hasValue(extra) {
 		for i, v := range vs {
@@ -432,7 +437,7 @@ func (self *Model) ProperValuesHash(vs []string, extra url.Values) map[string]in
 
 // OrderString outputs the ORDER BY string using information in args
 func (self *Model) OrderString() string {
-	ARGS := self.ARGS
+	ARGS := self.aARGS
 	column := ""
 	if ARGS.Get(self.Sortby) != "" {
 		column = ARGS.Get(self.Sortby)

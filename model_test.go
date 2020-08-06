@@ -35,7 +35,8 @@ func TestModelSimple(t *testing.T) {
 	}
 
 	args := make(url.Values)
-	model.UpdateModel(db, args)
+	model.SetDB(db)
+	model.SetArgs(args)
 
 	model.CurrentKey = "id"
 	model.CurrentIdAuto = "id"
@@ -200,7 +201,7 @@ func TestModelSimple(t *testing.T) {
 	if ret !=nil {
 		t.Errorf("%s edit table testing failed", ret.Error())
 	}
-	a := model.ARGS
+	a := model.GetArgs()
 	nt, err := strconv.Atoi(a["totalno"][0])
 	if err != nil {panic(err)}
 	nm, err := strconv.Atoi(a["max_pageno"][0])
@@ -254,7 +255,8 @@ func TestModel(t *testing.T) {
 	model, err := NewModel("m1.json")
 	if err != nil { panic(err) }
 	ARGS := url.Values{}
-	model.UpdateModel(db, ARGS)
+	model.SetDB(db)
+	model.SetArgs(ARGS)
 	err = model.ExecSQL(`drop table if exists atesting`)
 	if err != nil { panic(err) }
 	err = model.ExecSQL(`CREATE TABLE atesting (id int auto_increment not null primary key, x varchar(8), y varchar(8), z varchar(8))`)
@@ -289,11 +291,13 @@ func TestModel(t *testing.T) {
 		r := strconv.Itoa(int(rand.Int31()))
 		if len(r)>8 { r=r[0:8] }
 		hash.Set("z", r)
-		model.ARGS = hash
+		model.SetArgs(hash)
 		err = model.Insert()
 		if err != nil { panic(err) }
 	}
-	model.ARGS.Set("rowcount","20")
+	a := model.GetArgs()
+	a.Set("rowcount","20")
+	model.SetArgs(a)
 	err = model.Topics()
 	if err != nil { panic(err) }
     lists := model.GetLists()
@@ -301,15 +305,17 @@ func TestModel(t *testing.T) {
 		t.Errorf("%d records returned from topics", len(lists))
 	}
 
-	model.ARGS.Set("sortreverse","1")
-	model.ARGS.Set("rowcount","20")
-	model.ARGS.Set("pageno","5")
+	a = model.GetArgs()
+	a.Set("sortreverse","1")
+	a.Set("rowcount","20")
+	a.Set("pageno","5")
+	model.SetArgs(a)
 	str = model.OrderString()
 	if str != "ORDER BY id DESC LIMIT 20 OFFSET 80" {
 		t.Errorf("'ORDER BY id DESC LIMIT 20 OFFSET 80' expected, got %s", str)
 	}
-	if model.ARGS["totalno"][0] != "100" {
-		t.Errorf("100 records expected, but %#v", model.ARGS)
+	if a = model.GetArgs(); a["totalno"][0] != "100" {
+		t.Errorf("100 records expected, but %#v", model.GetArgs())
 	}
 	db.Close()
 }

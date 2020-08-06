@@ -44,14 +44,16 @@ func (self *Schema) Run(model, action string, args url.Values, db *sql.DB, extra
     if !ok {
         return nil, errors.New("model found but action not found in actions")
     }
-    modelObj.UpdateModel(db, args)
+    modelObj.SetArgs(args)
+    modelObj.SetDB(db)
 	finalAction := actionFunc.(func(...url.Values) error)
     if err := finalAction(extra...); err != nil {
         return nil, err
     }
 	lists := modelObj.GetLists()
-	modelArgs := modelObj.GetArgs() // for nextpages to use
-    modelObj.UpdateModel(nil, nil)
+	modelArgs := modelObj.GetArgs(true) // for nextpages to use
+    modelObj.SetArgs(url.Values{})
+    modelObj.SetDB(nil)
 
 	if !hasValue(lists) {
 		return lists, nil
