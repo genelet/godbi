@@ -550,11 +550,16 @@ type Model struct {
 where the interface `Navigate`:
 ```go
 type Navigate interface {
-    GetLists()           []map[string]interface{} // get result after an action
-    GetArgs(...bool)     url.Values               // get http request data for the nextpage to use
-    SetArgs(url.Values)                           // set http request data
-    GetNextpages(string) []*Page                  // get the nextpages
-    SetDB(*sql.DB)                                // set the database handle 
+    SetArgs(url.Values)                             // set http request data
+    GetArgs(...bool)     url.Values                 // get http request data for the nextpage to use
+
+    SetDB(*sql.DB)                                  // set the database handle 
+
+    SetActions(map[string]func(...url.Values)error) // set new map between name and action function
+    RunAction(string, ...url.Values) error          // run an action by name
+
+    GetLists()           []map[string]interface{}   // get result after an action
+    GetNextpages(string) []*Page                    // get the nextpages
 }
 ```
 In *godbi*, the `Model` type has already implemented the 4 methods. 
@@ -658,114 +663,7 @@ It rows constrained by `extra`. For this function, the input data will NOT be us
 
 #### 3.1.9）Example
 
-This example shows how to run RESTful actions on a
-
-If yo
-
-Type `Page`:
-```go
-type Page struct {
-    Model      string            `json:"model"`                 // name of the next model to call  
-    Action     string            `json:"action"`                // action name of the next model
-    RelateItem map[string]string `json:"relate_item,omitempty"` // column name mapped to that of the next model
-    Manual     map[string]string `json:"manual,omitempty"`      // manually assign these constraints
-}
-```
-
-
-####  3.1.1) GET (Read One)
-
-`Model` generatea RESTful & GraphQL APIs in web application, for the whole database schema at once! 
-It has implemeted the standard CRUD verbs, and can include custom web actions too. So is ready to generate RESTful APIs but also ready for use in
-any web development envirionmen.
-
-`Model` uses JSON to initiate, which has great advantage over ORM where one has to program sophisticate and cubsome logic
-manually in code.
-
-To create and use models of a schema, follow the 5 steps:
-
-- Construct one JSON file for each table, and create an initial `Model` instance
-- Build `Schema` from all the models in the database, and assign them to each model. 
-- During the run time, e.g. when serving a http request, use `UpdateModel(db, ARGS)` to dynamically set up database handle and to feed client's *Form* data
-- Run an RESTful action. If the model has `Nextpages` defined for this action, the system will run other model's action automatically. 
-- Use `GetLists()` to get the result.
-
-### 3.1.2) Create `Model`
-
-Use
-```go
-func NewModel(filename string) (*Model, error)
-```
-to create a new `Model` instance, where `filename` is the JSON file for this table. 
-
-Here is an example, assuming we have 2 MySQL tables in the schema,  *test_a* & "test_b*:
-```sql
-CREATE TABLE test_a (
-  id int auto_increment not null primary key, 
-  x varchar(8),
-  y varchar(8),
-  z varchar(8)
-);
-
-CREATE TABLE test_b (
-  tid int auto_increment not null primary key,
-  child varchar(8),
-  id int
-);
-```
-The associated JSON file for *test_a.json*:
-```json
-{
-    "nextpages" : {
-        "topics" : [
-            {"model":"tb", "action":"edit", "relate_item":{"id":"id"}}
-        ]
-    }
-
-    "current_table" : "test_a",
-    "current_key" : "id",
-    "current_id_auto" : "id",
-    "insupd_pars" : ["x","y"],
-    "insert_pars" : ["x","y","z"],
-    "edit_pars"   : ["id","x","y","z"],
-    "topics_pars" : ["id","x","y","z"]
-}
-```
-The part of `nextpages` will be explained below. For *test_b.json*:
-```json
-{
-    "current_table": "test_b",
-    "current_key" : "tid",
-    "current_id_auto": "tid",
-    "insert_pars" : ["id","child"],
-    "edit_pars"   : ["tid","child","id"],
-    "topics_pars" : ["tid","child","id"]
-}
-```
-With the two files, we can create models and schema. Note that all the CRUD methods are already implemented in `Model`.
-```go
-    ta, err := NewModel("test_a.json")
-    if err != nil { panic(err) }    
-    tb, err := NewModel("test_b.json")
-    if err != nil { panic(err) }
-
-    models := make(map[string]Navigate)
-    models["ta"] = ta
-    models["tb"] = tb
-
-    // only "ta" has defined "nextpages", i.e. when run "topics" on "ta", call "tb"'s action "edit" 
-    // 
-    tt := make(map[string]interface{})
-    tt["topics"] = func(args ...url.Values) error {
-        return tb.Edit(args...)
-    }
-    actions := make(map[string]map[string]interface{})
-    actions["ta"] = tt
-
-    schema := &Schema{Models:methods, Actions:actions}
-    model.Scheme = schema
-```
-At this step, we have two models `ta`, `tb` and `schema`. Here is the full program to generate APIs of model `ta`:
+This example shows how to run RESTful actions on a model
 ```go
 package main
 
@@ -786,240 +684,154 @@ func main() {
     if err != nil { panic(err) }
     defer db.Close()
 
-    ta, err := godbi.NewModel("test_a.json")
-    if err != nil { panic(err) }
-    tb, err := godbi.NewModel("test_b.json")
-    if err != nil { panic(err) }
+    model := new(godbi.Model)
+    model.CurrentTable = "testing"
+    model.Sortby        ="sortby"
+    model.Sortreverse   ="sortreverse"
+    model.Pageno        ="pageno"
+    model.Rowcount      ="rowcount"
+    model.Totalno       ="totalno"
+    model.Maxpageno     ="max_pageno"
+    model.Fields        ="fields"
+    model.Empties       ="empties"
 
-    models := make(map[string]godbi.Navigate)
-    models["ta"] = ta
-    models["tb"] = tb
-    action := make(map[string]interface{})
-    action["topics"] = func(args ...url.Values) error { return tb.Topics(args...) }
-    action["insert"] = func(args ...url.Values) error { return tb.Insert(args...) }
-    action["update"] = func(args ...url.Values) error { return tb.Update(args...) }
-    actions := make(map[string]map[string]interface{})
-    actions["tb"] = action
-    schema := &godbi.Schema{Models:models, Actions:actions}
+	db.Exec(`DROP TABLE IF EXISTS testing`)
+	db.Exec(`CREATE TABLE testing (id int auto_increment, x varchar(255), y varchar(255), primary key (id))`)
 
-    ta.Scheme = schema
-    tb.Scheme = schema
+	args := make(url.Values)
+	model.SetDB(db)
+	model.SetArgs(args)
 
-    db.Exec(`drop table if exists test_a`)
-    db.Exec(`CREATE TABLE test_a (id int auto_increment not null primary key,
-        x varchar(8), y varchar(8), z varchar(8))`)
-    db.Exec(`drop table if exists test_b`)
-    db.Exec(`CREATE TABLE test_b (tid int auto_increment not null primary key,
-        child varchar(8), id int)`)
+	model.CurrentKey    = "id"
+	model.CurrentIdAuto = "id"
+	model.InsertPars    = []string{     "x","y"}
+	model.TopicsPars    = []string{"id","x","y"}
+	model.UpdatePars    = []string{"id","x","y"}
+	model.EditPars      = []string{"id","x","y"}
 
-    // the 1st web requests is assumed to add id=1 to the test_a and test_b tables:
-    //
-    hash := url.Values{"x":[]string{"a1234567"},"y":[]string{"b1234567"},"z":[]string{"temp"}, "child":[]string{"john"}}
-    ta.UpdateModel(db, hash)
-    if err = ta.Insupd(); err != nil { panic(err) }
+	args["x"] = []string{"a"}
+	args["y"] = []string{"b"}
+	if err := model.Insert(); err != nil { panic(err) }
+	log.Println(model.LastId)
 
-    // the 2nd request, becaues [x,y] is defined to the unique key in ta, this would't create a new id
-    // but will add a new record to tb from Nextpages for id=1, since update triggers its insert too
-    // 
-    hash = url.Values{"x":[]string{"a1234567"},"y":[]string{"b1234567"},"z":[]string{"zzzzz"}, "child":[]string{"sam"}}
-    ta.UpdateModel(db, hash)
-    if err = ta.Insupd(); err != nil { panic(err) }
+	args["x"] = []string{"c"}
+	args["y"] = []string{"d"}
+	if err := model.Insert(); err != nil { panic(err) }
+	log.Println(model.LastId)
 
-    // the 3rd request adds id=2
-    //
-    hash = url.Values{"x":[]string{"c1234567"},"y":[]string{"d1234567"},"z":[]string{"e1234"},"child":[]string{"mary"}}
-    ta.UpdateModel(db, hash)
-    if err = ta.Insupd(); err != nil { panic(err) }
+	if err := model.Topics(); err != nil { panic(err) }
+	log.Println(model.GetLists())
 
-    // the 4th request add id=3
-    //
-    hash = url.Values{"x":[]string{"e1234567"},"y":[]string{"f1234567"},"z":[]string{"e1234"},"child":[]string{"marcus"}}
-    ta.UpdateModel(db, hash)
-    if err = ta.Insupd(); err != nil { panic(err) }
+	args.Set("id","2")
+	args["x"] = []string{"c"}
+	args["y"] = []string{"z"}
+	if err := model.Update(); err != nil { panic(err) }
+	if err := model.Edit(); err != nil { panic(err) }
+	log.Println(model.GetLists())
 
-    // ready to retrieve 
-    err = ta.Topics()
-    if err != nil { panic(err) }
-    lists := ta.LISTS
-    log.Printf("%v", lists)
-
-    os.Exit(0)
+	os.Exit(0)
 }
-
 ```
-`Model` is used for 
-- _InsertPars_ defines column names used for insert a new data
-- _InsupdPars_ defines column names used for uniqueness 
-- _EditPars_ defines which columns to be returned in *search one* action *Edit*.
-- _TopicsPars_ defines which columns to be returned in *search many* action *Topics*.
-
-#### 3.1.2) Incoming data *ARGS*
-
-- Case *search many*, it contains data for *pagination*. 
-- Case *insert*, it stores the new row as hash (so the package takes column values of _EditPars_ from *ARGS*).
-
-#### 3.1.3) Output *LISTS*
-
-In case of *search* (*Edit* and *Topics*), the output data are stored in *LISTS*.
-
-#### 3.1.4) Pagination, used in *Topics*.
-- *ARGS[SORTBY]* defines sorting by which column
-- *ARGS[SORTREVERSE]* defines if a reverse sort
-- *ARGS[ROWCOUNT]* defines how many records on each page, an incoming data
-- *ARGS[PAGENO]* defines which page number, an incoming data
-- *ARGS[TOTALNO]* defines total records available, an output data
-
-Based on those information, developers can build paginations.
-
-#### 3.1.5) Nextpages, calling multiple tables
-
-In many applications, your data involve multiple tables. This function is especially important in TDengine because it's not a relational database and thus has no *JOIN* to use. 
-
-You can define the retrival logic in *Nextpages*, usually expressed as a JSON struct. Assuming there are three *model*s: *testing1*, *testing2* and *testing3*, and you are working in *testing1* now. 
+Running the program will result in
 ```
-"nextpages": {
+1
+2
+[map[id:1 x:a y:b] map[id:2 x:c y:d]]
+[map[id:2 x:c y:z]]
+```
+
+<br /><br />
+### 3.2 Action by Name
+
+Besides running action directly by calling its method, we can run it alternatively by calling its string name. This is important in web application where 
+the server is open to many different user actions and need to call particular one dynamically according to query string.
+
+To achieve this, we need to set all actions for the model using
+```go
+// SetActions: set new map between name and action function
+SetActions(map[string]func(...url.Values)error)
+```
+which is a map between the name and action function (a closure).
+
+For example, to map string "topics" to method `Topics` of instance `model`,
+we can do
+```go
+actions["name"] = func(extra ...) error { return model.Topics(extra...) }
+```
+here `Topics` behaves as a closure.
+
+To actually run an action using its name, use
+```go
+RunAction(string, ...url.Values) error
+```
+For example, the instance is named `model` and the action map is `actions`:
+```go
+// defining the action map 
+actions := make(map[string]func(...url.Values)error)
+actions["topics"] = func(extra ...url.Values) { return  model.Topics(extra...) }
+model.SetActions(actions)
+err := model.RunAction("topics", extra...)
+```
+
+<br /><br />
+### 3.3 Definition of *Next Pages*
+
+As in GraphQL and gRCP, action on a model could trigger multiple actions on other models. godbi supports this feature, called *Nextpage*.
+
+Here is the type:
+```go
+type Page struct {
+    Model      string            `json:"model"`                 // name of the next model to call  
+    Action     string            `json:"action"`                // action name of the next model
+    RelateItem map[string]string `json:"relate_item,omitempty"` // column name mapped to that of the next model
+    Manual     map[string]string `json:"manual,omitempty"`      // manually assign these constraints
+}
+```
+
+The behavior of next pages is usually parsed from JSON. Here is example. Assuming there are two tables, one for family and the other for children,
+corresponding to two models `ta` and `tb` respectively.
+
+Everytime when we run a RESTful action on `ta`, we always trigger a similiar action on `tb`: when we list the family name, we want to show all children under the familiy name as well. Technically, it means that running `Topics` on `ta` will trigger `Topics` on `tb`, constrained by the association of family's ID in both the tables. The same is true for 
+`Edit` and `Insert`. So for the family model, its `Nextpages` will look like
+```json
+{
+    "insert" : [
+        {"model":"tb", "action":"insert", "relate_item":{"id":"id"}}
+    ],
+    "insupd" : [
+        {"model":"tb", "action":"insert", "relate_item":{"id":"id"}}
+    ],
+    "edit" : [
+        {"model":"tb", "action":"topics", "relate_item":{"id":"id"}}
+    ],
     "topics" : [
-      {"model":"testing2", "action": "topics", "relate_item":{"id":"fid"}},
-      {"model":"testing3", "action": "topics"}
-    ] ,
-    "edit" : [...]
+        {"model":"tb", "action":"topics", "relate_item":{"id":"id"}}
+    ]
 }
 ```
+Parsing it will result in the `map[string][]*Page` data structure. In godbi, we build up such kind of relationship once in JSON and let the package to run for us.
 
-Thus when you run "topics" on the current model *testing1*, another action "topics" on model "testing2" will be triggered for each returned row. The new action on *testing2* is restricted to have that its column *fid* the same value as *testing1*'s *id*, as in *relate_item*. 
+In case of any change in the business logic, we can modify the JSON file, which is much cleaner and easier to do than other tools like ORM.
 
-The returned data will be attached to original row under the special key named *testing2_topics*.
+Now let's go to `Schema` for the usagage of `Nextpages`.
 
-- Meanwhile, the above example runs action *topics* on *testing2* once, because there is no *relate_item* in the record.
-- The returned will be stored in class variable *OTHER* under key *testing3_topics*.
+<br /><br />
+### 3.4 Type `Schema`
 
-
-### 3.2) Create an instance, *NewModel*
-
-An instance is usually created from a JSON string defining the table schema and logic in relationship between tables:
-```
-model, err := &godbi.Model(json_string)
-if err != nil {
-        panic(err)
+Because models are allowed to interact with each other, we introduc type `Schema` which handles the whole database schema at once:
+```go
+type Schema struct {
+    Models  map[string]Navigate
 }
-// create dbi as above
-model.DBI = dbi
-// create args as a map
-model.ARGS = args
-
 ```
+where keys in the map are all model names.
 
-If you need to call mutiple tables in one function, you need to put other model instances into *Storage*:
+`Schema` implement the `Run` method which is ideal for RESTful requests.
+```go
+func (self *Schema) Run(model, action string, args url.Values, db *sql.DB, extra ...url.Values) ([]map[string]interface{}, error)
 ```
-// create the database handler "db"
-    c := newconf("config.json")
-    db, err := sql.Open(c.Db_type, c.Dsn_2)
-    if err != nil { panic(err) }
-    
-// create your current model named "atesting", note that we have nextpages in it 
-    model, err := NewModel(`{
-    "crud": {
-        "current_table": "atesting",
-        "current_key" : "id"
-        },
-    "insupd_pars" : ["x","y"],
-    "insert_pars" : ["x","y","z"],
-    "edit_pars" : ["x","y","z","id"],
-    "topics_pars" : ["id","x","y","z"],
-    "nextpages" : {
-        "topics" : [
-            {"model":"testing", "action":"topics", "relate_item":{"id":"id"}}
-        ]
-    }
-}`)
-    if err != nil { panic(err) }
-    model.Db = db
-    model.ARGS  = make(map[string]interface{})
-    model.OTHER = make(map[string]interface{})
+We pass in the string names of model and action, the input data, the database handle, and optional extra parameters, this function runs the action and returns the results.
 
-// create another model with name "testing"
-    st, err := NewModel(`{
-    "crud": {
-        "current_table": "testing",
-        "current_key" : "tid"
-    },
-    "insert_pars" : ["id","child"],
-    "edit_pars"   : ["tid","child","id"],
-    "topics_pars" : ["tid","child","id"]
-}`)
-    if err != nil { panic(err) }
-    st.Db = db
-    st.ARGS  = make(map[string]interface{})
-    st.OTHER = make(map[string]interface{})
-
-// create a storage to mark "testing"
-    storage := make(map[string]map[string]interface{})
-    storage["model"]= make(map[string]interface{})
-    storage["model"]["testing"]= st
-    storage["action"]= make(map[string]interface{})
-    tt := make(map[string]interface{})
-    tt["topics"] = func(args ...map[string]interface{}) error {
-        return st.Topics(args...)
-    }
-    storage["action"]["testing"] = tt
+Here is a full example that covers all knowledges in Chapter 3.
+```go
 ```
-
-### 3.3) Actions (functions) on *Model*
-
-#### 3.3.1) Insert one row, *Insert*
-```
-err = model.Insert()
-```
-It will takes values from *ARGS* using pre-defined column names in *InsertPars*. If you miss the primary key, the package will automatically assign *now* to be the value.
-
-
-#### 3.3.2) Insert or Retrieve an old row, *Insupd*
-
-You insert one row as in *Insert* but if it is already in the table, retrieve it.
-```
-err = model.Insupd()
-```
-It identifies the uniqueness by the combined column valuse defined in *InsupdPars*. In both the cases, you get the ID in *model.LastID*, the row in *CurrentRow*, and the case in *Updated* (true for old record, and false for new). 
-
-
-#### 3.3.3) Select many rows, *Topics*
-
-Search many by *Topics*:
-```
-restriction := map[string]interface{}{"len":10}
-err = crud.Topics(restriction)
-```
-which returns all records with columns defined in *TopicsPars* with restriction *len=10*. The returned data is in *model.LISTS*
-
-Since you have assigned *nextpages* for this action, for each row it retrieve, another *Topics* on model *testing* will run using the constraint that *id* in *testing* should take the value in the original row.
-
-
-#### 3.3.4) Select one row, *Edit*
-
-```
-err = crud.EditHash()
-```
-Here you select by its primary key value (the timestamp), which is assumed to be in *ARGS*. The returned data is in *model.LISTS*. Optionally, you may put a restriction. 
-
-
-#### 3.3.5) Sort order, *OrderString*
-
-This returns you the sort string used in the *select many*. If you inherit this class you can override this function to use your own sorting logic.
-
-
-## SAMPLES
-
-Please check those test files:
-
-- DBI: [dbi_test.go](https://github.com/genelet/godbi/blob/master/dbi_test.go)
-- Crud: [crud_test.go](https://github.com/genelet/godbi/blob/master/crud_test.go)
-- Model: [model_test.go](https://github.com/genelet/godbi/blob/master/model_test.go)
-
-
-
-
-
-
-
-
-

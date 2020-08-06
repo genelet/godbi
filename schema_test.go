@@ -68,23 +68,14 @@ func TestPage(t *testing.T) {
 	st, err := NewModel("m3.json")
     if err != nil { panic(err) }
 
-	methods := make(map[string]Navigate)
-	methods["testing"] = st
-	methods["s"] = model
+	ss := make(map[string]func(...url.Values)error)
+	ss["topics"] = func(args ...url.Values) error { return model.Topics(args...) }
+	model.SetActions(ss)
+	tt := make(map[string]func(...url.Values)error)
+	tt["topics"] = func(args ...url.Values) error { return st.Topics(args...) }
+	st.SetActions(tt)
 
-	ss := make(map[string]interface{})
-	ss["topics"] = func(args ...url.Values) error {
-        return model.Topics(args...)
-    }
-	tt := make(map[string]interface{})
-	tt["topics"] = func(args ...url.Values) error {
-        return st.Topics(args...)
-    }
-	actions := make(map[string]map[string]interface{})
-	actions["testing"] = tt
-	actions["s"] = ss
-
-	schema := &Schema{Models:methods, Actions:actions}
+	schema := &Schema{map[string]Navigate{"s":model,"testing":st}}
 
 	lists, err := schema.Run("s","topics",url.Values{},db)
     if err != nil { panic(err) }
