@@ -501,7 +501,7 @@ This function deletes rows specified by `ids` and constrained by `extra`.
 <br /><br />
 ## Chapter 3. ADVANCED USAGE
 
-`Model` constructs a database *model*, as in the MVC Pattern, from JSON and runs RESTful and GraphicQL verbs in the schema. This a powerful tool in web application.
+`Model` constructs a database *model*, as in the MVC Pattern, from JSON and runs CRUD actions.
 
 <br /><br />
 ### 3.1  Type *Model*
@@ -512,12 +512,10 @@ type Model struct {
     Navigate                         // interface has methods to implement 
     ARGS   url.Values                // store http request data 
     LISTS  []map[string]interface{}  // store output 
-    Scheme *Schema                   // pointer to all models in the schema
 
     // all the following fields will be parsed from JSON
     Nextpages map[string][]*Page     `json:"nextpages,omitempty"`       // to call other models' verbs
     CurrentIdAuto  string            `json:"current_id_auto,omitempty"` // this table has an auto id
-    KeyIn          map[string]string `json:"fk_in,omitempty"`           // PK is used as FKs in other tables
     InsertPars     []string          `json:"insert_pars,omitempty"`     // columns to insert in C
     UpdatePars     []string          `json:"update_pars,omitempty"`     // columns to update in U
     InsupdPars     []string          `json:"insupd_pars,omitempty"`     // unique columns in PATCH
@@ -542,33 +540,37 @@ type Model struct {
 where the interface `Navigate`:
 ```go
 type Navigate interface {
-    GetLists() []map[string]interface{}  // get lists
-    UpdateModel(*sql.DB, url.Values)     // set up the database handle and the http request data
-    CallOnce(map[string]interface{}, *Page, ...url.Values) error // calls another model's verb
+    GetLists() []map[string]interface{} // get lists
+    GetArgs() url.Values                // get http request data for the nextpage to use
+    GetNextpages(string) []*Page        // get the nextpages
+    UpdateModel(*sql.DB, url.Values)    // set up the database handle and the http request data
 }
 ```
-In *godbi*, the `Model` type has already implemented the 3 methods. To use them, just embed `godbi.Model`. See below.
+In *godbi*, the `Model` type has already implemented the 4 methods. 
 
-Type `Schema`:
+
+Type `Page`:
 ```go
-type Schema struct {
-    Models  map[string]Navigate               // all models in the schema as model's name to Navigate map
-    Actions map[string]map[string]interface{} // verbs as model's name to "verb to method" map
+type Page struct {
+    Model      string            `json:"model"`                // name of the next model to call  
+    Action     string            `json:"action"`               // action name of the next model
+    RelateItem map[string]string `json:"relate_item,omitempty" // column name mapped to that of the next model
+    Manual     map[string]string `json:"manual,omitempty"`     // manually assign these constraints
 }
 ```
-Note that `Actions` is used for `Nextpages`. If no `Nextpages` is defined for a model or an action, there is no need to put the model name or the action name as keys in `Actions`.
+
 
 
 ####  3.1.1) What is `Model`?
 
-`Model` runa CRUD and generatea RESTful & GraphQL APIs in web application, for the whole database schema at once! 
-It focuses on the standard CRUD verbs but can include custom web actions, so is ready for use in
+`Model` generatea RESTful & GraphQL APIs in web application, for the whole database schema at once! 
+It has implemeted the standard CRUD verbs, and can include custom web actions too. So is ready to generate RESTful APIs but also ready for use in
 any web development envirionmen.
 
-`Model` uses JSON to define RESTful data, which has great advantage over ORM where one has to program sophisticate and cubsome logic
-manually as code.
+`Model` uses JSON to initiate, which has great advantage over ORM where one has to program sophisticate and cubsome logic
+manually in code.
 
-To implement and use models of a schema, follow the 5 steps:
+To create and use models of a schema, follow the 5 steps:
 
 - Construct one JSON file for each table, and create an initial `Model` instance
 - Build `Schema` from all the models in the database, and assign them to each model. 
@@ -617,7 +619,7 @@ The associated JSON file for *test_a.json*:
     "topics_pars" : ["id","x","y","z"]
 }
 ```
-The part of ~nextpages~ will be explained below. For *test_b.json*:
+The part of `nextpages` will be explained below. For *test_b.json*:
 ```json
 {
     "current_table": "test_b",
@@ -653,6 +655,85 @@ With the two files, we can create models and schema. Note that all the CRUD meth
 ```
 At this step, we have two models `ta`, `tb` and `schema`. Here is the full program to generate APIs of model `ta`:
 ```go
+package main
+
+import (
+    "log"
+    "os"
+    "net/url"
+    "database/sql"
+    "github.com/genelet/godbi"
+    _ "github.com/go-sql-driver/mysql"
+)
+
+func main() {
+    dbUser := os.Getenv("DBUSER")
+    dbPass := os.Getenv("DBPASS")
+    dbName := os.Getenv("DBNAME")
+    db, err := sql.Open("mysql", dbUser + ":" + dbPass + "@/" + dbName)
+    if err != nil { panic(err) }
+    defer db.Close()
+
+    ta, err := godbi.NewModel("test_a.json")
+    if err != nil { panic(err) }
+    tb, err := godbi.NewModel("test_b.json")
+    if err != nil { panic(err) }
+
+    models := make(map[string]godbi.Navigate)
+    models["ta"] = ta
+    models["tb"] = tb
+    action := make(map[string]interface{})
+    action["topics"] = func(args ...url.Values) error { return tb.Topics(args...) }
+    action["insert"] = func(args ...url.Values) error { return tb.Insert(args...) }
+    action["update"] = func(args ...url.Values) error { return tb.Update(args...) }
+    actions := make(map[string]map[string]interface{})
+    actions["tb"] = action
+    schema := &godbi.Schema{Models:models, Actions:actions}
+
+    ta.Scheme = schema
+    tb.Scheme = schema
+
+    db.Exec(`drop table if exists test_a`)
+    db.Exec(`CREATE TABLE test_a (id int auto_increment not null primary key,
+        x varchar(8), y varchar(8), z varchar(8))`)
+    db.Exec(`drop table if exists test_b`)
+    db.Exec(`CREATE TABLE test_b (tid int auto_increment not null primary key,
+        child varchar(8), id int)`)
+
+    // the 1st web requests is assumed to add id=1 to the test_a and test_b tables:
+    //
+    hash := url.Values{"x":[]string{"a1234567"},"y":[]string{"b1234567"},"z":[]string{"temp"}, "child":[]string{"john"}}
+    ta.UpdateModel(db, hash)
+    if err = ta.Insupd(); err != nil { panic(err) }
+
+    // the 2nd request, becaues [x,y] is defined to the unique key in ta, this would't create a new id
+    // but will add a new record to tb from Nextpages for id=1, since update triggers its insert too
+    // 
+    hash = url.Values{"x":[]string{"a1234567"},"y":[]string{"b1234567"},"z":[]string{"zzzzz"}, "child":[]string{"sam"}}
+    ta.UpdateModel(db, hash)
+    if err = ta.Insupd(); err != nil { panic(err) }
+
+    // the 3rd request adds id=2
+    //
+    hash = url.Values{"x":[]string{"c1234567"},"y":[]string{"d1234567"},"z":[]string{"e1234"},"child":[]string{"mary"}}
+    ta.UpdateModel(db, hash)
+    if err = ta.Insupd(); err != nil { panic(err) }
+
+    // the 4th request add id=3
+    //
+    hash = url.Values{"x":[]string{"e1234567"},"y":[]string{"f1234567"},"z":[]string{"e1234"},"child":[]string{"marcus"}}
+    ta.UpdateModel(db, hash)
+    if err = ta.Insupd(); err != nil { panic(err) }
+
+    // ready to retrieve 
+    err = ta.Topics()
+    if err != nil { panic(err) }
+    lists := ta.LISTS
+    log.Printf("%v", lists)
+
+    os.Exit(0)
+}
+
 ```
 `Model` is used for 
 - _InsertPars_ defines column names used for insert a new data
