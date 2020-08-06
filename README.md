@@ -744,41 +744,33 @@ Running the program will result in
 ### 3.2 Action by Name
 
 Besides running action directly by calling its method, we can run it alternatively by calling its string name. This is important in web application where 
-the server is open to many different user actions and need to call particular one dynamically according to query string.
+the server is open to many different user actions and need to return particular one dynamically according to user query.
 
 To achieve this, we need to set all actions for the model using
 ```go
 // SetActions: set new map between name and action function
-SetActions(map[string]func(...url.Values)error)
+(*Model) SetActions(map[string]func(...url.Values)error)
+// later
+(*Model) RunAction(string, ...url.Values) error
 ```
-which is a map between the name and action function (a closure).
+The struct passed into `SetActions` is a map between name and action function (a closure).
 
-For example, to map string "topics" to method `Topics` of instance `model`,
-we can do
-```go
-actions["name"] = func(extra ...) error { return model.Topics(extra...) }
-```
-here `Topics` behaves as a closure.
-
-To actually run an action using its name, use
-```go
-RunAction(string, ...url.Values) error
-```
-For example, the instance is named `model` and the action map is `actions`:
+For example, assume the instance is named `model` and the action map is `actions`:
 ```go
 // defining the action map 
 actions := make(map[string]func(...url.Values)error)
-actions["topics"] = func(extra ...url.Values) { return  model.Topics(extra...) }
+actions["topics"] = func(extra ...url.Values) { return model.Topics(extra...) }
 model.SetActions(actions)
 err := model.RunAction("topics", extra...)
 ```
+which is equivalent to `model.Topics(extra...)`.
 
 <br /><br />
 ### 3.3 Definition of *Next Pages*
 
-As in GraphQL and gRCP, action on a model could trigger multiple actions on other models. godbi supports this feature, called *Nextpage*.
+As in GraphQL and gRCP, *godbi* allows an action to trigger multiple actions on other models. To do this, define *Nextpages*.
 
-Here is the type:
+This is type `Page`:
 ```go
 type Page struct {
     Model      string            `json:"model"`                 // name of the next model to call  
@@ -788,10 +780,9 @@ type Page struct {
 }
 ```
 
-The behavior of next pages is usually parsed from JSON. Here is example. Assuming there are two tables, one for family and the other for children,
-corresponding to two models `ta` and `tb` respectively.
+How it works? Assume there are two tables, one for family and the other for children, corresponding to two models `ta` and `tb` respectively.
 
-Everytime when we run a RESTful action on `ta`, we always trigger a similiar action on `tb`: when we list the family name, we want to show all children under the familiy name as well. Technically, it means that running `Topics` on `ta` will trigger `Topics` on `tb`, constrained by the association of family's ID in both the tables. The same is true for 
+When we *GET* the family name, we want to show all children under the familiy name as well. Technically, it means that running `Topics` on `ta` will trigger `Topics` on `tb`, constrained by the association of family's ID in both the tables. The same is true for 
 `Edit` and `Insert`. So for the family model, its `Nextpages` will look like
 ```json
 {
@@ -809,11 +800,10 @@ Everytime when we run a RESTful action on `ta`, we always trigger a similiar act
     ]
 }
 ```
-Parsing it will result in the `map[string][]*Page` data structure. In godbi, we build up such kind of relationship once in JSON and let the package to run for us.
+Parsing it will result in `map[string][]*Page`. 
 
-In case of any change in the business logic, we can modify the JSON file, which is much cleaner and easier to do than other tools like ORM.
+In *godbi*, we build up this kind of relationship once in JSON and let the package to run for us. In case of any change in the business logic, we can modify the JSON file, which is much cleaner and easier to do than other tools like ORM.
 
-Now let's go to `Schema` for the usagage of `Nextpages`.
 
 <br /><br />
 ### 3.4 Type `Schema`
@@ -824,14 +814,119 @@ type Schema struct {
     Models  map[string]Navigate
 }
 ```
-where keys in the map are all model names.
+where keys in the map are model names.
 
 `Schema` implement the `Run` method which is ideal for RESTful requests.
 ```go
-func (self *Schema) Run(model, action string, args url.Values, db *sql.DB, extra ...url.Values) ([]map[string]interface{}, error)
+func (*Schema) Run(model, action string, args url.Values, db *sql.DB, extra ...url.Values) ([]map[string]interface{}, error)
 ```
-We pass in the string names of model and action, the input data, the database handle, and optional extra parameters, this function runs the action and returns the results.
+Here we pass in the string names of model and action, the input data `args`, the database handle `db`, and optional `extra` parameters, this function runs the action and returns the results.
 
-Here is a full example that covers all knowledges in Chapter 3.
+Here is a full example that covers most information in Chapter 3.
 ```go
+package main
+
+import (
+	"log"
+	"os"
+    "net/url"
+    "database/sql"
+	"github.com/genelet/godbi"
+	_ "github.com/go-sql-driver/mysql"
+)
+
+func main() {
+	dbUser := os.Getenv("DBUSER")
+	dbPass := os.Getenv("DBPASS")
+	dbName := os.Getenv("DBNAME")
+	db, err := sql.Open("mysql", dbUser + ":" + dbPass + "@/" + dbName)
+	if err != nil { panic(err) }
+	defer db.Close()
+
+	db.Exec(`drop table if exists test_a`)
+	db.Exec(`CREATE TABLE test_a (id int auto_increment not null primary key,
+        x varchar(8), y varchar(8), z varchar(8))`)
+    db.Exec(`drop table if exists test_b`)
+    db.Exec(`CREATE TABLE test_b (tid int auto_increment not null primary key,
+        child varchar(8), id int)`)
+
+	ta, err := godbi.NewModel("test_a.json")
+	if err != nil { panic(err) }
+	tb, err := godbi.NewModel("test_b.json")
+	if err != nil { panic(err) }
+
+	// create action map for ta, the value of map is closure
+    //
+	action_ta := make(map[string]func(...url.Values)error)
+	action_ta["topics"] = func(args ...url.Values) error { return ta.Topics(args...) }
+	action_ta["insert"] = func(args ...url.Values) error { return ta.Insert(args...) }
+	action_ta["insupd"] = func(args ...url.Values) error { return ta.Insupd(args...) }
+	action_ta["delete"] = func(args ...url.Values) error { return ta.Delete(args...) }
+	action_ta["edit"]   = func(args ...url.Values) error { return ta.Edit(args...) }
+	ta.SetActions(action_ta)
+
+	// create action map for ta, the value of map is closure
+    //
+	action_tb := make(map[string]func(...url.Values)error)
+	action_tb["topics"] = func(args ...url.Values) error { return tb.Topics(args...) }
+	action_tb["insert"] = func(args ...url.Values) error { return tb.Insert(args...) }
+	action_tb["update"] = func(args ...url.Values) error { return tb.Update(args...) }
+	action_tb["delete"] = func(args ...url.Values) error { return tb.Delete(args...) }
+	action_tb["edit"]   = func(args ...url.Values) error { return tb.Edit(args...) }
+	tb.SetActions(action_tb)
+
+	schema := &godbi.Schema{map[string]godbi.Navigate{"ta":ta, "tb":tb}}
+
+	methods := map[string]string{"GET":"topics", "GET_one":"edit", "POST":"insert", "PATCH":"insupd", "PUT":"update", "DELETE":"delete"}
+
+	var lists []map[string]interface{}
+    // the 1st web requests is assumed to create id=1 to the test_a and test_b tables:
+    //
+    args := url.Values{"x":[]string{"a1234567"},"y":[]string{"b1234567"},"z":[]string{"temp"}, "child":[]string{"john"}}
+	if lists, err = schema.Run("ta", methods["PATCH"], args, db); err != nil { panic(err) }
+
+    // the 2nd request just updates, becaues [x,y] is defined to the unique in ta.
+    // but create a new record to tb for id=1, since insupd triggers insert in tb
+    // 
+    args = url.Values{"x":[]string{"a1234567"},"y":[]string{"b1234567"},"z":[]string{"zzzzz"}, "child":[]string{"sam"}}
+	if lists, err = schema.Run("ta", methods["PATCH"], args, db); err != nil { panic(err) }
+
+	// the 3rd request creates id=2
+    //
+    args = url.Values{"x":[]string{"c1234567"},"y":[]string{"d1234567"},"z":[]string{"e1234"},"child":[]string{"mary"}}
+	if lists, err = schema.Run("ta", methods["POST"], args, db); err != nil { panic(err) }
+
+	// the 4th request creates id=3
+    //
+    args = url.Values{"x":[]string{"e1234567"},"y":[]string{"f1234567"},"z":[]string{"e1234"},"child":[]string{"marcus"}}
+	if lists, err = schema.Run("ta", methods["POST"], args, db); err != nil { panic(err) }
+
+	// GET all
+    args = url.Values{}
+	if lists, err = schema.Run("ta", methods["GET"], args, db); err != nil { panic(err) }
+	log.Printf("%v", lists)
+
+	// GET one
+    args = url.Values{"id":[]string{"1"}}
+	if lists, err = schema.Run("ta", methods["GET_one"], args, db); err != nil { panic(err) }
+	log.Printf("%v", lists)
+
+	// DELETE
+    extra := url.Values{"id":[]string{"1"}}
+	if lists, err = schema.Run("tb", methods["DELETE"], url.Values{}, db, extra); err != nil { panic(err) }
+	if lists, err = schema.Run("ta", methods["DELETE"], url.Values{}, db, extra); err != nil { panic(err) }
+
+	// GET all
+    args = url.Values{}
+	if lists, err = schema.Run("ta", methods["GET"], args, db); err != nil { panic(err) }
+	log.Printf("%v", lists)
+
+	os.Exit(0)
+}
+```
+Running it will result in:
+```
+[map[id:1 tb_topics:[map[child:john id:1 tid:1] map[child:sam id:1 tid:2]] x:a1234567 y:b1234567 z:zzzzz] map[id:2 tb_topics:[map[child:mary id:2 tid:3]] x:c1234567 y:d1234567 z:e1234] map[id:3 tb_topics:[map[child:marcus id:3 tid:4]] x:e1234567 y:f1234567 z:e1234]]
+[map[id:1 tb_topics:[map[child:john id:1 tid:1] map[child:sam id:1 tid:2]] x:a1234567 y:b1234567 z:zzzzz]]
+[map[id:2 tb_topics:[map[child:mary id:2 tid:3]] x:c1234567 y:d1234567 z:e1234] map[id:3 tb_topics:[map[child:marcus id:3 tid:4]] x:e1234567 y:f1234567 z:e1234]]
 ```
