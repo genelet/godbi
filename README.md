@@ -126,7 +126,12 @@ For all functions in this package, the returned value is always `error` which sh
 func (*DBI) QuerySQL (lists *[]map[string]interface{}, query string, args ...interface{}) error
 func (*DBI) SelectSQL(lists *[]map[string]interface{}, query string, args ...interface{}) error
 ```
-Run the *SELECT*-type query and put the result into `lists`, a slice of column name-value maps. The data types of the column are determined dynamically by the generic SQL handle. For example:
+Run the *SELECT*-type query and put the result into `lists`, a slice of column name-value maps. The data types of the column are determined dynamically by the generic SQL handle. 
+
+<details>
+	<summary>Click for example</summary>
+	<p>
+		
 ```go
 lists := make([]map[string]interface{})
 err = dbi.QuerySQL(&lists,
@@ -137,6 +142,10 @@ will select all rows with *id=1234*.
     {"ts":"2019-12-15 01:01:01", "id":1234, "name":"company", "len":30, "flag":true, "fv":789.123},
     ....
 ```
+
+</p>
+</details>
+
 The difference between the two functions is that `SelectSQL` runs a prepared statement.
 
 #### 1.3.2) `QuerySQLType` & `SelectSQLType`
@@ -159,7 +168,11 @@ err = dbi.QuerySQLType(&lists, []string{"string", "int", "string", "int8", "bool
 func (*DBI) QuerySQLLabel (lists *[]map[string]interface{}, selectLabels []string, query string, args ...interface{}) error
 func (*DBI) SelectSQLLabel(lists *[]map[string]interface{}, selectLabels []string, query string, args ...interface{}) error
 ```
-They differ from the above `QuerySQL`by renaming the default column names to `electLabels` For example:
+They differ from the above `QuerySQL`by renaming the default column names to `electLabels`.
+<details>
+	<summary>Click for example</summary>
+	<p>
+		
 ```go
 lists := make([]map[string]interface{})
 err = dbi.QuerySQLLabel(&lists, []string{"time stamp", "record ID", "recorder name", "length", "flag", "values"},
@@ -169,6 +182,8 @@ The result has the renamed keys:
 ```json
     {"time stamp":"2019-12-15 01:01:01", "record ID":1234, "recorder name":"company", "length":30, "flag":true, "values":789.123},
 ```
+</p>
+</details>
 
 #### 1.3.4) `QuerySQLTypeLabel`& `SelectSQlTypeLabel`
 
