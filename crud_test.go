@@ -198,7 +198,7 @@ func TestCrudDb(t *testing.T) {
 		t.Errorf("%d total table testing failed", what)
 	}
 
-	ret = crud.DeleteHash([]interface{}{1})
+	ret = crud.DeleteHash(url.Values{"id":[]string{"1"}})
 	if ret != nil {
 		t.Errorf("%s delete table testing failed", ret.Error())
 	}

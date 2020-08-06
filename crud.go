@@ -6,6 +6,8 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+	"strconv"
+	"fmt"
 )
 
 // Table describes a table used in multiple joined SELECT query.
@@ -278,11 +280,11 @@ func (self *Crud) UpdateHashNulls(fieldValues url.Values, ids []interface{}, emp
 	if hasValue(self.CurrentKeys) {
 		for _, k := range self.CurrentKeys {
 			if grep(empties, k) {
-				return errors.New("Assgin empties to key")
+				return errors.New("PK can't be NULL")
 			}
 		}
 	} else if grep(empties, self.CurrentKey) {
-		return errors.New("Assgin empties to key")
+		return errors.New("PK can't be NULL")
 	}
 
 	fields := make([]string, 0)
@@ -327,7 +329,7 @@ func (self *Crud) InsupdTable(fieldValues url.Values, uniques []string) error {
 		s += val + "=?"
 		x := fieldValues.Get(val)
 		if x == "" {
-			return errors.New("1075")
+			return errors.New("Unique key's value not found.")
 		}
 		v = append(v, x)
 	}
@@ -337,7 +339,7 @@ func (self *Crud) InsupdTable(fieldValues url.Values, uniques []string) error {
 		return err
 	}
 	if len(lists) > 1 {
-		return errors.New("1070")
+		return errors.New("Multiple records, not unique.")
 	}
 
 	if len(lists) == 1 {
@@ -345,6 +347,9 @@ func (self *Crud) InsupdTable(fieldValues url.Values, uniques []string) error {
 		if err := self.UpdateHash(fieldValues, []interface{}{id}); err != nil {
 			return err
 		}
+		id64, err := strconv.ParseInt(fmt.Sprintf("%d",id),10,64)
+		if err != nil { return err }
+		self.LastId = id64
 		self.Updated = true
 	} else {
 		if err := self.InsertHash(fieldValues); err != nil {
@@ -356,17 +361,18 @@ func (self *Crud) InsupdTable(fieldValues url.Values, uniques []string) error {
 	return nil
 }
 
-// DeleteHash deletes one or multiple rows by the primary key.
-// ids: primary key value or values.
-// extra: optional, extra constraints on WHERE statement.
+// DeleteHash deletes rows by extra: constraints on WHERE statement.
 //
-func (self *Crud) DeleteHash(ids []interface{}, extra ...url.Values) error {
+func (self *Crud) DeleteHash(extra ...url.Values) error {
 	sql := "DELETE FROM " + self.CurrentTable
-	where, extraValues := self.singleCondition(ids, extra...)
+	if !hasValue(extra) {
+		return errors.New("Delete whole table is not supported.")
+	}
+	where, values := selectCondition(extra[0])
 	if where != "" {
 		sql += "\nWHERE " + where
 	}
-	return self.DoSQL(sql, extraValues...)
+	return self.DoSQL(sql, values...)
 }
 
 // EditHash selects one or multiple rows from the primary key.

@@ -19,6 +19,12 @@ type Navigate interface {
 	// GetLists: get the main data
 	GetLists() []map[string]interface{}
 
+	// GetArgs: get new ARGS for the nextpage to use
+	GetArgs() url.Values
+
+	// GetNextpages: get the nextpages
+	GetNextpages(string) []*Page
+
 	// UpdateModel: initiate the model with DB handle and input
 	UpdateModel(*sql.DB, url.Values)
 
@@ -38,15 +44,11 @@ type Model struct {
 	// LISTS: output data as slice of map, which represents a table row
 	LISTS []map[string]interface{}
 
-	// Scheme: the whole schema of the database. See Schema
-	Scheme *Schema
-
 	// Nextpages: defining how to call other models' actions
 	Nextpages map[string][]*Page `json:"nextpages,omitempty"`
 
 	//
 	CurrentIdAuto string             `json:"current_id_auto,omitempty"`
-	KeyIn         map[string]string  `json:"fk_in,omitempty"`
 
 	InsertPars     []string          `json:"insert_pars,omitempty"`
 	EditPars       []string          `json:"edit_pars,omitempty"`
@@ -108,6 +110,29 @@ func NewModel(filename string) (*Model, error) {
 
 func (self *Model) GetLists() []map[string]interface{} {
 	return self.LISTS
+}
+
+func (self *Model) GetArgs() url.Values {
+    args := url.Values{}
+    for k, v := range self.ARGS {
+        if grep([]string{self.Sortby, self.Sortreverse, self.Rowcount, self.Totalno, self.Pageno, self.Maxpageno}, k) {
+            continue
+        }
+        args[k] = v
+    }
+
+	return args
+}
+
+func (self *Model) GetNextpages(action string) []*Page {
+	if !hasValue(self.Nextpages) {
+		return nil
+	}
+	nps, ok := self.Nextpages[action]
+	if !ok {
+		return nil
+	}
+	return nps
 }
 
 // UpdateModel updates the DB handle, the arguments and schema
@@ -188,11 +213,7 @@ func (self *Model) Topics(extra ...url.Values) error {
 		fields = self.TopicsHashPars
 	}
 	self.LISTS = make([]map[string]interface{}, 0)
-	if err := self.TopicsHashOrder(&self.LISTS, fields, self.OrderString(), extra...); err != nil {
-		return err
-	}
-
-	return self.ProcessAfter("topics", extra...)
+	return self.TopicsHashOrder(&self.LISTS, fields, self.OrderString(), extra...)
 }
 
 // Edit selects few rows (usually one) using primary key value in ARGS,
@@ -201,21 +222,14 @@ func (self *Model) Edit(extra ...url.Values) error {
 	val := self.getIdVal(extra...)
 	fields := self.filteredFields(self.EditPars)
 	if !hasValue(fields) {
-		return errors.New("1077")
+		return errors.New("PK value not provided.")
 	}
 
 	self.LISTS = make([]map[string]interface{}, 0)
-	var err error
 	if hasValue(extra) {
-		err = self.EditHash(&self.LISTS, fields, val, extra[0])
-	} else {
-		err = self.EditHash(&self.LISTS, fields, val)
+		return self.EditHash(&self.LISTS, fields, val, extra[0])
 	}
-	if err != nil {
-		return err
-	}
-
-	return self.ProcessAfter("edit", extra...)
+	return self.EditHash(&self.LISTS, fields, val)
 }
 
 // Insert inserts a row using data passed in ARGS. Any value defined
@@ -230,7 +244,7 @@ func (self *Model) Insert(extra ...url.Values) error {
 		}
 	}
 	if !hasValue(fieldValues) {
-		return errors.New("1076")
+		return errors.New("No data to insert.")
 	}
 
 	self.LISTS = make([]map[string]interface{}, 0)
@@ -245,7 +259,7 @@ func (self *Model) Insert(extra ...url.Values) error {
 	}
 	self.LISTS = fromFv(fieldValues)
 
-	return self.ProcessAfter("insert", extra...)
+	return nil
 }
 
 // Insupd inserts a new row if it does not exist, or retrieves the old one,
@@ -260,27 +274,24 @@ func (self *Model) Insupd(extra ...url.Values) error {
 		}
 	}
 	if !hasValue(fieldValues) {
-		return errors.New("1076")
+		return errors.New("PK value not found.")
 	}
 
 	uniques := self.InsupdPars
 	if !hasValue(uniques) {
-		return errors.New("1078")
+		return errors.New("Unique key's value not found.")
 	}
 
 	if err := self.InsupdTable(fieldValues, uniques); err != nil {
 		return err
 	}
 
-	if !self.Updated && self.CurrentIdAuto != "" {
+	if self.CurrentIdAuto != "" {
 		fieldValues.Set(self.CurrentIdAuto, strconv.FormatInt(self.LastId, 10))
 	}
 	self.LISTS = fromFv(fieldValues)
 
-	if self.Updated {
-		return self.ProcessAfter("update", extra...)
-	}
-	return self.ProcessAfter("insert", extra...)
+	return nil
 }
 
 // Update updates a row using values defined in ARGS
@@ -289,15 +300,15 @@ func (self *Model) Insupd(extra ...url.Values) error {
 func (self *Model) Update(extra ...url.Values) error {
 	val := self.getIdVal(extra...)
 	if !hasValue(val) {
-		return errors.New("1040")
+		return errors.New("PK value not found.")
 	}
 
 	fieldValues := self.getFv(self.UpdatePars)
 	if !hasValue(fieldValues) {
-		return errors.New("1076")
+		return errors.New("No data to update.")
 	} else if len(fieldValues) == 1 && fieldValues.Get(self.CurrentKey) != "" {
 		self.LISTS = fromFv(fieldValues)
-		return self.ProcessAfter("update", extra...)
+		return nil
 	}
 
 	if err := self.UpdateHashNulls(fieldValues, val, self.ARGS[self.Empties], extra...); err != nil {
@@ -313,7 +324,7 @@ func (self *Model) Update(extra ...url.Values) error {
 	}
 	self.LISTS = fromFv(fieldValues)
 
-	return self.ProcessAfter("Update", extra...)
+	return nil
 }
 
 func fromFv(fieldValues url.Values) []map[string]interface{} {
@@ -326,37 +337,16 @@ func fromFv(fieldValues url.Values) []map[string]interface{} {
 
 // Delete deletes a row or multiple rows using the contraint in extra
 func (self *Model) Delete(extra ...url.Values) error {
-	val := self.getIdVal(extra...)
-	if !hasValue(val) {
-		return errors.New("1040")
-	}
-
-	if hasValue(self.KeyIn) {
-		for table, keyname := range self.KeyIn {
-			for _, v := range val {
-				err := self.Existing(table, keyname, v)
-				if err != nil {
-					return err
-				}
-			}
-		}
-	}
-
-	if err := self.DeleteHash(val, extra...); err != nil {
+	if err := self.DeleteHash(extra...); err != nil {
 		return err
 	}
 
-	hash := make(map[string]interface{})
-	if hasValue(self.CurrentKeys) {
-		for i, v := range self.CurrentKeys {
-			hash[v] = val[i]
-		}
-	} else {
-		hash[self.CurrentKey] = val[0]
+	self.LISTS = []map[string]interface{}{make(map[string]interface{})}
+	for k, v := range extra[0] {
+		self.LISTS[0][k] = v[0]
 	}
-	self.LISTS = []map[string]interface{}{hash}
 
-	return self.ProcessAfter("delete", extra...)
+	return nil
 }
 
 // Existing checks if table has val in field
@@ -392,7 +382,7 @@ func (self *Model) Randomid(table string, field string, m ...interface{}) (int, 
 		return val, nil
 	}
 
-	return 0, errors.New("1076")
+	return 0, errors.New("Can't get a random id.")
 }
 
 // ProperValue returns the value of key 'v' from extra.

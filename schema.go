@@ -2,6 +2,7 @@ package godbi
 
 import (
 	"errors"
+	"database/sql"
 	"net/url"
 )
 
@@ -30,125 +31,79 @@ type Page struct {
 	RelateItem map[string]string   `json:"relate_item,omitempty"`
 }
 
-// CallOnce calls page's action once and places data as a marker in item
-func (self *Model) CallOnce(item map[string]interface{}, page *Page, extra ...url.Values) error {
-	modelName := page.Model
-	actionName := page.Action
-
-	marker := modelName + "_" + actionName
-	if page.Alias != "" {
-		marker = page.Alias
-	}
-	if page.Ignore {
-		if _, ok := item[marker]; ok {
-			return nil
-		}
-	}
-
-	schema := self.Scheme
-	modelObj, ok := schema.Models[modelName]
-	if !ok {
-		return errors.New("1081")
-	}
-	actionFuncs, ok := schema.Actions[modelName]
-	if !ok {
-		return errors.New("1082")
-	}
-	actionFunc, ok := actionFuncs[actionName]
-	if !ok {
-		return errors.New("1083")
-	}
-
-	args := url.Values{}
-	for k, v := range self.ARGS {
-		if grep([]string{self.Sortby, self.Sortreverse, self.Rowcount, self.Totalno, self.Pageno, self.Maxpageno}, k) {
-			continue
-		}
-		args[k] = v
-	}
-
-	hash := url.Values{}
-	if hasValue(extra) {
-		for k, v := range extra[0] {
-			hash[k] = v
-		}
-	}
-	if page.Manual != nil {
-		for k, v := range page.Manual {
-			hash.Set(k, v)
-		}
-	}
-	if hasValue(hash) {
-		if !hasValue(extra) {
-			extra = make([]url.Values, 1)
-		}
-		extra[0] = hash
-	}
-
-	modelObj.UpdateModel(self.DB, args)
+func (self *Schema) Run(model, action string, args url.Values, db *sql.DB, extra ...url.Values) ([]map[string]interface{}, error) {
+    modelObj, ok := self.Models[model]
+    if !ok {
+        return nil, errors.New("model not found in schema models")
+    }
+    actionFuncs, ok := self.Actions[model]
+    if !ok {
+        return nil, errors.New("model not found in schema actions")
+    }
+    actionFunc, ok := actionFuncs[action]
+    if !ok {
+        return nil, errors.New("model found but action not found in actions")
+    }
+    modelObj.UpdateModel(db, args)
 	finalAction := actionFunc.(func(...url.Values) error)
-	if err := finalAction(extra...); err != nil {
-		return err
-	}
-
+    if err := finalAction(extra...); err != nil {
+        return nil, err
+    }
 	lists := modelObj.GetLists()
-	if hasValue(lists) {
-		item[marker] = lists
-	}
-	modelObj.UpdateModel(nil, nil)
+	modelArgs := modelObj.GetArgs() // for nextpages to use
+    modelObj.UpdateModel(nil, nil)
 
-	return nil
-}
-
-// CallNextpage calls page's action, for each item in LISTS.
-func (self *Model) CallNextpage(page *Page, extra ...url.Values) error {
-	lists := self.LISTS
-	if !hasValue(lists) || !hasValue(page.RelateItem) {
-		return nil
+	if !hasValue(lists) {
+		return lists, nil
 	}
 
-	for _, item := range lists {
-		if !hasValue(extra) {
-			extra = make([]url.Values, 1)
-			extra[0] = url.Values{}
+	nextpages := modelObj.GetNextpages(action)
+	if nextpages == nil {
+		return lists, nil
+	}
+
+    for _, page := range nextpages {
+        if hasValue(extra) {
+            extra = extra[1:]
+        }
+		extra0 := url.Values{}
+		if hasValue(extra) {
+			extra0 = extra[0]
 		}
-		found := false
-		for k, v := range page.RelateItem {
-			if t, ok := item[k]; ok {
-				found = true
-				extra[0].Set(v, interface2String(t))
+		if page.Manual != nil {
+			for k, v := range page.Manual {
+				extra0.Set(k, v)
 			}
 		}
-		if found == false {
-			continue
-		}
-		if err := self.CallOnce(item, page, extra...); err != nil {
-			return err
+		for _, item := range lists {
+			newExtra0, ok := page.refresh(item, extra0)
+			if !ok {
+				continue
+			}
+			newExtras := []url.Values{newExtra0}
+			if hasValue(extra) {
+				newExtras = append(newExtras, extra[:1]...)
+			}
+			newLists, err := self.Run(page.Model, page.Action, modelArgs, db, newExtras...)
+			if err != nil {
+				return nil, err
+			}
+			item[page.Model + "_" + page.Action] = newLists
 		}
 	}
 
-	return nil
+	return lists, nil
 }
 
-// ProcessAfter calls all pages' actions, defined in Nextpages.
-// each action's value is placed in LISTS as a key-value pair
-func (self *Model) ProcessAfter(action string, extra ...url.Values) error {
-	if !hasValue(self.Nextpages) {
-		return nil
-	}
-
-	nextpages, ok := self.Nextpages[action]
-	if !ok {
-		return nil
-	}
-
-	for _, page := range nextpages {
-		if hasValue(extra) {
-			extra = extra[1:]
-		}
-		if err := self.CallNextpage(page, extra...); err != nil {
-			return err
+func (self *Page) refresh(item map[string]interface{}, extra url.Values) (url.Values, bool) {
+	newExtra := extra
+	found := false
+	for k, v := range self.RelateItem {
+		if t, ok := item[k]; ok {
+			found = true
+			newExtra.Set(v, interface2String(t))
+			break
 		}
 	}
-	return nil
+	return newExtra, found
 }
