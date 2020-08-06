@@ -316,10 +316,9 @@ type Crud struct {
 }
 ```
 Just to note, the 4 letters in CRUD are: 
-- C: **C**reate a new row
-- R: **R**ead all rows, or **R**ead one row
-- U: **U**pdate a row
-- D: **D**elete a row
+C | R | U | D
+- | - | - | -
+**C**reate a new row | **R**ead all rows, or **R**ead one row - U: **U**pdate a row - **D**elete a row
 
 #### 2.1.1) Create an instance
 
@@ -686,12 +685,19 @@ func (*Model) Topics(extra ...url.Values) error
 It selects all records in model's table, constrained optionally by `extra`. 
 
 If variable `rowcount` (*number of records per page*) is set in `args`, and field `TotalForce` is not 0, then pagination will be triggered. The total count and total pages will be calculatd and put back in `args`. `TotalForce` defines how to calculate the total count.
+<details>
+	<summary>Click for meaning of `TotalForce`</summary>
+	<p>
+		
 Value | Meaning
 ----- | -------
 <-1  | use ABS(TotalForce) as the total count 
 -1   | always calculate the total count
 0    | don't calculate the total count
 &gt; 0  | calculate only if the total count is not passed in `args`
+
+</p>
+</details>
 
 #### 3.1.4) Http METHOD: GET (read one)
 
