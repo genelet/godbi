@@ -464,7 +464,9 @@ By combining `selectPars` and `extra`, we can construct sophisticate search quer
 ```go
 func (*Crud) EditHash(lists *[]map[string]interface{}, editPars interface{}, ids []interface{}, extra ...url.Values) error
 ```
-This will select rows having the specific primary key (*PK*) values `ids` and being constrained by `extra`. The query result is output to `lists` with columns defined in `editPars`. For the slice of interface `ids`:
+This will select rows having the specific primary key (*PK*) values `ids` and being constrained by `extra`. The query result is output to `lists` with columns defined in `editPars`. 
+
+The meaning of `ids` is:
 - if PK is a single column, `ids` should be a slice of targeted PK values
   - to select a single PK equaling to 1234, just use `ids = []int{1234}`
 - if PK has multiple columns, i.e. `CurrentKeys` exists, `ids` should be a slice of value arrays.
@@ -501,7 +503,7 @@ This function deletes rows using constrained `extra`.
 <br /><br />
 ## Chapter 3. ADVANCED USAGE
 
-godbi allows us to construct database *model* as in the MVC Pattern in web applications, and to build RESTful API easily. The RESTful web actions are associated with the database CRUD verbs as the following:
+*godbi* allows us to construct *model* as in the MVC Pattern in web applications, and to build RESTful API easily. The RESTful web actions are associated with the database CRUD verbs as the following:
 
 HTTP METHOD | RESTful URL | CRUD | Function in godbi 
 ----------- | ----------- | ---- | -----------------
@@ -755,7 +757,7 @@ To achieve this, we need to set all actions for the model using
 ```
 The struct passed into `SetActions` is a map between name and action function (a closure).
 
-For example, assume the instance is named `model` and the action map is `actions`:
+For example, assume the instance is `model` and the action map is `actions`:
 ```go
 // defining the action map 
 actions := make(map[string]func(...url.Values)error)
