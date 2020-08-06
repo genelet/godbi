@@ -29,7 +29,7 @@ type Navigate interface {
 	UpdateModel(*sql.DB, url.Values)
 
 	// CallOnce calls SQL operation on another model defined in page
-	CallOnce(map[string]interface{}, *Page, ...url.Values) error
+//	CallOnce(map[string]interface{}, *Page, ...url.Values) error
 }
 
 // Model works on table's CRUD in web applications.
@@ -41,8 +41,8 @@ type Model struct {
 	// ARGS: the input data received by the web request
 	ARGS url.Values
 
-	// LISTS: output data as slice of map, which represents a table row
-	LISTS []map[string]interface{}
+	// aLISTS: output data as slice of map, which represents a table row
+	aLISTS []map[string]interface{}
 
 	// Nextpages: defining how to call other models' actions
 	Nextpages map[string][]*Page `json:"nextpages,omitempty"`
@@ -109,7 +109,7 @@ func NewModel(filename string) (*Model, error) {
 }
 
 func (self *Model) GetLists() []map[string]interface{} {
-	return self.LISTS
+	return self.aLISTS
 }
 
 func (self *Model) GetArgs() url.Values {
@@ -139,7 +139,7 @@ func (self *Model) GetNextpages(action string) []*Page {
 func (self *Model) UpdateModel(db *sql.DB, args url.Values) {
 	self.DB = db
 	self.ARGS = args
-	self.LISTS = make([]map[string]interface{}, 0)
+	self.aLISTS = make([]map[string]interface{}, 0)
 }
 
 func (self *Model) filteredFields(pars []string) []string {
@@ -212,8 +212,8 @@ func (self *Model) Topics(extra ...url.Values) error {
 	} else {
 		fields = self.TopicsHashPars
 	}
-	self.LISTS = make([]map[string]interface{}, 0)
-	return self.TopicsHashOrder(&self.LISTS, fields, self.OrderString(), extra...)
+	self.aLISTS = make([]map[string]interface{}, 0)
+	return self.TopicsHashOrder(&self.aLISTS, fields, self.OrderString(), extra...)
 }
 
 // Edit selects few rows (usually one) using primary key value in ARGS,
@@ -225,11 +225,11 @@ func (self *Model) Edit(extra ...url.Values) error {
 		return errors.New("PK value not provided.")
 	}
 
-	self.LISTS = make([]map[string]interface{}, 0)
+	self.aLISTS = make([]map[string]interface{}, 0)
 	if hasValue(extra) {
-		return self.EditHash(&self.LISTS, fields, val, extra[0])
+		return self.EditHash(&self.aLISTS, fields, val, extra[0])
 	}
-	return self.EditHash(&self.LISTS, fields, val)
+	return self.EditHash(&self.aLISTS, fields, val)
 }
 
 // Insert inserts a row using data passed in ARGS. Any value defined
@@ -247,7 +247,7 @@ func (self *Model) Insert(extra ...url.Values) error {
 		return errors.New("No data to insert.")
 	}
 
-	self.LISTS = make([]map[string]interface{}, 0)
+	self.aLISTS = make([]map[string]interface{}, 0)
 	if err := self.InsertHash(fieldValues); err != nil {
 		return err
 	}
@@ -257,7 +257,7 @@ func (self *Model) Insert(extra ...url.Values) error {
 		fieldValues.Set(self.CurrentIdAuto, autoId)
 		self.ARGS.Set(self.CurrentIdAuto, autoId)
 	}
-	self.LISTS = fromFv(fieldValues)
+	self.aLISTS = fromFv(fieldValues)
 
 	return nil
 }
@@ -289,7 +289,7 @@ func (self *Model) Insupd(extra ...url.Values) error {
 	if self.CurrentIdAuto != "" {
 		fieldValues.Set(self.CurrentIdAuto, strconv.FormatInt(self.LastId, 10))
 	}
-	self.LISTS = fromFv(fieldValues)
+	self.aLISTS = fromFv(fieldValues)
 
 	return nil
 }
@@ -307,7 +307,7 @@ func (self *Model) Update(extra ...url.Values) error {
 	if !hasValue(fieldValues) {
 		return errors.New("No data to update.")
 	} else if len(fieldValues) == 1 && fieldValues.Get(self.CurrentKey) != "" {
-		self.LISTS = fromFv(fieldValues)
+		self.aLISTS = fromFv(fieldValues)
 		return nil
 	}
 
@@ -322,7 +322,7 @@ func (self *Model) Update(extra ...url.Values) error {
 	} else {
 		fieldValues.Set(self.CurrentKey, val[0].(string))
 	}
-	self.LISTS = fromFv(fieldValues)
+	self.aLISTS = fromFv(fieldValues)
 
 	return nil
 }
@@ -341,9 +341,9 @@ func (self *Model) Delete(extra ...url.Values) error {
 		return err
 	}
 
-	self.LISTS = []map[string]interface{}{make(map[string]interface{})}
+	self.aLISTS = []map[string]interface{}{make(map[string]interface{})}
 	for k, v := range extra[0] {
-		self.LISTS[0][k] = v[0]
+		self.aLISTS[0][k] = v[0]
 	}
 
 	return nil
