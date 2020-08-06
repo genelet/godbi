@@ -492,16 +492,16 @@ This function is not a part of CRUD, but is implemented as *PATCH* method in *ht
 ### 2.7  Delete Row
 
 ```go
-func (*Crud) DeleteHash(ids []interface{}, extra ...url.Values) error
+func (*Crud) DeleteHash(extra ...url.Values) error
 ```
-This function deletes rows specified by `ids` and constrained by `extra`.
+This function deletes rows using constrained `extra`.
 
 
 
 <br /><br />
 ## Chapter 3. ADVANCED USAGE
 
-`Model` constructs a database *model*, as in the MVC Pattern, from JSON and runs CRUD actions.
+`Model` constructs a database *model*, as in the MVC Pattern in web applications. It provides a set of higher level methods than CRUD for RESTful actions. 
 
 <br /><br />
 ### 3.1  Type *Model*
@@ -511,7 +511,6 @@ type Model struct {
     Crud
     Navigate                         // interface has methods to implement 
     ARGS   url.Values                // store http request data 
-    LISTS  []map[string]interface{}  // store output 
 
     // all the following fields will be parsed from JSON
     Nextpages map[string][]*Page     `json:"nextpages,omitempty"`       // to call other models' verbs
@@ -549,16 +548,39 @@ type Navigate interface {
 In *godbi*, the `Model` type has already implemented the 4 methods. 
 
 
+#### 3.1.1) Construct New Model `NewModel(string)`
+
+A new `Model` instance can be parsed from JSON file on disk:
+```
+func NewModel(filename string) (*Model, error)
+```
+where `filename` is the file name. Please check the tags on struct field declarations in `Crud` and `Model`:
+
+Model Field | JSON variable | meaning
+----------- | ------------- | -------
+CurrentTable | current_table | the current table name 
+ CurrentTables | current_tables | optional, use multiple table JOINs in Read All 
+    CurrentKey | current_key | the single primary key of the table    
+    CurrentKeys | current_keys | optional, if the primary key has multiple columns  
+    CurrentIdAuto  | current_id_auto | this table has an auto id
+    InsertPars     | insert_pars | columns to insert in C
+    UpdatePars     | update_pars | columns to update in U
+    InsupdPars     | insupd_pars | unique columns in PATCH
+    EditPars       | edit_pars | columns to query in R (one)
+    TopicsPars     | topics_pars | columns to query in R (all)
+    TopicsHashPars | topics_hash | columns to rename in R (all)
+    TotalForce     | total_force | if to calculate total coutns in R (all)
+
+#### 3.1.1) 
 Type `Page`:
 ```go
 type Page struct {
-    Model      string            `json:"model"`                // name of the next model to call  
-    Action     string            `json:"action"`               // action name of the next model
-    RelateItem map[string]string `json:"relate_item,omitempty" // column name mapped to that of the next model
-    Manual     map[string]string `json:"manual,omitempty"`     // manually assign these constraints
+    Model      string            `json:"model"`                 // name of the next model to call  
+    Action     string            `json:"action"`                // action name of the next model
+    RelateItem map[string]string `json:"relate_item,omitempty"` // column name mapped to that of the next model
+    Manual     map[string]string `json:"manual,omitempty"`      // manually assign these constraints
 }
 ```
-
 
 
 ####  3.1.1) What is `Model`?
