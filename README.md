@@ -559,17 +559,17 @@ where `filename` is the file name. Please check the tags on struct field declara
 Model Field | JSON variable | meaning
 ----------- | ------------- | -------
 CurrentTable | current_table | the current table name 
- CurrentTables | current_tables | optional, use multiple table JOINs in Read All 
-    CurrentKey | current_key | the single primary key of the table    
-    CurrentKeys | current_keys | optional, if the primary key has multiple columns  
-    CurrentIdAuto  | current_id_auto | this table has an auto id
-    InsertPars     | insert_pars | columns to insert in C
-    UpdatePars     | update_pars | columns to update in U
-    InsupdPars     | insupd_pars | unique columns in PATCH
-    EditPars       | edit_pars | columns to query in R (one)
-    TopicsPars     | topics_pars | columns to query in R (all)
-    TopicsHashPars | topics_hash | columns to rename in R (all)
-    TotalForce     | total_force | if to calculate total coutns in R (all)
+CurrentTables | current_tables | optional, use multiple table JOINs in Read All
+CurrentKey | current_key | the single primary key of the table    
+CurrentKeys | current_keys | optional, if the primary key has multiple columns  
+CurrentIdAuto  | current_id_auto | this table has an auto id
+InsertPars     | insert_pars | columns to insert in C
+UpdatePars     | update_pars | columns to update in U
+InsupdPars     | insupd_pars | unique columns in PATCH
+EditPars       | edit_pars | columns to query in R (one)
+TopicsPars     | topics_pars | columns to query in R (all)
+TopicsHashPars | topics_hash | columns to rename in R (all)
+TotalForce     | total_force | if to calculate total coutns in R (all)
 
 #### 3.1.1) 
 Type `Page`:
