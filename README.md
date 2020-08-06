@@ -96,15 +96,13 @@ func main() {
     os.Exit(0)
 }
 ```
-
-<p>
-</details>
-
 Running this example will result in something like
 ```
 [map[id:1 x:m] map[id:2 x:n] map[id:3 x:p]]
 ```
 
+<p>
+</details>
 
 <br /><br />
 ### 1.2  Execution with `ExecSQL` & `DoSQL`
@@ -277,15 +275,14 @@ func main() {
 }
 ```
 
-</p>
-</details>
-
 Running the program will result in:
 ```
  lists is: [map[id:1 x:m] map[id:4 x:m]]
  OUT is: map[amount:100]
 ```
 
+</p>
+</details>
 
 <br /><br />
 ## Chapter 2. CRUD USAGE
@@ -395,15 +392,15 @@ func main() {
 }
 ```
 
-</p>
-</details>
-
 Running result:
 ```
 last id=3
 row of id=3: [map[x:c y:z]]
 all rows: [map[id:2 x:c y:d] map[id:3 x:c y:z]]
 ```
+
+</p>
+</details>
 
 <br /><br />
 ### 2.2  Create New Row
@@ -475,7 +472,10 @@ The tables in `CurrentTables` should be arranged with correct orders. Use the fo
 ```go
 func TableString(tables []*Table) string
 ```
-For example:
+<details>
+	<summary>Click for Table example</summary>
+	<p>
+		
 ```go
 str := `[
     {"name":"user_project", "alias":"j"},
@@ -491,6 +491,9 @@ user_project j
 INNER JOIN user_component c USING (projectid)
 LEFT JOIN user_table t ON (c.tableid=t.tableid)
 ```
+
+</p>
+</details>
 
 By combining `selectPars` and `extra`, we can construct sophisticate search queries. More use cases will be discussed in _Advanced Usage_ below.
 
@@ -787,9 +790,6 @@ func main() {
 }
 ```
 
-</p>
-</details>
-
 Running the program will result in
 ```
 1
@@ -797,6 +797,9 @@ Running the program will result in
 [map[id:1 x:a y:b] map[id:2 x:c y:d]]
 [map[id:2 x:c y:z]]
 ```
+
+</p>
+</details>
 
 <br /><br />
 ### 3.2 Action by Name
@@ -994,8 +997,6 @@ func main() {
 	os.Exit(0)
 }
 ```
-</p>
-</details>
 
 Running it will result in:
 ```
@@ -1003,3 +1004,6 @@ Running it will result in:
 [map[id:1 tb_topics:[map[child:john id:1 tid:1] map[child:sam id:1 tid:2]] x:a1234567 y:b1234567 z:zzzzz]]
 [map[id:2 tb_topics:[map[child:mary id:2 tid:3]] x:c1234567 y:d1234567 z:e1234] map[id:3 tb_topics:[map[child:marcus id:3 tid:4]] x:e1234567 y:f1234567 z:e1234]]
 ```
+
+</p>
+</details>
