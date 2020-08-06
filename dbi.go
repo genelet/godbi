@@ -1,7 +1,7 @@
 package godbi
 
 import (
-// "github.com/golang/glog"
+	// "github.com/golang/glog"
 	"database/sql"
 	"net/url"
 	"strings"
@@ -13,20 +13,18 @@ import (
 type DBI struct {
 	// Embedding the generic database handle.
 	*sql.DB
-
 	// LastId: the last auto id inserted, if the database provides
-	LastId    int64
-
+	LastId int64
 	// Affected: the number of rows affected
-	Affected  int64
+	Affected int64
 }
 
-// ExecSQL excutes a query like 'Exec', and refreshes the LastId and Affected 
+// ExecSQL excutes a query like 'Exec', and refreshes the LastId and Affected
 // If the execution fails, it returns error; otherwise nil.
 //
 func (self *DBI) ExecSQL(query string, args ...interface{}) error {
-//glog.Infof("godbi SQL statement: %s", query)
-//glog.Infof("godbi input data: %v", args)
+	//glog.Infof("godbi SQL statement: %s", query)
+	//glog.Infof("godbi input data: %v", args)
 
 	res, err := self.DB.Exec(query, args...)
 	if err != nil {
@@ -51,8 +49,8 @@ func (self *DBI) ExecSQL(query string, args ...interface{}) error {
 // which is safe for concurrent use by multiple goroutines.
 //
 func (self *DBI) DoSQL(query string, args ...interface{}) error {
-//glog.Infof("godbi SQL statement: %s", query)
-//glog.Infof("godbi input data: %v", args)
+	//glog.Infof("godbi SQL statement: %s", query)
+	//glog.Infof("godbi input data: %v", args)
 
 	sth, err := self.DB.Prepare(query)
 	if err != nil {
@@ -82,8 +80,8 @@ func (self *DBI) DoSQL(query string, args ...interface{}) error {
 // Each row is represented as array and the rows are array of array.
 //
 func (self *DBI) DoSQLs(query string, args ...[]interface{}) error {
-//glog.Infof("godbi SQL statement: %s", query)
-//glog.Infof("godbi input data: %v", args)
+	//glog.Infof("godbi SQL statement: %s", query)
+	//glog.Infof("godbi input data: %v", args)
 
 	n := len(args)
 	if n == 0 {
@@ -122,7 +120,7 @@ func (self *DBI) DoSQLs(query string, args ...[]interface{}) error {
 // QuerySQL selects data rows as slice of maps.
 // The rows' data types are determined dynamically by the generic handle.
 // 'lists' is a reference to slice of maps to receive the quering data.
-// 
+//
 func (self *DBI) QuerySQL(lists *[]map[string]interface{}, query string, args ...interface{}) error {
 	return self.QuerySQLTypeLabel(lists, nil, nil, query, args...)
 }
@@ -130,7 +128,7 @@ func (self *DBI) QuerySQL(lists *[]map[string]interface{}, query string, args ..
 // QuerySQL selects data rows as slice of maps.
 // The rows' data types are defined in 'types' as an array of string.
 // 'lists' is a reference to slice of maps to receive the quering data.
-// 
+//
 func (self *DBI) QuerySQLType(lists *[]map[string]interface{}, typeLabels []string, query string, args ...interface{}) error {
 	return self.QuerySQLTypeLabel(lists, typeLabels, nil, query, args...)
 }
@@ -150,10 +148,10 @@ func (self *DBI) QuerySQLLabel(lists *[]map[string]interface{}, selectLabels []s
 // The original SQL column names will be replaced by 'labels'.
 //
 func (self *DBI) QuerySQLTypeLabel(lists *[]map[string]interface{}, typeLabels []string, selectLabels []string, query string, args ...interface{}) error {
-//glog.Infof("godbi SQL statement: %s", query)
-//glog.Infof("godbi select columns: %v", selectLabels)
-//glog.Infof("godbi column types: %v", typeLabels)
-//glog.Infof("godbi input data: %v", args)
+	//glog.Infof("godbi SQL statement: %s", query)
+	//glog.Infof("godbi select columns: %v", selectLabels)
+	//glog.Infof("godbi column types: %v", typeLabels)
+	//glog.Infof("godbi input data: %v", args)
 
 	rows, err := self.DB.Query(query, args...)
 	if err != nil {
@@ -185,10 +183,10 @@ func (self *DBI) SelectSQLLabel(lists *[]map[string]interface{}, selectLabels []
 // SelectSQLTypeLabel is the same as QuerySQLTypeLabel excepts it uses a prepared statement.
 //
 func (self *DBI) SelectSQLTypeLabel(lists *[]map[string]interface{}, typeLabels []string, selectLabels []string, query string, args ...interface{}) error {
-//glog.Infof("godbi SQL statement: %s", query)
-//glog.Infof("godbi select columns: %v", selectLabels)
-//glog.Infof("godbi column types: %v", typeLabels)
-//glog.Infof("godbi input data: %v", args)
+	//glog.Infof("godbi SQL statement: %s", query)
+	//glog.Infof("godbi select columns: %v", selectLabels)
+	//glog.Infof("godbi column types: %v", typeLabels)
+	//glog.Infof("godbi input data: %v", args)
 
 	sth, err := self.DB.Prepare(query)
 	if err != nil {

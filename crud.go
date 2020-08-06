@@ -3,11 +3,11 @@ package godbi
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"net/url"
 	"regexp"
-	"strings"
 	"strconv"
-	"fmt"
+	"strings"
 )
 
 // Table describes a table used in multiple joined SELECT query.
@@ -329,7 +329,7 @@ func (self *Crud) InsupdTable(fieldValues url.Values, uniques []string) error {
 		s += val + "=?"
 		x := fieldValues.Get(val)
 		if x == "" {
-			return errors.New("Unique key's value not found.")
+			return errors.New("unique key value not found")
 		}
 		v = append(v, x)
 	}
@@ -339,7 +339,7 @@ func (self *Crud) InsupdTable(fieldValues url.Values, uniques []string) error {
 		return err
 	}
 	if len(lists) > 1 {
-		return errors.New("Multiple records, not unique.")
+		return errors.New("multiple records, not unique")
 	}
 
 	if len(lists) == 1 {
@@ -347,8 +347,10 @@ func (self *Crud) InsupdTable(fieldValues url.Values, uniques []string) error {
 		if err := self.UpdateHash(fieldValues, []interface{}{id}); err != nil {
 			return err
 		}
-		id64, err := strconv.ParseInt(fmt.Sprintf("%d",id),10,64)
-		if err != nil { return err }
+		id64, err := strconv.ParseInt(fmt.Sprintf("%d", id), 10, 64)
+		if err != nil {
+			return err
+		}
 		self.LastId = id64
 		self.Updated = true
 	} else {
@@ -366,7 +368,7 @@ func (self *Crud) InsupdTable(fieldValues url.Values, uniques []string) error {
 func (self *Crud) DeleteHash(extra ...url.Values) error {
 	sql := "DELETE FROM " + self.CurrentTable
 	if !hasValue(extra) {
-		return errors.New("Delete whole table is not supported.")
+		return errors.New("delete whole table is not supported")
 	}
 	where, values := selectCondition(extra[0])
 	if where != "" {

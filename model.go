@@ -17,7 +17,7 @@ import (
 //
 type Navigate interface {
 	// SetActions: set new map between name and action function
-	SetActions(map[string]func(...url.Values)error)
+	SetActions(map[string]func(...url.Values) error)
 
 	// run an action by name
 	RunAction(string, ...url.Values) error
@@ -45,7 +45,7 @@ type Model struct {
 	Navigate
 
 	// actions: map between name and action functions
-	actions map[string]func(...url.Values)error
+	actions map[string]func(...url.Values) error
 
 	// aARGS: the input data received by the web request
 	aARGS url.Values
@@ -54,14 +54,14 @@ type Model struct {
 	aLISTS []map[string]interface{}
 
 	// Nextpages: defining how to call other models' actions
-	Nextpages map[string][]*Page     `json:"nextpages,omitempty"`
-	CurrentIdAuto string             `json:"current_id_auto,omitempty"`
-	InsertPars     []string          `json:"insert_pars,omitempty"`
-	EditPars       []string          `json:"edit_pars,omitempty"`
-	UpdatePars     []string          `json:"update_pars,omitempty"`
-	InsupdPars     []string          `json:"insupd_pars,omitempty"`
-	TopicsPars     []string          `json:"topics_pars,omitempty"`
-	TopicsHashPars map[string]string `json:"topics_hash,omitempty"`
+	Nextpages      map[string][]*Page `json:"nextpages,omitempty"`
+	CurrentIdAuto  string             `json:"current_id_auto,omitempty"`
+	InsertPars     []string           `json:"insert_pars,omitempty"`
+	EditPars       []string           `json:"edit_pars,omitempty"`
+	UpdatePars     []string           `json:"update_pars,omitempty"`
+	InsupdPars     []string           `json:"insupd_pars,omitempty"`
+	TopicsPars     []string           `json:"topics_pars,omitempty"`
+	TopicsHashPars map[string]string  `json:"topics_hash,omitempty"`
 
 	TotalForce  int    `json:"total_force,omitempty"`
 	Empties     string `json:"empties,omitempty"`
@@ -120,7 +120,7 @@ func (self *Model) GetLists() []map[string]interface{} {
 }
 
 // SetActions sets all RESTful actions
-func (self *Model) SetActions(actions map[string]func(extra ...url.Values)error) {
+func (self *Model) SetActions(actions map[string]func(extra ...url.Values) error) {
 	self.actions = actions
 }
 
@@ -128,7 +128,7 @@ func (self *Model) SetActions(actions map[string]func(extra ...url.Values)error)
 func (self *Model) RunAction(action string, extra ...url.Values) error {
 	act, ok := self.actions[action]
 	if !ok {
-		errors.New("action '" + action + "' not found in map.")
+		return errors.New("action '" + action + "' not found in map")
 	}
 	return act(extra...)
 }
@@ -136,13 +136,13 @@ func (self *Model) RunAction(action string, extra ...url.Values) error {
 // GetArgs returns the input data which may have extra keys added
 // pass true will turn off those pagination data
 func (self *Model) GetArgs(is ...bool) url.Values {
-    args := url.Values{}
-    for k, v := range self.aARGS {
+	args := url.Values{}
+	for k, v := range self.aARGS {
 		if is != nil && is[0] && grep([]string{self.Sortby, self.Sortreverse, self.Rowcount, self.Totalno, self.Pageno, self.Maxpageno}, k) {
 			continue
 		}
-        args[k] = v
-    }
+		args[k] = v
+	}
 
 	return args
 }
@@ -250,7 +250,7 @@ func (self *Model) Edit(extra ...url.Values) error {
 	val := self.getIdVal(extra...)
 	fields := self.filteredFields(self.EditPars)
 	if !hasValue(fields) {
-		return errors.New("PK value not provided.")
+		return errors.New("pk value not provided")
 	}
 
 	self.aLISTS = make([]map[string]interface{}, 0)
@@ -272,7 +272,7 @@ func (self *Model) Insert(extra ...url.Values) error {
 		}
 	}
 	if !hasValue(fieldValues) {
-		return errors.New("No data to insert.")
+		return errors.New("no data to insert")
 	}
 
 	self.aLISTS = make([]map[string]interface{}, 0)
@@ -302,12 +302,12 @@ func (self *Model) Insupd(extra ...url.Values) error {
 		}
 	}
 	if !hasValue(fieldValues) {
-		return errors.New("PK value not found.")
+		return errors.New("pk value not found")
 	}
 
 	uniques := self.InsupdPars
 	if !hasValue(uniques) {
-		return errors.New("Unique key's value not found.")
+		return errors.New("unique key value not found")
 	}
 
 	if err := self.InsupdTable(fieldValues, uniques); err != nil {
@@ -328,12 +328,12 @@ func (self *Model) Insupd(extra ...url.Values) error {
 func (self *Model) Update(extra ...url.Values) error {
 	val := self.getIdVal(extra...)
 	if !hasValue(val) {
-		return errors.New("PK value not found.")
+		return errors.New("pk value not found")
 	}
 
 	fieldValues := self.getFv(self.UpdatePars)
 	if !hasValue(fieldValues) {
-		return errors.New("No data to update.")
+		return errors.New("no data to update")
 	} else if len(fieldValues) == 1 && fieldValues.Get(self.CurrentKey) != "" {
 		self.aLISTS = fromFv(fieldValues)
 		return nil
@@ -410,7 +410,7 @@ func (self *Model) Randomid(table string, field string, m ...interface{}) (int, 
 		return val, nil
 	}
 
-	return 0, errors.New("Can't get a random id.")
+	return 0, errors.New("cannot get a random id")
 }
 
 // ProperValue returns the value of key 'v' from extra.

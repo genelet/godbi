@@ -1,15 +1,15 @@
 package godbi
 
 import (
-	"errors"
 	"database/sql"
+	"errors"
 	"net/url"
 )
 
 // Schema describes all models and actions in a database schema
-// 
+//
 type Schema struct {
-	Models  map[string]Navigate
+	Models map[string]Navigate
 }
 
 // Page type describes next page's structure
@@ -18,29 +18,35 @@ type Schema struct {
 // Manual: constraint conditions manually assigned
 // RelateItem: current page's column versus next page's column. The value is forced as constraint.
 type Page struct {
-	Model	string                 `json:"model"`
-	Action	string                 `json:"action"`
-	Manual	map[string]string      `json:"manual,omitempty"`
-	RelateItem map[string]string   `json:"relate_item,omitempty"`
+	Model      string            `json:"model"`
+	Action     string            `json:"action"`
+	Manual     map[string]string `json:"manual,omitempty"`
+	RelateItem map[string]string `json:"relate_item,omitempty"`
 }
 
+// Run runs action by model and action string names
+// args: the input data
+// db: the database handle
+// extra: optional extra parameters
+// The output are data and optional error code
+//
 func (self *Schema) Run(model, action string, args url.Values, db *sql.DB, extra ...url.Values) ([]map[string]interface{}, error) {
-    modelObj, ok := self.Models[model]
-    if !ok {
-        return nil, errors.New("model not found in schema models")
-    }
+	modelObj, ok := self.Models[model]
+	if !ok {
+		return nil, errors.New("model not found in schema models")
+	}
 
-    modelObj.SetArgs(args)
-    modelObj.SetDB(db)
+	modelObj.SetArgs(args)
+	modelObj.SetDB(db)
 
 	if err := modelObj.RunAction(action, extra...); err != nil {
-        return nil, err
-    }
+		return nil, err
+	}
 	lists := modelObj.GetLists()
 	modelArgs := modelObj.GetArgs(true) // for nextpages to use
 
-    modelObj.SetArgs(url.Values{})
-    modelObj.SetDB(nil)
+	modelObj.SetArgs(url.Values{})
+	modelObj.SetDB(nil)
 
 	if !hasValue(lists) {
 		return lists, nil
@@ -51,10 +57,10 @@ func (self *Schema) Run(model, action string, args url.Values, db *sql.DB, extra
 		return lists, nil
 	}
 
-    for _, page := range nextpages {
-        if hasValue(extra) {
-            extra = extra[1:]
-        }
+	for _, page := range nextpages {
+		if hasValue(extra) {
+			extra = extra[1:]
+		}
 		extra0 := url.Values{}
 		if hasValue(extra) {
 			extra0 = extra[0]
@@ -77,7 +83,7 @@ func (self *Schema) Run(model, action string, args url.Values, db *sql.DB, extra
 			if err != nil {
 				return nil, err
 			}
-			item[page.Model + "_" + page.Action] = newLists
+			item[page.Model+"_"+page.Action] = newLists
 		}
 	}
 
