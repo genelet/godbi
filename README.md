@@ -222,7 +222,10 @@ func (*DBI) SelectDoProc(lists *[]map[string]interface{}, res map[string]interfa
 ```
 Similar to `DoProc` but it receives _SELECT_-type query data into `lists`, providing `proc_name` contains such a query. 
 
-Full example:
+<details>
+	<summary>Click for full example</summary>
+	<p>
+		
 ```go
 package main
 
@@ -273,6 +276,10 @@ func main() {
     os.Exit(0)
 }
 ```
+
+</p>
+</details>
+
 Running the program will result in:
 ```
  lists is: [map[id:1 x:m] map[id:4 x:m]]
@@ -312,6 +319,10 @@ crud := &godbi.Crud{DBI:dbi_created, CurrentTable:"mytable", CurrentKey:"mykey"}
 #### 2.1.2) Example
 
 This example creates 3 rows. Then it updates one row, reads one row and reads all rows.
+<details>
+	<summary>Click for Crud example</summary>
+	<p>
+		
 ```go
 package main
 
@@ -383,6 +394,10 @@ func main() {
     os.Exit(0)
 }
 ```
+
+</p>
+</details>
+
 Running result:
 ```
 last id=3
@@ -673,7 +688,10 @@ It rows constrained by `extra`. For this function, the input data will NOT be us
 
 #### 3.1.9）Example
 
-This example shows how to run RESTful actions on a model
+<details>
+	<summary>Click for example to run RESTful actions</summary>
+	<p>
+		
 ```go
 package main
 
@@ -742,6 +760,10 @@ func main() {
 	os.Exit(0)
 }
 ```
+
+</p>
+</details>
+
 Running the program will result in
 ```
 1
@@ -833,6 +855,10 @@ func (*Schema) Run(model, action string, args url.Values, db *sql.DB, extra ...u
 Here we pass in the string names of model and action, the input data `args`, the database handle `db`, and optional `extra` parameters, this function runs the action and returns the results.
 
 Here is a full example that covers most information in Chapter 3.
+<details>
+	<summary>Click for RESTful example using Schema</summary>
+	<p>
+		
 ```go
 package main
 
@@ -934,6 +960,9 @@ func main() {
 	os.Exit(0)
 }
 ```
+</p>
+</details>
+
 Running it will result in:
 ```
 [map[id:1 tb_topics:[map[child:john id:1 tid:1] map[child:sam id:1 tid:2]] x:a1234567 y:b1234567 z:zzzzz] map[id:2 tb_topics:[map[child:mary id:2 tid:3]] x:c1234567 y:d1234567 z:e1234] map[id:3 tb_topics:[map[child:marcus id:3 tid:4]] x:e1234567 y:f1234567 z:e1234]]
