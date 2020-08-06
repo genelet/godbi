@@ -852,7 +852,7 @@ where keys in the map are model names.
 ```go
 func (*Schema) Run(model, action string, args url.Values, db *sql.DB, extra ...url.Values) ([]map[string]interface{}, error)
 ```
-Here we pass in the string names of model and action, the input data `args`, the database handle `db`, and optional `extra` parameters, this function runs the action and returns the results.
+Here we pass in the string names of model and action, the input data `args`, the database handle `db`, and optional `extra` parameters, this function runs the action and **all next pages defined inside the schema**, then returns the results.
 
 Here is a full example that covers most information in Chapter 3.
 <details>
