@@ -318,7 +318,7 @@ type Crud struct {
 Just to note, the 4 letters in CRUD are: 
 C | R | U | D
 - | - | - | -
-**C**reate a new row | **R**ead all rows, or **R**ead one row - U: **U**pdate a row - **D**elete a row
+create a new row | read all rows, or read one row | update a row | delete a row
 
 #### 2.1.1) Create an instance
 
@@ -686,7 +686,7 @@ It selects all records in model's table, constrained optionally by `extra`.
 
 If variable `rowcount` (*number of records per page*) is set in `args`, and field `TotalForce` is not 0, then pagination will be triggered. The total count and total pages will be calculatd and put back in `args`. `TotalForce` defines how to calculate the total count.
 <details>
-	<summary>Click for meaning of `TotalForce`</summary>
+	<summary>Click for meaning of *TotalForce*</summary>
 	<p>
 		
 Value | Meaning
