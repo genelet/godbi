@@ -501,7 +501,19 @@ This function deletes rows using constrained `extra`.
 <br /><br />
 ## Chapter 3. ADVANCED USAGE
 
-`Model` constructs a database *model*, as in the MVC Pattern in web applications. It provides a set of higher level methods than CRUD for RESTful actions. 
+godbi allows us to construct database *model* as in the MVC Pattern in web applications, and to build RESTful API easily. The RESTful web actions are associated with the database CRUD verbs as the following:
+
+HTTP METHOD | RESTful URL | CRUD | Function in godbi 
+----------- | ----------- | ---- | -----------------
+GET         | webHandler | R All | Topics
+GET         | webHandler/ID | R One | Edit
+POST        | webHandler | C | Insert
+PUT         | webHandler | U | Update
+PATCH       | webHandler | NA | Insupd
+DELETE      | webHandler | D | Delete
+
+Futhermore, we have set up type `Schema` for whole database schema, which allow us to build multiple API endpoints at once. 
+
 
 <br /><br />
 ### 3.1  Type *Model*
@@ -513,7 +525,7 @@ type Model struct {
     ARGS   url.Values                // store http request data 
 
     // all the following fields will be parsed from JSON
-    Nextpages map[string][]*Page     `json:"nextpages,omitempty"`       // to call other models' verbs
+    Nextpages     map[string][]*Page `json:"nextpages,omitempty"`       // to call other models' verbs
     CurrentIdAuto  string            `json:"current_id_auto,omitempty"` // this table has an auto id
     InsertPars     []string          `json:"insert_pars,omitempty"`     // columns to insert in C
     UpdatePars     []string          `json:"update_pars,omitempty"`     // columns to update in U
@@ -539,25 +551,25 @@ type Model struct {
 where the interface `Navigate`:
 ```go
 type Navigate interface {
-    GetLists() []map[string]interface{} // get lists
-    GetArgs() url.Values                // get http request data for the nextpage to use
-    GetNextpages(string) []*Page        // get the nextpages
-    UpdateModel(*sql.DB, url.Values)    // set up the database handle and the http request data
+    GetLists()           []map[string]interface{} // get result after an action
+    GetArgs()            url.Values               // get http request data for the nextpage to use
+    GetNextpages(string) []*Page                 // get the nextpages
+    UpdateModel(*sql.DB, url.Values)             // set up the database handle and the http request data
 }
 ```
 In *godbi*, the `Model` type has already implemented the 4 methods. 
 
 
-#### 3.1.1) Construct New Model `NewModel(string)`
+#### 3.1.1) Constructor `NewModel`
 
-A new `Model` instance can be parsed from JSON file on disk:
-```
+A `Model` instance can be parsed from JSON file on disk:
+```go
 func NewModel(filename string) (*Model, error)
 ```
 where `filename` is the file name. Please check the tags on struct field declarations in `Crud` and `Model`:
 
-Model Field | JSON variable | meaning
------------ | ------------- | -------
+Field in Model | JSON variable | Database Table
+-------------- | ------------- | --------------
 CurrentTable | current_table | the current table name 
 CurrentTables | current_tables | optional, use multiple table JOINs in Read All
 CurrentKey | current_key | the single primary key of the table    
@@ -569,9 +581,40 @@ InsupdPars     | insupd_pars | unique columns in PATCH
 EditPars       | edit_pars | columns to query in R (one)
 TopicsPars     | topics_pars | columns to query in R (all)
 TopicsHashPars | topics_hash | columns to rename in R (all)
-TotalForce     | total_force | if to calculate total coutns in R (all)
+TotalForce     | total_force | if to calculate total counts in R (all)
 
-#### 3.1.1) 
+#### 3.1.2) Feed Database Handle and Input Data
+
+After we have constructed database handle, `db`, and input data, `args` such as http request's *Form*, which is of type `url.Values`, we can feed them into `Model`:
+```go
+func (*Model) UpdateModel(db *sql.DB, args url.Values)
+```
+
+#### 3.1.3) Returning Data
+
+After we have run an action on the model, we can retrieve data using 
+```go
+(*Model) GetLists()
+```
+We may also check *totalno*, *maxpageno* and *rowcount* in `args`, to see if this is the first page in pagination.
+
+#### 3.1.4) GET (Read All)
+
+```
+func (*Model) Topics(extra ...url.Values) error
+```
+It selects all records in model's table, constrained optionally by `extra`. 
+
+If variable `rowcount`, which means *number of records per page*, is set in `args`, and field `TotalForce` is not 0, then pagination will be triggered. The total  count and total pages will be calculatd and put back in `args`. Field `TotalForce` defines how to calculate the total count.
+Value | Meaning
+----- | -------
+<-1  | use ABS(TotalForce) as the total count 
+-1   | always calculate the total count
+0    | don't calculate the total count
+>0   | calculate only if the total count is not passed in `args`
+
+If yo
+
 Type `Page`:
 ```go
 type Page struct {
@@ -583,7 +626,7 @@ type Page struct {
 ```
 
 
-####  3.1.1) What is `Model`?
+####  3.1.1) GET (Read One)
 
 `Model` generatea RESTful & GraphQL APIs in web application, for the whole database schema at once! 
 It has implemeted the standard CRUD verbs, and can include custom web actions too. So is ready to generate RESTful APIs but also ready for use in
