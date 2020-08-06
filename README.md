@@ -527,15 +527,21 @@ This function deletes rows using constrained `extra`.
 ## Chapter 3. ADVANCED USAGE
 
 *godbi* allows us to construct *model* as in the MVC Pattern in web applications, and to build RESTful API easily. The RESTful web actions are associated with the database CRUD verbs as the following:
-
-HTTP METHOD | RESTful URL | CRUD | Function in godbi 
------------ | ----------- | ---- | -----------------
+<details>
+	<summary>RESTful vs CRUD</summary>
+	<p>
+		
+HTTP METHOD | Web URL | CRUD | Function in godbi 
+----------- | ------- | ---- | -----------------
 GET         | webHandler | R All | Topics
 GET         | webHandler/ID | R One | Edit
 POST        | webHandler | C | Insert
 PUT         | webHandler | U | Update
 PATCH       | webHandler | NA | Insupd
 DELETE      | webHandler | D | Delete
+
+</p>
+</details>
 
 Futhermore, we have set up type `Schema` for whole database schema, which allow us to build multiple API endpoints at once. 
 
@@ -557,7 +563,7 @@ type Model struct {
     TopicsPars     []string           `json:"topics_pars,omitempty"`     // columns to query in R (all)
     TopicsHashPars map[string]string  `json:"topics_hash,omitempty"`     // columns to rename in R (all)
     TotalForce     int                `json:"total_force,omitempty"`     // if to calculate total coutns in R (all)
-    
+ 
     // The following fields are just variable names to pass in a web request,
     // default to themselves. e.g. "empties" for "Empties", "maxpageno" for Maxpageno etc.
     Empties        string             `json:"empties,omitempty"`         // columns are updated to NULL if no input 
@@ -597,7 +603,10 @@ A `Model` instance can be parsed from JSON file on disk:
 func NewModel(filename string) (*Model, error)
 ```
 where `filename` is the file name. Please check the tags on struct field declarations in `Crud` and `Model`:
-
+<details>
+	<summary>Click to Show Fields in Model</summary>
+	<p>
+		
 Field in Model | JSON variable | Database Table
 -------------- | ------------- | --------------
 CurrentTable | current_table | the current table name 
@@ -612,6 +621,9 @@ EditPars       | edit_pars | columns to query in R (one)
 TopicsPars     | topics_pars | columns to query in R (all)
 TopicsHashPars | topics_hash | columns to rename in R (all)
 TotalForce     | total_force | if to calculate total counts in R (all)
+
+</p>
+</details>
 
 #### 3.1.2) Feed Database Handle and Input Data
 
