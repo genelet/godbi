@@ -425,6 +425,10 @@ where `lists` receives the query results.
 #### 2.3.1) Specify which columns to be reported
 
 Use `selectPars` which is an interface to specify which column names and types in the query. There are 4 cases:
+<details>
+	<summary>Click to show *selectPars*</summary>
+	<p>
+		
 interface | column names
 --------- | ------------
  *[]string{name}* | just a list of column names
@@ -432,17 +436,27 @@ interface | column names
  *map[string]string{name: label}* | rename the column names by labels
  *map[string][2]string{name: label, type}* | rename the column names to labels and use the specific types
 
+</p>
+</details>
+
 If we don't specify type, the generic handle will decide one for us, which is most likely correct.
 
 #### 2.3.2) Constraints
 
 Use `extra`, which has type `url.Values` to contrain the *WHERE* statement. Currently we have supported 3 cases:
+<details>
+	<summary>Click to show *extra*</summary>
+	<p>
+		
 key in `extra` | meaning
 --------------------------- | -------
 key has only one value | an EQUAL constraint
 key has multiple values | an IN constraint
 key is named *_gsql* | a raw SQL statement
 among multiple keys | AND conditions.
+
+</p>
+</details>
 
 #### 2.3.3) Use multiple JOIN tables
 
@@ -528,7 +542,7 @@ This function deletes rows using constrained `extra`.
 
 *godbi* allows us to construct *model* as in the MVC Pattern in web applications, and to build RESTful API easily. The RESTful web actions are associated with the database CRUD verbs as the following:
 <details>
-	<summary>RESTful vs CRUD</summary>
+	<summary>Click for RESTful vs CRUD</summary>
 	<p>
 		
 HTTP METHOD | Web URL | CRUD | Function in godbi 
@@ -828,6 +842,10 @@ How it works? Assume there are two tables, one for family and the other for chil
 
 When we *GET* the family name, we want to show all children under the familiy name as well. Technically, it means that running `Topics` on `ta` will trigger `Topics` on `tb`, constrained by the association of family's ID in both the tables. The same is true for 
 `Edit` and `Insert`. So for the family model, its `Nextpages` will look like
+<details>
+	<summary>Click to show the JSON string</summary>
+	<p>
+		
 ```json
 {
     "insert" : [
@@ -844,6 +862,10 @@ When we *GET* the family name, we want to show all children under the familiy na
     ]
 }
 ```
+
+</p>
+</details>
+	
 Parsing it will result in `map[string][]*Page`. 
 
 In *godbi*, we build up this kind of relationship once in JSON and let the package to run for us. In case of any change in the business logic, we can modify the JSON file, which is much cleaner and easier to do than other tools like ORM.
