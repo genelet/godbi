@@ -25,11 +25,11 @@ The package is fully tested in MySQL and PostgreSQL, and assumed to work with ot
 The names of arguments passed in functions or methods in this package are defined as follows, if not specifically explained:
 Name | Type | IN/OUT | Where | Meaning
 ---- | ---- | ------ | ----- | -------
-*args* | `...interface{}` | IN | Basic | single-valued interface slice, possibly empty
-*args* | `url.Values` | IN | Crud & Advanced | main input data for one row; column name could have multiple values
-*extra* | `url.Values` | IN | Crud & Advanced | WHERE constraints; logic: single value - EQUAL,  multiple value - IN
-*ids* | `[]interface{}` | IN | Crud | Multiple PKs. Interface could be a slice itself for multi-column PK 
-*lists* | `[]map[string]interface{}` | OUT | all | main output data as slice of rows; each row uses column name as key
+*args* | `...interface{}` | IN | `DBI` | single-valued interface slice, possibly empty
+*args* | `url.Values` | IN | `Crud` & `Model` | input data for a row; column name could be multi valued
+*extra* | `url.Values` | IN | `Crud` & `Model` | WHERE constraints; logic: single value - EQUAL,  multiple value - IN
+*ids* | `[]interface{}` | IN | `Crud` | PK values. Interface could be a slice itself for multi-column PK 
+*lists* | `[]map[string]interface{}` | OUT | all | output data as slice of rows; each row uses column name as key
 
 
 <br /><br />
