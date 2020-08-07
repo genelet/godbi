@@ -968,20 +968,48 @@ Because models are allowed to interact with each other, we introduce type `Schem
 
 ```go
 type Schema struct {
-    *sql.DB
+    // private fields
     Models  map[string]Navigate
 }
 ```
 
 where keys in the map are model names.
 
+#### 3.4.1) Create Schema, `NewSchema`
+
+Create a new schema instance by passing the string to `Model` map.
+
+```go
+NewSchema(models map[string]interface{}) *Schema
+```
+
+#### 3.4.2) Assign DB, `SetDB`
+
+After a new schema is created, we assign it a database handle:
+
+```go
+(* Schema) SetDB(db *sql.DB)
+```
+
+#### 3.4.3) Get Model by Name, `GetNavigate`
+
+We can get a model by name
+
+```go
+(*Schema) GetNavigate(args url.Values) *Navigate
+```
+
+Here we pass in the input data as well, so the interface can be cast to the model with input and database handle embedded.
+
+#### 3.4.4) Run a RESTful action
+
 `Schema` implement the `Run` method which is ideal for RESTful requests.
 
 ```go
-func (*Schema) Run(model, action string, args url.Values, db *sql.DB, extra ...url.Values) ([]map[string]interface{}, error)
+func (*Schema) Run(model, action string, args url.Values, extra ...url.Values) ([]map[string]interface{}, error)
 ```
 
-Here we pass in the string names of model and action, the input data `args`, the database handle `db`, and optional `extra` parameters, this function runs the action and **all next pages defined inside the schema**, then returns the results.
+Here we pass in the string names of model and action, the input data `args`, the database handle `db`, and optional `extra` parameters, this function runs the action and **all next pages defined inside the schema**. The returns are the data and optional error.
 
 Here is a full example that covers most information in Chapter 3.
 
