@@ -27,7 +27,7 @@ Name | Type | IN/OUT | Where | Meaning
 ---- | ---- | ------ | ----- | -------
 *args* | `...interface{}` | IN | `DBI` | single-valued interface slice, possibly empty
 *args* | `url.Values` | IN | `Crud`. `Model` | input data for a row; column name could have multi values
-*extra* | `url.Values` | IN | `Crud`, `Model` | WHERE constraints; logic: single value - EQUAL,  multiple value - IN
+*extra* | `url.Values` | IN | `Crud`, `Model` | WHERE constraints; single value - EQUAL,  multiple value - IN
 *ids* | `[]interface{}` | IN | `Crud` | PK values. Interface could be a slice itself for multi-column PK 
 *lists* | `[]map[string]interface{}` | OUT | all | output data as slice of rows; each row uses column name as key
 *res* | `map[string]interface{}` | OUT | `DBI` | single-valued output for a column with names as the keys 
