@@ -16,25 +16,22 @@ import (
 // Navigate is interface to implement Model
 //
 type Navigate interface {
-	// SetActions: set new map between name and action function
-	// SetActions(map[string]func(...url.Values) error)
-
 	// GetAction: get an action function by name
 	GetAction(string) func(...url.Values) error
 
 	// GetLists: get the main data
 	GetLists() []map[string]interface{}
 
-	// GetArgs: get ARGS; pass "true" for nextpages
-	GetArgs(...bool) url.Values
+	// getArgs: get ARGS; pass "true" for nextpages
+	getArgs(...bool) url.Values
 
-	// SetArgs: set new input
+	// setArgs: set new input
 	SetArgs(url.Values)
 
-	// GetNextpages: get the nextpages
-	GetNextpages(string) []*Page
+	// getNextpages: get the nextpages
+	getNextpages(string) []*Page
 
-	// SetDB: set SQL handle
+	// setDB: set SQL handle
 	SetDB(*sql.DB)
 }
 
@@ -44,8 +41,8 @@ type Model struct {
 	Crud
 	Navigate
 
-	// actions: map between name and action functions
-	actions map[string]func(...url.Values) error
+	// Actions: map between name and action functions
+	Actions map[string]func(...url.Values) error
 
 	// aARGS: the input data received by the web request
 	aARGS url.Values
@@ -119,23 +116,18 @@ func (self *Model) GetLists() []map[string]interface{} {
 	return self.aLISTS
 }
 
-// SetActions sets all RESTful actions
-func (self *Model) SetActions(actions map[string]func(extra ...url.Values) error) {
-	self.actions = actions
-}
-
 // GetAction returns action's function
 func (self *Model) GetAction(action string) func(...url.Values) error {
-	if act, ok := self.actions[action]; ok {
+	if act, ok := self.Actions[action]; ok {
 		return act
 	}
 
 	return nil
 }
 
-// GetArgs returns the input data which may have extra keys added
+// getArgs returns the input data which may have extra keys added
 // pass true will turn off those pagination data
-func (self *Model) GetArgs(is ...bool) url.Values {
+func (self *Model) getArgs(is ...bool) url.Values {
 	args := url.Values{}
 	for k, v := range self.aARGS {
 		if is != nil && is[0] && grep([]string{self.Sortby, self.Sortreverse, self.Rowcount, self.Totalno, self.Pageno, self.Maxpageno}, k) {
@@ -152,8 +144,8 @@ func (self *Model) SetArgs(args url.Values) {
 	self.aARGS = args
 }
 
-// GetNextpages returns the next pages of an action
-func (self *Model) GetNextpages(action string) []*Page {
+// getNextpages returns the next pages of an action
+func (self *Model) getNextpages(action string) []*Page {
 	if !hasValue(self.Nextpages) {
 		return nil
 	}

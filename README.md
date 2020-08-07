@@ -637,7 +637,8 @@ Futhermore, we have set up type `Schema` for whole database schema, which allow 
 ```go
 type Model struct {
     Crud
-    Navigate                          // interface has methods to implement
+    Navigate                                                             // interface has methods to implement
+    Actions        map[string]func(...url.Values) error                  // action name to closure map
 
     Nextpages      map[string][]*Page `json:"nextpages,omitempty"`       // to call other models' verbs
     CurrentIDAuto  string             `json:"current_id_auto,omitempty"` // this table has an auto id
@@ -668,17 +669,10 @@ where the interface `Navigate`:
 
 ```go
 type Navigate interface {
-    SetArgs(url.Values)                             // set http request data
-    GetArgs(...bool)     url.Values                 // get http request data for the next page to use
-
-    SetDB(*sql.DB)                                  // set the database handle
-
-    SetActions(map[string]func(...url.Values)error) // set new map between name and action function
-    RunAction(string, ...url.Values) error          // run an action by name
-
-    GetLists()           []map[string]interface{}   // get result after an action
-    GetNextpages(string) []*Page                    // get the nextpages
-}
+    SetArgs(url.Values)                            // set http request data
+    SetDB(*sql.DB)                                 // set the database handle
+    GetAction(string)   func(...url.Values) error  // get function by action name
+    GetLists()          []map[string]interface{}   // get result after an action
 ```
 
 In *godbi*, the `Model` type has already implemented the 4 methods.
@@ -722,6 +716,7 @@ Use
 ```go
 func (*Model) SetDB(db *sql.DB)
 func (*Model) SetArgs(args url.Values)
+func (*Model) SetActions(map[string]func(...url.Values)error) // set new map between name and action function
 ```
 
 to set database handle, `db`, and input data, `args` like http request's *Form* into `Model`:
@@ -734,13 +729,12 @@ After we have run an action on the model, we can retrieve data using
 (*Model) GetLists()
 ```
 
-The input data `args` may has been modified too. To get it back use
+The closure associated with the action name can be get back:
 
 ```go
-(*Model) GetArgs(ignore ...bool)
+(*Model) GetAction(name string) func(...url.Values) error
 ```
 
-`ignore=true` will turn off the pagination information of *totalno*, *maxpageno* and *rowcount*.
 
 #### 3.1.4) Http METHOD: GET (read all)
 

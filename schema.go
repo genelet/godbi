@@ -9,7 +9,7 @@ import (
 // Schema describes all models and actions in a database schema
 //
 type Schema struct {
-	*sql.DB
+	db     *sql.DB
 	Models map[string]Navigate
 }
 
@@ -25,9 +25,18 @@ type Page struct {
 	RelateItem map[string]string `json:"relate_item,omitempty"`
 }
 
-func (self *Schema) GetNavigate(model string) Navigate {
+func NewSchema(s map[string]Navigate) *Schema {
+	return &Schema{nil, s}
+}
+
+func (self *Schema) SetDB(db *sql.DB) {
+	self.db = db
+}
+
+func (self *Schema) GetNavigate(model string, args url.Values) Navigate {
 	if model := self.Models[model]; model != nil {
-		model.SetDB(self.DB)
+		model.SetDB(self.db)
+		model.SetArgs(args)
 		return model
 	}
 	return nil
@@ -40,12 +49,10 @@ func (self *Schema) GetNavigate(model string) Navigate {
 // The output are data and optional error code
 //
 func (self *Schema) Run(model, action string, args url.Values, extra ...url.Values) ([]map[string]interface{}, error) {
-	modelObj := self.GetNavigate(model)
+	modelObj := self.GetNavigate(model, args)
 	if modelObj == nil {
 		return nil, errors.New("model not found in schema models")
 	}
-
-	modelObj.SetArgs(args)
 	act := modelObj.GetAction(action)
 	if act == nil {
 		return nil, errors.New("action not found in schema model")
@@ -55,17 +62,13 @@ func (self *Schema) Run(model, action string, args url.Values, extra ...url.Valu
 		return nil, err
 	}
 	lists := modelObj.GetLists()
-	modelArgs := modelObj.GetArgs(true) // for nextpages to use
+	modelArgs := modelObj.getArgs(true) // for nextpages to use
+	nextpages := modelObj.getNextpages(action)
 
 	modelObj.SetArgs(url.Values{})
 	modelObj.SetDB(nil)
 
-	if !hasValue(lists) {
-		return lists, nil
-	}
-
-	nextpages := modelObj.GetNextpages(action)
-	if nextpages == nil {
+	if !hasValue(lists) || nextpages == nil {
 		return lists, nil
 	}
 

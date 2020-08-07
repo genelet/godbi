@@ -97,12 +97,13 @@ func TestPage(t *testing.T) {
 
 	ss := make(map[string]func(...url.Values) error)
 	ss["topics"] = func(args ...url.Values) error { return model.Topics(args...) }
-	model.SetActions(ss)
+	model.Actions = ss
 	tt := make(map[string]func(...url.Values) error)
 	tt["topics"] = func(args ...url.Values) error { return st.Topics(args...) }
-	st.SetActions(tt)
+	st.Actions = tt
 
-	schema := &Schema{db, map[string]Navigate{"s": model, "testing": st}}
+	schema := NewSchema(map[string]Navigate{"s": model, "testing": st})
+	schema.SetDB(db)
 
 	lists, err := schema.Run("s", "topics", url.Values{})
 	if err != nil {
