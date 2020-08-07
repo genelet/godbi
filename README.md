@@ -891,33 +891,24 @@ Running the program will result in
 
 <br /><br />
 
-### 3.2 Action by Name
+### 3.2 Action by Name, `GetAction`
 
-Besides running action directly by calling its method, we can run it alternatively by calling its string name. This is important in web application where 
-the server is open to many different user actions and need to return particular one dynamically according to user query.
+Besides running action directly by calling its method, we can run it alternatively by calling its string name. This is important in web application where the server is open to many different user actions and need to return particular one dynamically according to user query.
 
-To achieve this, we need to set all actions for the model using
-
-```go
-// SetActions: set new map between name and action function
-(*Model) SetActions(map[string]func(...url.Values)error)
-// later
-(*Model) RunAction(string, ...url.Values) error
-```
-
-The struct passed into `SetActions` is a map between name and action function (a closure).
-
-For example, assume the instance is `model` and the action map is `actions`:
+To achieve this, build up a map between action name and function (a closure). To get the closure back, use:
 
 ```go
 // defining the action map 
-actions := make(map[string]func(...url.Values)error)
-actions["topics"] = func(extra ...url.Values) { return model.Topics(extra...) }
-model.SetActions(actions)
-err := model.RunAction("topics", extra...)
+actions := make(map[string]func(...url.Values) error)
+actions["topics"] = func(extra ...url.Values) error { return model.Topics(extra...) }
+model.Actions = actions
+// later
+if acting := model.GetAction("topics"); acting != nil {
+    err := acting(extra...)
+}
 ```
 
-which is equivalent to `model.Topics(extra...)`.
+which is equivalent to `err := model.Topics(extra...)`.
 
 <br /><br />
 
