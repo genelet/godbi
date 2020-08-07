@@ -980,7 +980,7 @@ where keys in the map are model names.
 Create a new schema instance by passing the string to `Model` map.
 
 ```go
-NewSchema(models map[string]interface{}) *Schema
+NewSchema(models map[string]Navigate) *Schema
 ```
 
 #### 3.4.2) Assign DB, `SetDB`
@@ -996,7 +996,7 @@ After a new schema is created, we assign it a database handle:
 We can get a model by name
 
 ```go
-(*Schema) GetNavigate(args url.Values) *Navigate
+(*Schema) GetNavigate(args url.Values) Navigate
 ```
 
 Here we pass in the input data as well, so the interface can be cast to the model with input and database handle embedded.
