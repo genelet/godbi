@@ -9,6 +9,7 @@ import (
 // Schema describes all models and actions in a database schema
 //
 type Schema struct {
+	*sql.DB
 	Models map[string]Navigate
 }
 
@@ -24,22 +25,33 @@ type Page struct {
 	RelateItem map[string]string `json:"relate_item,omitempty"`
 }
 
+func (self *Schema) GetNavigate(model string) Navigate {
+	if model := self.Models[model]; model != nil {
+		model.SetDB(self.DB)
+		return model
+	}
+	return nil
+}
+
 // Run runs action by model and action string names
 // args: the input data
 // db: the database handle
 // extra: optional extra parameters
 // The output are data and optional error code
 //
-func (self *Schema) Run(model, action string, args url.Values, db *sql.DB, extra ...url.Values) ([]map[string]interface{}, error) {
-	modelObj, ok := self.Models[model]
-	if !ok {
+func (self *Schema) Run(model, action string, args url.Values, extra ...url.Values) ([]map[string]interface{}, error) {
+	modelObj := self.GetNavigate(model)
+	if modelObj == nil {
 		return nil, errors.New("model not found in schema models")
 	}
 
 	modelObj.SetArgs(args)
-	modelObj.SetDB(db)
+	act := modelObj.GetAction(action)
+	if act == nil {
+		return nil, errors.New("action not found in schema model")
+	}
 
-	if err := modelObj.RunAction(action, extra...); err != nil {
+	if err := act(extra...); err != nil {
 		return nil, err
 	}
 	lists := modelObj.GetLists()
@@ -79,7 +91,7 @@ func (self *Schema) Run(model, action string, args url.Values, db *sql.DB, extra
 			if hasValue(extra) {
 				newExtras = append(newExtras, extra[:1]...)
 			}
-			newLists, err := self.Run(page.Model, page.Action, modelArgs, db, newExtras...)
+			newLists, err := self.Run(page.Model, page.Action, modelArgs, newExtras...)
 			if err != nil {
 				return nil, err
 			}

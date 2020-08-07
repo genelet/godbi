@@ -983,6 +983,7 @@ Because models are allowed to interact with each other, we introduce type `Schem
 
 ```go
 type Schema struct {
+    *sql.DB
     Models  map[string]Navigate
 }
 ```
@@ -1055,7 +1056,7 @@ func main() {
     action_tb["edit"]   = func(args ...url.Values) error { return tb.Edit(args...) }
     tb.SetActions(action_tb)
 
-    schema := &godbi.Schema{map[string]godbi.Navigate{"ta":ta, "tb":tb}}
+    schema := &godbi.Schema{db, map[string]godbi.Navigate{"ta":ta, "tb":tb}}
 
     methods := map[string]string{"GET":"topics", "GET_one":"edit", "POST":"insert", "PATCH":"insupd", "PUT":"update", "DELETE":"delete"}
 
@@ -1063,42 +1064,42 @@ func main() {
     // the 1st web requests is assumed to create id=1 to the test_a and test_b tables:
     //
     args := url.Values{"x":[]string{"a1234567"},"y":[]string{"b1234567"},"z":[]string{"temp"}, "child":[]string{"john"}}
-    if lists, err = schema.Run("ta", methods["PATCH"], args, db); err != nil { panic(err) }
+    if lists, err = schema.Run("ta", methods["PATCH"], args); err != nil { panic(err) }
 
     // the 2nd request just updates, because [x,y] is defined to the unique in ta.
     // but create a new record to tb for id=1, since insupd triggers insert in tb
     //
     args = url.Values{"x":[]string{"a1234567"},"y":[]string{"b1234567"},"z":[]string{"zzzzz"}, "child":[]string{"sam"}}
-    if lists, err = schema.Run("ta", methods["PATCH"], args, db); err != nil { panic(err) }
+    if lists, err = schema.Run("ta", methods["PATCH"], args); err != nil { panic(err) }
 
     // the 3rd request creates id=2
     //
     args = url.Values{"x":[]string{"c1234567"},"y":[]string{"d1234567"},"z":[]string{"e1234"},"child":[]string{"mary"}}
-    if lists, err = schema.Run("ta", methods["POST"], args, db); err != nil { panic(err) }
+    if lists, err = schema.Run("ta", methods["POST"], args); err != nil { panic(err) }
 
     // the 4th request creates id=3
     //
     args = url.Values{"x":[]string{"e1234567"},"y":[]string{"f1234567"},"z":[]string{"e1234"},"child":[]string{"marcus"}}
-    if lists, err = schema.Run("ta", methods["POST"], args, db); err != nil { panic(err) }
+    if lists, err = schema.Run("ta", methods["POST"], args); err != nil { panic(err) }
 
     // GET all
     args = url.Values{}
-    if lists, err = schema.Run("ta", methods["GET"], args, db); err != nil { panic(err) }
+    if lists, err = schema.Run("ta", methods["GET"], args); err != nil { panic(err) }
     log.Printf("%v", lists)
 
     // GET one
     args = url.Values{"id":[]string{"1"}}
-    if lists, err = schema.Run("ta", methods["GET_one"], args, db); err != nil { panic(err) }
+    if lists, err = schema.Run("ta", methods["GET_one"], args); err != nil { panic(err) }
     log.Printf("%v", lists)
 
     // DELETE
     extra := url.Values{"id":[]string{"1"}}
-    if lists, err = schema.Run("tb", methods["DELETE"], url.Values{}, db, extra); err != nil { panic(err) }
-    if lists, err = schema.Run("ta", methods["DELETE"], url.Values{}, db, extra); err != nil { panic(err) }
+    if lists, err = schema.Run("tb", methods["DELETE"], url.Values{}, extra); err != nil { panic(err) }
+    if lists, err = schema.Run("ta", methods["DELETE"], url.Values{}, extra); err != nil { panic(err) }
 
     // GET all
     args = url.Values{}
-    if lists, err = schema.Run("ta", methods["GET"], args, db); err != nil { panic(err) }
+    if lists, err = schema.Run("ta", methods["GET"], args); err != nil { panic(err) }
     log.Printf("%v", lists)
 
     os.Exit(0)

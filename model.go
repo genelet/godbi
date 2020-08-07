@@ -17,10 +17,10 @@ import (
 //
 type Navigate interface {
 	// SetActions: set new map between name and action function
-	SetActions(map[string]func(...url.Values) error)
+	// SetActions(map[string]func(...url.Values) error)
 
-	// run an action by name
-	RunAction(string, ...url.Values) error
+	// GetAction: get an action function by name
+	GetAction(string) func(...url.Values) error
 
 	// GetLists: get the main data
 	GetLists() []map[string]interface{}
@@ -124,13 +124,13 @@ func (self *Model) SetActions(actions map[string]func(extra ...url.Values) error
 	self.actions = actions
 }
 
-// RunAction returns the data after an action
-func (self *Model) RunAction(action string, extra ...url.Values) error {
-	act, ok := self.actions[action]
-	if !ok {
-		return errors.New("action '" + action + "' not found in map")
+// GetAction returns action's function
+func (self *Model) GetAction(action string) func(...url.Values) error {
+	if act, ok := self.actions[action]; ok {
+		return act
 	}
-	return act(extra...)
+
+	return nil
 }
 
 // GetArgs returns the input data which may have extra keys added
