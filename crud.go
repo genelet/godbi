@@ -229,25 +229,25 @@ func (self *Crud) singleCondition(ids []interface{}, extra ...url.Values) (strin
 }
 
 // InsertHash inserts one row into the table.
-// fieldValues: the row expressed as url's Values type.
+// args: the input row data expressed as url.Values.
 // The keys are column names, and their values are columns' values.
 //
-func (self *Crud) InsertHash(fieldValues url.Values) error {
-	return self.insertHash("INSERT", fieldValues)
+func (self *Crud) InsertHash(args url.Values) error {
+	return self.insertHash("INSERT", args)
 }
 
 // ReplaceHash inserts one row as using 'REPLACE' instead of 'INSERT'
-// fieldValues: the row expressed as url's Values type.
+// args: the input row data expressed as url.Values.
 // The keys are column names, and their values are columns' values.
 //
-func (self *Crud) ReplaceHash(fieldValues url.Values) error {
-	return self.insertHash("REPLACE", fieldValues)
+func (self *Crud) ReplaceHash(args url.Values) error {
+	return self.insertHash("REPLACE", args)
 }
 
-func (self *Crud) insertHash(how string, fieldValues url.Values) error {
+func (self *Crud) insertHash(how string, args url.Values) error {
 	fields := make([]string, 0)
 	values := make([]interface{}, 0)
-	for k, v := range fieldValues {
+	for k, v := range args {
 		if v != nil {
 			fields = append(fields, k)
 			values = append(values, v[0])
@@ -258,22 +258,22 @@ func (self *Crud) insertHash(how string, fieldValues url.Values) error {
 }
 
 // UpdateHash updates multiple rows using data expressed in type Values.
-// fieldValues: columns names and their new values.
+// args: columns names and their new values.
 // ids: primary key's value, either a single value or array of values.
 // extra: optional, extra constraints put on row's WHERE statement.
 //
-func (self *Crud) UpdateHash(fieldValues url.Values, ids []interface{}, extra ...url.Values) error {
+func (self *Crud) UpdateHash(args url.Values, ids []interface{}, extra ...url.Values) error {
 	empties := make([]string, 0)
-	return self.UpdateHashNulls(fieldValues, ids, empties, extra...)
+	return self.UpdateHashNulls(args, ids, empties, extra...)
 }
 
 // UpdateHashNull updates multiple rows using data expressed in type Values.
-// fieldValues: columns names and their new values.
-// empties: if these columns have no values in fieldValues, they are forced to be NULL.
+// args: columns names and their new values.
+// empties: if these columns have no values in args, they are forced to be NULL.
 // ids: primary key's value, either a single value or array of values.
 // extra: optional, extra constraints on WHERE statement.
 //
-func (self *Crud) UpdateHashNulls(fieldValues url.Values, ids []interface{}, empties []string, extra ...url.Values) error {
+func (self *Crud) UpdateHashNulls(args url.Values, ids []interface{}, empties []string, extra ...url.Values) error {
 	if empties == nil {
 		empties = make([]string, 0)
 	}
@@ -290,7 +290,7 @@ func (self *Crud) UpdateHashNulls(fieldValues url.Values, ids []interface{}, emp
 	fields := make([]string, 0)
 	field0 := make([]string, 0)
 	values := make([]interface{}, 0)
-	for k, v := range fieldValues {
+	for k, v := range args {
 		fields = append(fields, k)
 		field0 = append(field0, k+"=?")
 		values = append(values, v[0])
@@ -298,7 +298,7 @@ func (self *Crud) UpdateHashNulls(fieldValues url.Values, ids []interface{}, emp
 
 	sql := "UPDATE " + self.CurrentTable + " SET " + strings.Join(field0, ", ")
 	for _, v := range empties {
-		if fieldValues.Get(v) != "" {
+		if args.Get(v) != "" {
 			continue
 		}
 		sql += ", " + v + "=NULL"
@@ -316,10 +316,10 @@ func (self *Crud) UpdateHashNulls(fieldValues url.Values, ids []interface{}, emp
 }
 
 // InsupdTable update a row if it is found to exists, or to inserts a new row
-// fieldValues: row's column names and values
+// args: row's column names and values
 // uniques: combination of one or multiple columns to assert uniqueness.
 //
-func (self *Crud) InsupdTable(fieldValues url.Values, uniques []string) error {
+func (self *Crud) InsupdTable(args url.Values, uniques []string) error {
 	s := "SELECT " + self.CurrentKey + " FROM " + self.CurrentTable + "\nWHERE "
 	v := make([]interface{}, 0)
 	for i, val := range uniques {
@@ -327,7 +327,7 @@ func (self *Crud) InsupdTable(fieldValues url.Values, uniques []string) error {
 			s += " AND "
 		}
 		s += val + "=?"
-		x := fieldValues.Get(val)
+		x := args.Get(val)
 		if x == "" {
 			return errors.New("unique key value not found")
 		}
@@ -344,17 +344,17 @@ func (self *Crud) InsupdTable(fieldValues url.Values, uniques []string) error {
 
 	if len(lists) == 1 {
 		id := lists[0][self.CurrentKey]
-		if err := self.UpdateHash(fieldValues, []interface{}{id}); err != nil {
+		if err := self.UpdateHash(args, []interface{}{id}); err != nil {
 			return err
 		}
 		id64, err := strconv.ParseInt(fmt.Sprintf("%d", id), 10, 64)
 		if err != nil {
 			return err
 		}
-		self.LastId = id64
+		self.LastID = id64
 		self.Updated = true
 	} else {
-		if err := self.InsertHash(fieldValues); err != nil {
+		if err := self.InsertHash(args); err != nil {
 			return err
 		}
 		self.Updated = false

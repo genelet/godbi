@@ -55,7 +55,7 @@ type Model struct {
 
 	// Nextpages: defining how to call other models' actions
 	Nextpages      map[string][]*Page `json:"nextpages,omitempty"`
-	CurrentIdAuto  string             `json:"current_id_auto,omitempty"`
+	CurrentIDAuto  string             `json:"current_id_auto,omitempty"`
 	InsertPars     []string           `json:"insert_pars,omitempty"`
 	EditPars       []string           `json:"edit_pars,omitempty"`
 	UpdatePars     []string           `json:"update_pars,omitempty"`
@@ -124,7 +124,7 @@ func (self *Model) SetActions(actions map[string]func(extra ...url.Values) error
 	self.actions = actions
 }
 
-// GetLists returns the data after an action
+// RunAction returns the data after an action
 func (self *Model) RunAction(action string, extra ...url.Values) error {
 	act, ok := self.actions[action]
 	if !ok {
@@ -280,10 +280,10 @@ func (self *Model) Insert(extra ...url.Values) error {
 		return err
 	}
 
-	if self.CurrentIdAuto != "" {
-		autoId := strconv.FormatInt(self.LastId, 10)
-		fieldValues.Set(self.CurrentIdAuto, autoId)
-		self.aARGS.Set(self.CurrentIdAuto, autoId)
+	if self.CurrentIDAuto != "" {
+		autoID := strconv.FormatInt(self.LastID, 10)
+		fieldValues.Set(self.CurrentIDAuto, autoID)
+		self.aARGS.Set(self.CurrentIDAuto, autoID)
 	}
 	self.aLISTS = fromFv(fieldValues)
 
@@ -314,8 +314,8 @@ func (self *Model) Insupd(extra ...url.Values) error {
 		return err
 	}
 
-	if self.CurrentIdAuto != "" {
-		fieldValues.Set(self.CurrentIdAuto, strconv.FormatInt(self.LastId, 10))
+	if self.CurrentIDAuto != "" {
+		fieldValues.Set(self.CurrentIDAuto, strconv.FormatInt(self.LastID, 10))
 	}
 	self.aLISTS = fromFv(fieldValues)
 

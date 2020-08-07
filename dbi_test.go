@@ -40,8 +40,6 @@ func TestProcedure(t *testing.T) {
 	if ret != nil {
 		t.Errorf("Running select procedure failed")
 	}
-//t.Errorf("lists is: %v\n",lists)
-//panic(0)
 	if string(lists[0]["x"].(string)) != "m" {
 		t.Errorf("%s m wanted", lists[0]["x"])
 	}

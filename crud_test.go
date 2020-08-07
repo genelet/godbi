@@ -135,13 +135,13 @@ func TestCrudDb(t *testing.T) {
 	hash.Set("x", "a")
 	hash.Set("y", "b")
 	ret = crud.InsertHash(hash)
-	if crud.LastId != 1 {
-		t.Errorf("%d wanted", crud.LastId)
+	if crud.LastID != 1 {
+		t.Errorf("%d wanted", crud.LastID)
 	}
 	hash.Set("x", "c")
 	hash.Set("y", "d")
 	ret = crud.InsertHash(hash)
-	id := crud.LastId
+	id := crud.LastID
 	if id != 2 {
 		t.Errorf("%d wanted", id)
 	}

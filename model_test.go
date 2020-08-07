@@ -39,21 +39,21 @@ func TestModelSimple(t *testing.T) {
 	model.SetArgs(args)
 
 	model.CurrentKey = "id"
-	model.CurrentIdAuto = "id"
+	model.CurrentIDAuto = "id"
 	model.InsertPars = []string{"id","x","y"}
 	model.TopicsPars = []string{"id","x","y"}
 
 	args["x"] = []string{"a"}
 	args["y"] = []string{"b"}
 	ret = model.Insert()
-	if model.LastId != 1 {
-		t.Errorf("%d wanted", model.LastId)
+	if model.LastID != 1 {
+		t.Errorf("%d wanted", model.LastID)
 	}
 	hash := make(url.Values)
 	hash.Set("x","c")
 	hash.Set("y","d")
 	ret = model.InsertHash(hash)
-	id := model.LastId
+	id := model.LastID
 	if id != 2 {
 		t.Errorf("%d wanted", id)
 	}

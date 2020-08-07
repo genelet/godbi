@@ -8,18 +8,18 @@ import (
 )
 
 // DBI simply embeds GO's generic SQL handler.
-// It adds a set of functions for easier database executionis and queriesr.
+// It adds a set of functions for easier database executions and queries.
 //
 type DBI struct {
 	// Embedding the generic database handle.
 	*sql.DB
-	// LastId: the last auto id inserted, if the database provides
-	LastId int64
+	// LastID: the last auto id inserted, if the database provides
+	LastID int64
 	// Affected: the number of rows affected
 	Affected int64
 }
 
-// ExecSQL excutes a query like 'Exec', and refreshes the LastId and Affected
+// ExecSQL excutes a query like 'Exec', and refreshes the LastID and Affected
 // If the execution fails, it returns error; otherwise nil.
 //
 func (self *DBI) ExecSQL(query string, args ...interface{}) error {
@@ -31,11 +31,11 @@ func (self *DBI) ExecSQL(query string, args ...interface{}) error {
 		return err
 	}
 
-	lastID, err := res.LastInsertId()
+	LastID, err := res.LastInsertId()
 	if err != nil {
 		return err
 	}
-	self.LastId = lastID
+	self.LastID = LastID
 	affected, err := res.RowsAffected()
 	if err != nil {
 		return err
@@ -61,11 +61,11 @@ func (self *DBI) DoSQL(query string, args ...interface{}) error {
 		return err
 	}
 
-	lastID, err := res.LastInsertId()
+	LastID, err := res.LastInsertId()
 	if err != nil {
 		return err
 	}
-	self.LastId = lastID
+	self.LastID = LastID
 	affected, err := res.RowsAffected()
 	if err != nil {
 		return err
@@ -107,11 +107,11 @@ func (self *DBI) DoSQLs(query string, args ...[]interface{}) error {
 		}
 		self.Affected += affected
 	}
-	lastID, err := res.LastInsertId()
+	LastID, err := res.LastInsertId()
 	if err != nil {
 		return err
 	}
-	self.LastId = lastID
+	self.LastID = LastID
 
 	sth.Close()
 	return nil
@@ -125,7 +125,7 @@ func (self *DBI) QuerySQL(lists *[]map[string]interface{}, query string, args ..
 	return self.QuerySQLTypeLabel(lists, nil, nil, query, args...)
 }
 
-// QuerySQL selects data rows as slice of maps.
+// QuerySQLType selects data rows as slice of maps.
 // The rows' data types are defined in 'types' as an array of string.
 // 'lists' is a reference to slice of maps to receive the quering data.
 //
@@ -133,7 +133,7 @@ func (self *DBI) QuerySQLType(lists *[]map[string]interface{}, typeLabels []stri
 	return self.QuerySQLTypeLabel(lists, typeLabels, nil, query, args...)
 }
 
-// QuerySQL selects data rows as slice of maps.
+// QuerySQLLabel selects data rows as slice of maps.
 // The rows' data types are determined dynamically by the generic handle.
 // 'lists' is a reference to slice of maps to receive the quering data.
 // The original SQL column names will be replaced by 'selectLabels'.
@@ -142,7 +142,7 @@ func (self *DBI) QuerySQLLabel(lists *[]map[string]interface{}, selectLabels []s
 	return self.QuerySQLTypeLabel(lists, nil, selectLabels, query, args...)
 }
 
-//  selects data rows as slice of maps.
+// QuerySQLTypeLabel selects data rows as slice of maps.
 // The rows' data types are defined in 'typeLabels' as an array of string.
 // 'lists' is a reference to slice of maps to receive the quering data.
 // The original SQL column names will be replaced by 'labels'.
