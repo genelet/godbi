@@ -673,6 +673,7 @@ type Navigate interface {
     SetDB(*sql.DB)                                 // set the database handle
     GetAction(string)   func(...url.Values) error  // get function by action name
     GetLists()          []map[string]interface{}   // get result after an action
+}
 ```
 
 In *godbi*, the `Model` type has already implemented the 4 methods.
@@ -716,7 +717,6 @@ Use
 ```go
 func (*Model) SetDB(db *sql.DB)
 func (*Model) SetArgs(args url.Values)
-func (*Model) SetActions(map[string]func(...url.Values)error) // set new map between name and action function
 ```
 
 to set database handle, `db`, and input data, `args` like http request's *Form* into `Model`:
