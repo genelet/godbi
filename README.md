@@ -129,11 +129,10 @@ Running this example will result in something like
 ### 1.2  Execution with `execSQL` & `DoSQL`
 
 ```go
-func (*DBI) execSQL(query string, args ...interface{}) error
 func (*DBI) DoSQL  (query string, args ...interface{}) error
 ```
 
-Similar to SQL's `Exec`, these functions execute *Do*-type (e.g. _INSERT_ or _UPDATE_) queries. The difference between the two functions is that `DoSQL` runs a prepared statement and is safe for concurrent use by multiple goroutines.
+Similar to SQL's `Exec`, `DoSQL` executes *Do*-type (e.g. _INSERT_ or _UPDATE_) queries. It runs a prepared statement and may be safe for concurrent use by multiple goroutines.
 
 For all functions in this package, the returned value is always `error` which should be checked to assert if the execution is successful.
 
@@ -141,10 +140,9 @@ For all functions in this package, the returned value is always `error` which sh
 
 ### 1.3   _SELECT_ Queries
 
-#### 1.3.1)  `querySQL` & `SelectSQL`
+#### 1.3.1)  `SelectSQL`
 
 ```go
-func (*DBI) querySQL (lists *[]map[string]interface{}, query string, args ...interface{}) error
 func (*DBI) SelectSQL(lists *[]map[string]interface{}, query string, args ...interface{}) error
 ```
 
@@ -156,7 +154,7 @@ Run the *SELECT*-type query and put the result into `lists`, a slice of column n
 
 ```go
 lists := make([]map[string]interface{})
-err = dbi.querySQL(&lists,
+err = dbi.DoSQL(&lists,
     `SELECT ts, id, name, len, flag, fv FROM mytable WHERE id=?`, 1234)
 ```
 
@@ -170,32 +168,30 @@ will select all rows with *id=1234*.
 </p>
 </details>
 
-The difference between the two functions is that `SelectSQL` runs a prepared statement.
+`SelectSQL` runs a prepared statement.
 
-#### 1.3.2) `querySQLType` & `SelectSQLType`
+#### 1.3.2) `SelectSQLType`
 
 ```go
-func (*DBI) querySQLType (lists *[]map[string]interface{}, typeLabels []string, query string, args ...interface{}) error
 func (*DBI) SelectSQLType(lists *[]map[string]interface{}, typeLabels []string, query string, args ...interface{}) error
 ```
 
-They differ from the above `querySQL` by specifying the data types. While the generic handle could correctly figure out them in most cases, it occasionally fails because there is no exact matching between SQL types and GOLANG types.
+They differ from the above `SelectSQL` by specifying the data types. While the generic handle could correctly figure out them in most cases, it occasionally fails because there is no exact matching between SQL types and GOLANG types.
 
 The following example assigns _string_, _int_, _string_, _int8_, _bool_ and _float32_ to the corresponding columns:
 
 ```go
-err = dbi.querySQLType(&lists, []string{"string", "int", "string", "int8", "bool", "float32},
+err = dbi.SelectSQLType(&lists, []string{"string", "int", "string", "int8", "bool", "float32},
     `SELECT ts, id, name, len, flag, fv FROM mytable WHERE id=?`, 1234)
 ```
 
-#### 1.3.3) `querySQLLabel` & `SelectSQLLabel`
+#### 1.3.3) `SelectSQLLabel`
 
 ```go
-func (*DBI) querySQLLabel (lists *[]map[string]interface{}, selectLabels []string, query string, args ...interface{}) error
 func (*DBI) SelectSQLLabel(lists *[]map[string]interface{}, selectLabels []string, query string, args ...interface{}) error
 ```
 
-They differ from the above `querySQL`by renaming the default column names to `electLabels`.
+They differ from the above `SelectSQL` by renaming the default column names to `selectLabels`.
 
 <details>
     <summary>Click for example</summary>
@@ -216,10 +212,9 @@ The result has the renamed keys:
 </p>
 </details>
 
-#### 1.3.4) `querySQLTypeLabel`& `SelectSQlTypeLabel`
+#### 1.3.4) `SelectSQlTypeLabel`
 
 ```go
-func (*DBI) querySQLTypeLabel (lists *[]map[string]interface{}, typeLabels []string, selectLabels []string, query string, args ...interface{}) error
 func (*DBI) SelectSQLTypeLabel(lists *[]map[string]interface{}, typeLabels []string, selectLabels []string, query string, args ...interface{}) error
 ```
 
