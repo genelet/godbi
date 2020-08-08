@@ -636,6 +636,8 @@ The closure associated with the action name can be get back:
 (*Model) GetAction(name string) func(...url.Values) error
 ```
 
+<br /><br />
+
 ### 2.3) Methods of *Model*
 
 #### 2.3.1) For Http METHOD: GET (read all)
