@@ -126,7 +126,7 @@ Running this example will result in something like
 
 <br /><br />
 
-### 1.2  Execution with `execSQL` & `DoSQL`
+### 1.2  Execution `DoSQL`
 
 ```go
 func (*DBI) DoSQL  (query string, args ...interface{}) error
