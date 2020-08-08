@@ -136,10 +136,10 @@ For all functions in this package, the returned value is always `error` which sh
 
 ### 1.3   _SELECT_ Queries
 
-#### 1.3.1)  `QuerySQL` & `SelectSQL`
+#### 1.3.1)  `querySQL` & `SelectSQL`
 
 ```go
-func (*DBI) QuerySQL (lists *[]map[string]interface{}, query string, args ...interface{}) error
+func (*DBI) querySQL (lists *[]map[string]interface{}, query string, args ...interface{}) error
 func (*DBI) SelectSQL(lists *[]map[string]interface{}, query string, args ...interface{}) error
 ```
 
@@ -151,7 +151,7 @@ Run the *SELECT*-type query and put the result into `lists`, a slice of column n
 
 ```go
 lists := make([]map[string]interface{})
-err = dbi.QuerySQL(&lists,
+err = dbi.querySQL(&lists,
     `SELECT ts, id, name, len, flag, fv FROM mytable WHERE id=?`, 1234)
 ```
 
@@ -167,30 +167,30 @@ will select all rows with *id=1234*.
 
 The difference between the two functions is that `SelectSQL` runs a prepared statement.
 
-#### 1.3.2) `QuerySQLType` & `SelectSQLType`
+#### 1.3.2) `querySQLType` & `SelectSQLType`
 
 ```go
-func (*DBI) QuerySQLType (lists *[]map[string]interface{}, typeLabels []string, query string, args ...interface{}) error
+func (*DBI) querySQLType (lists *[]map[string]interface{}, typeLabels []string, query string, args ...interface{}) error
 func (*DBI) SelectSQLType(lists *[]map[string]interface{}, typeLabels []string, query string, args ...interface{}) error
 ```
 
-They differ from the above `QuerySQL` by specifying the data types. While the generic handle could correctly figure out them in most cases, it occasionally fails because there is no exact matching between SQL types and GOLANG types.
+They differ from the above `querySQL` by specifying the data types. While the generic handle could correctly figure out them in most cases, it occasionally fails because there is no exact matching between SQL types and GOLANG types.
 
 The following example assigns _string_, _int_, _string_, _int8_, _bool_ and _float32_ to the corresponding columns:
 
 ```go
-err = dbi.QuerySQLType(&lists, []string{"string", "int", "string", "int8", "bool", "float32},
+err = dbi.querySQLType(&lists, []string{"string", "int", "string", "int8", "bool", "float32},
     `SELECT ts, id, name, len, flag, fv FROM mytable WHERE id=?`, 1234)
 ```
 
-#### 1.3.3) `QuerySQLLabel` & `SelectSQLLabel`
+#### 1.3.3) `querySQLLabel` & `SelectSQLLabel`
 
 ```go
-func (*DBI) QuerySQLLabel (lists *[]map[string]interface{}, selectLabels []string, query string, args ...interface{}) error
+func (*DBI) querySQLLabel (lists *[]map[string]interface{}, selectLabels []string, query string, args ...interface{}) error
 func (*DBI) SelectSQLLabel(lists *[]map[string]interface{}, selectLabels []string, query string, args ...interface{}) error
 ```
 
-They differ from the above `QuerySQL`by renaming the default column names to `electLabels`.
+They differ from the above `querySQL`by renaming the default column names to `electLabels`.
 
 <details>
     <summary>Click for example</summary>
@@ -198,7 +198,7 @@ They differ from the above `QuerySQL`by renaming the default column names to `el
 
 ```go
 lists := make([]map[string]interface{})
-err = dbi.QuerySQLLabel(&lists, []string{"time stamp", "record ID", "recorder name", "length", "flag", "values"},
+err = dbi.querySQLLabel(&lists, []string{"time stamp", "record ID", "recorder name", "length", "flag", "values"},
     `SELECT ts, id, name, len, flag, fv FROM mytable WHERE id=?`, 1234)
 ```
 
@@ -211,10 +211,10 @@ The result has the renamed keys:
 </p>
 </details>
 
-#### 1.3.4) `QuerySQLTypeLabel`& `SelectSQlTypeLabel`
+#### 1.3.4) `querySQLTypeLabel`& `SelectSQlTypeLabel`
 
 ```go
-func (*DBI) QuerySQLTypeLabel (lists *[]map[string]interface{}, typeLabels []string, selectLabels []string, query string, args ...interface{}) error
+func (*DBI) querySQLTypeLabel (lists *[]map[string]interface{}, typeLabels []string, selectLabels []string, query string, args ...interface{}) error
 func (*DBI) SelectSQLTypeLabel(lists *[]map[string]interface{}, typeLabels []string, selectLabels []string, query string, args ...interface{}) error
 ```
 
@@ -405,13 +405,13 @@ func main() {
     hash := url.Values{}
     hash.Set("x", "a")
     hash.Set("y", "b") 
-    if err = crud.InsertHash(hash); err != nil { panic(err) }
+    if err = crud.insertHash(hash); err != nil { panic(err) }
     hash.Set("x", "c")
     hash.Set("y", "d") 
-    if err = crud.InsertHash(hash); err != nil { panic(err) }
+    if err = crud.insertHash(hash); err != nil { panic(err) }
     hash.Set("x", "c")
     hash.Set("y", "e")  
-    if err = crud.InsertHash(hash); err != nil { panic(err) }
+    if err = crud.insertHash(hash); err != nil { panic(err) }
 
     // now the id is 3
     //
@@ -422,13 +422,13 @@ func main() {
     //
     hash1 := url.Values{}
     hash1.Set("y", "z")
-    if err = crud.UpdateHash(hash1, []interface{}{id}); err != nil { panic(err) }
+    if err = crud.updateHash(hash1, []interface{}{id}); err != nil { panic(err) }
 
     // read one of the row of id=3. Only the columns x and y are reported
     //
     lists := make([]map[string]interface{}, 0)
     label := []string{"x", "y"}
-    if err = crud.EditHash(&lists, label, []interface{}{id}); err != nil { panic(err) }
+    if err = crud.editHash(&lists, label, []interface{}{id}); err != nil { panic(err) }
     log.Printf("row of id=2: %v", lists)
 
     // read all rows with constraint x='c'
@@ -436,7 +436,7 @@ func main() {
     lists = make([]map[string]interface{}, 0)
     label = []string{"id", "x", "y"}
     extra := url.Values{"x":[]string{"c"}}
-    if err = crud.TopicsHash(&lists, label, extra); err != nil { panic(err) }
+    if err = crud.topicsHash(&lists, label, extra); err != nil { panic(err) }
     log.Printf("all rows: %v", lists)
 
     os.Exit(0)
@@ -459,7 +459,7 @@ all rows: [map[id:2 x:c y:d] map[id:3 x:c y:z]]
 ### 2.2  Create New Row
 
 ```go
-func (*Crud) InsertHash(args url.Values) error
+func (*Crud) insertHash(args url.Values) error
 ```
 
 where `args` of type `url.Values` stores column's names and values. The latest inserted id will be put in `LastID` if the database driver supports it.
@@ -469,7 +469,7 @@ where `args` of type `url.Values` stores column's names and values. The latest i
 ### 2.3  Read All Rows
 
 ```go
-func (*Crud) TopicsHash(lists *[]map[string]interface{}, selectPars interface{}, extra ...url.Values) error
+func (*Crud) topicsHash(lists *[]map[string]interface{}, selectPars interface{}, extra ...url.Values) error
 ```
 
 where `lists` receives the query results.
@@ -565,7 +565,7 @@ By combining `selectPars` and `extra`, we can construct sophisticate search quer
 ### 2.4  Read One Row
 
 ```go
-func (*Crud) EditHash(lists *[]map[string]interface{}, editPars interface{}, ids []interface{}, extra ...url.Values) error
+func (*Crud) editHash(lists *[]map[string]interface{}, editPars interface{}, ids []interface{}, extra ...url.Values) error
 ```
 
 This will select rows having the specific primary key (*PK*) values `ids` and being constrained by `extra`. The query result is output to `lists` with columns defined in `editPars`.
@@ -581,7 +581,7 @@ The meaning of `ids` is:
 ### 2.5  Update Row
 
 ```go
-func (*Crud) UpdateHash(args url.Values, ids []interface{}, extra ...url.Values) error
+func (*Crud) updateHash(args url.Values, ids []interface{}, extra ...url.Values) error
 ```
 
 The rows having `ids` as PK and `extra` as constraint will be updated. The columns and the new values are defined in `args`.
@@ -591,7 +591,7 @@ The rows having `ids` as PK and `extra` as constraint will be updated. The colum
 ### 2.6  Create or Update Row
 
 ```go
-func (*Crud) InsupdTable(args url.Values, uniques []string) error
+func (*Crud) insupdTable(args url.Values, uniques []string) error
 ```
 
 This function is not a part of CRUD, but is implemented as *PATCH* method in *http*. When we try create a row, it may already exist. If so, we will update it instead. The uniqueness is determined by `uniques` column names. The field `Updated` will tell if the verb is updated or not.
@@ -601,7 +601,7 @@ This function is not a part of CRUD, but is implemented as *PATCH* method in *ht
 ### 2.7  Delete Row
 
 ```go
-func (*Crud) DeleteHash(extra ...url.Values) error
+func (*Crud) deleteHash(extra ...url.Values) error
 ```
 
 This function deletes rows using constrained `extra`.
@@ -647,7 +647,7 @@ type Model struct {
     InsupdPars     []string           `json:"insupd_pars,omitempty"`     // unique columns in PATCH
     EditPars       []string           `json:"edit_pars,omitempty"`       // columns to query in R (one)
     TopicsPars     []string           `json:"topics_pars,omitempty"`     // columns to query in R (all)
-    TopicsHashPars map[string]string  `json:"topics_hash,omitempty"`     // columns to rename in R (all)
+    topicsHashPars map[string]string  `json:"topics_hash,omitempty"`     // columns to rename in R (all)
     TotalForce     int                `json:"total_force,omitempty"`     // if to calculate total counts in R (all)
 
     // The following fields are just variable names to pass in a web request,
@@ -704,7 +704,7 @@ UpdatePars     | update_pars | columns to update in U
 InsupdPars     | insupd_pars | unique columns in PATCH
 EditPars       | edit_pars | columns to query in R (one)
 TopicsPars     | topics_pars | columns to query in R (all)
-TopicsHashPars | topics_hash | columns to rename in R (all)
+topicsHashPars | topics_hash | columns to rename in R (all)
 TotalForce     | total_force | if to calculate total counts in R (all)
 
 </p>

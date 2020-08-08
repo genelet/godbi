@@ -52,7 +52,7 @@ func TestModelSimple(t *testing.T) {
 	hash := make(url.Values)
 	hash.Set("x", "c")
 	hash.Set("y", "d")
-	ret = model.InsertHash(hash)
+	ret = model.insertHash(hash)
 	id := model.LastID
 	if id != 2 {
 		t.Errorf("%d wanted", id)

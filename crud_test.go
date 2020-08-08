@@ -134,27 +134,27 @@ func TestCrudDb(t *testing.T) {
 	hash := make(url.Values)
 	hash.Set("x", "a")
 	hash.Set("y", "b")
-	ret = crud.InsertHash(hash)
+	ret = crud.insertHash(hash)
 	if crud.LastID != 1 {
 		t.Errorf("%d wanted", crud.LastID)
 	}
 	hash.Set("x", "c")
 	hash.Set("y", "d")
-	ret = crud.InsertHash(hash)
+	ret = crud.insertHash(hash)
 	id := crud.LastID
 	if id != 2 {
 		t.Errorf("%d wanted", id)
 	}
 	hash1 := make(url.Values)
 	hash1.Set("y", "z")
-	ret = crud.UpdateHash(hash1, []interface{}{id})
+	ret = crud.updateHash(hash1, []interface{}{id})
 	if ret != nil {
 		t.Errorf("%s update table testing failed", ret.Error())
 	}
 
 	lists := make([]map[string]interface{}, 0)
 	label := []string{"x", "y"}
-	ret = crud.EditHash(&lists, label, []interface{}{id})
+	ret = crud.editHash(&lists, label, []interface{}{id})
 	if ret != nil {
 		t.Errorf("%s select table testing failed", ret.Error())
 	}
@@ -169,7 +169,7 @@ func TestCrudDb(t *testing.T) {
 	}
 
 	lists = make([]map[string]interface{}, 0)
-	ret = crud.TopicsHash(&lists, label)
+	ret = crud.topicsHash(&lists, label)
 	if ret != nil {
 		t.Errorf("%s select table testing failed", ret.Error())
 	}
@@ -190,7 +190,7 @@ func TestCrudDb(t *testing.T) {
 	}
 
 	what := 0
-	ret = crud.TotalHash(&what)
+	ret = crud.totalHash(&what)
 	if ret != nil {
 		t.Errorf("%s total table testing failed", ret.Error())
 	}
@@ -198,14 +198,14 @@ func TestCrudDb(t *testing.T) {
 		t.Errorf("%d total table testing failed", what)
 	}
 
-	ret = crud.DeleteHash(url.Values{"id":[]string{"1"}})
+	ret = crud.deleteHash(url.Values{"id":[]string{"1"}})
 	if ret != nil {
 		t.Errorf("%s delete table testing failed", ret.Error())
 	}
 
 	lists = make([]map[string]interface{}, 0)
 	label = []string{"id", "x", "y"}
-	ret = crud.TopicsHash(&lists, label)
+	ret = crud.topicsHash(&lists, label)
 	if ret != nil {
 		t.Errorf("%s select table testing failed", ret.Error())
 	}
@@ -227,14 +227,14 @@ func TestCrudDb(t *testing.T) {
 	hash.Set("id", "2")
 	hash.Set("x", "a")
 	hash.Set("y", "b")
-	ret = crud.InsertHash(hash)
+	ret = crud.insertHash(hash)
 	if ret.Error() == "" {
 		t.Errorf("%s wanted", ret.Error())
 	}
 
 	hash1 = make(url.Values)
 	hash1.Set("y", "zz")
-	ret = crud.UpdateHash(hash1, []interface{}{3})
+	ret = crud.updateHash(hash1, []interface{}{3})
 	if ret != nil {
 		t.Errorf("%s wanted", ret.Error())
 	}

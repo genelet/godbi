@@ -3,6 +3,7 @@ package godbi
 import (
 	// "github.com/golang/glog"
 	"database/sql"
+	"math/rand"
 	"net/url"
 	"strings"
 )
@@ -117,37 +118,37 @@ func (self *DBI) DoSQLs(query string, args ...[]interface{}) error {
 	return nil
 }
 
-// QuerySQL selects data rows as slice of maps.
+// querySQL selects data rows as slice of maps.
 // The rows' data types are determined dynamically by the generic handle.
 // 'lists' is a reference to slice of maps to receive the quering data.
 //
-func (self *DBI) QuerySQL(lists *[]map[string]interface{}, query string, args ...interface{}) error {
-	return self.QuerySQLTypeLabel(lists, nil, nil, query, args...)
+func (self *DBI) querySQL(lists *[]map[string]interface{}, query string, args ...interface{}) error {
+	return self.querySQLTypeLabel(lists, nil, nil, query, args...)
 }
 
-// QuerySQLType selects data rows as slice of maps.
+// querySQLType selects data rows as slice of maps.
 // The rows' data types are defined in 'types' as an array of string.
 // 'lists' is a reference to slice of maps to receive the quering data.
 //
-func (self *DBI) QuerySQLType(lists *[]map[string]interface{}, typeLabels []string, query string, args ...interface{}) error {
-	return self.QuerySQLTypeLabel(lists, typeLabels, nil, query, args...)
+func (self *DBI) querySQLType(lists *[]map[string]interface{}, typeLabels []string, query string, args ...interface{}) error {
+	return self.querySQLTypeLabel(lists, typeLabels, nil, query, args...)
 }
 
-// QuerySQLLabel selects data rows as slice of maps.
+// querySQLLabel selects data rows as slice of maps.
 // The rows' data types are determined dynamically by the generic handle.
 // 'lists' is a reference to slice of maps to receive the quering data.
 // The original SQL column names will be replaced by 'selectLabels'.
 //
-func (self *DBI) QuerySQLLabel(lists *[]map[string]interface{}, selectLabels []string, query string, args ...interface{}) error {
-	return self.QuerySQLTypeLabel(lists, nil, selectLabels, query, args...)
+func (self *DBI) querySQLLabel(lists *[]map[string]interface{}, selectLabels []string, query string, args ...interface{}) error {
+	return self.querySQLTypeLabel(lists, nil, selectLabels, query, args...)
 }
 
-// QuerySQLTypeLabel selects data rows as slice of maps.
+// querySQLTypeLabel selects data rows as slice of maps.
 // The rows' data types are defined in 'typeLabels' as an array of string.
 // 'lists' is a reference to slice of maps to receive the quering data.
 // The original SQL column names will be replaced by 'labels'.
 //
-func (self *DBI) QuerySQLTypeLabel(lists *[]map[string]interface{}, typeLabels []string, selectLabels []string, query string, args ...interface{}) error {
+func (self *DBI) querySQLTypeLabel(lists *[]map[string]interface{}, typeLabels []string, selectLabels []string, query string, args ...interface{}) error {
 	//glog.Infof("godbi SQL statement: %s", query)
 	//glog.Infof("godbi select columns: %v", selectLabels)
 	//glog.Infof("godbi column types: %v", typeLabels)
@@ -162,25 +163,25 @@ func (self *DBI) QuerySQLTypeLabel(lists *[]map[string]interface{}, typeLabels [
 	return self.pickup(rows, lists, typeLabels, selectLabels, query)
 }
 
-// SelectSQL is the same as QuerySQL excepts it uses a prepared statement.
+// SelectSQL is the same as querySQL excepts it uses a prepared statement.
 //
 func (self *DBI) SelectSQL(lists *[]map[string]interface{}, query string, args ...interface{}) error {
 	return self.SelectSQLTypeLabel(lists, nil, nil, query, args...)
 }
 
-// SelectSQLType is the same as QuerySQLType excepts it uses a prepared statement.
+// SelectSQLType is the same as querySQLType excepts it uses a prepared statement.
 //
 func (self *DBI) SelectSQLType(lists *[]map[string]interface{}, typeLabels []string, query string, args ...interface{}) error {
 	return self.SelectSQLTypeLabel(lists, typeLabels, nil, query, args...)
 }
 
-// SelectSQLLabel is the same as QuerySQLLabel excepts it uses a prepared statement.
+// SelectSQLLabel is the same as querySQLLabel excepts it uses a prepared statement.
 //
 func (self *DBI) SelectSQLLabel(lists *[]map[string]interface{}, selectLabels []string, query string, args ...interface{}) error {
 	return self.SelectSQLTypeLabel(lists, nil, selectLabels, query, args...)
 }
 
-// SelectSQLTypeLabel is the same as QuerySQLTypeLabel excepts it uses a prepared statement.
+// SelectSQLTypeLabel is the same as querySQLTypeLabel excepts it uses a prepared statement.
 //
 func (self *DBI) SelectSQLTypeLabel(lists *[]map[string]interface{}, typeLabels []string, selectLabels []string, query string, args ...interface{}) error {
 	//glog.Infof("godbi SQL statement: %s", query)
@@ -435,4 +436,38 @@ func (self *DBI) SelectDoProcLabel(lists *[]map[string]interface{}, hash map[str
 		return nil
 	}
 	return self.GetSQLLabel(hash, "SELECT "+strN, names)
+}
+
+// existing checks if table has val in field
+func (self *DBI) eless xisting(table string, field string, val interface{}) error {
+	id := 0
+	return self.DB.QueryRow("SELECT "+field+" FROM "+table+" WHERE "+field+"=?", val).Scan(&id)
+}
+
+// randomID create field's int value that does not exists in the table
+func (self *DBI) randomID(table string, field string, m ...interface{}) (int, error) {
+	var min, max, trials int
+	if m == nil {
+		min = 0
+		max = 4294967295
+		trials = 10
+	} else {
+		min = m[0].(int)
+		max = m[1].(int)
+		if m[2] == nil {
+			trials = 10
+		} else {
+			trials = m[2].(int)
+		}
+	}
+
+	for i := 0; i < trials; i++ {
+		val := min + int(rand.Float32()*float32(max-min))
+		if err := self.existing(table, field, val); err != nil {
+			continue
+		}
+		return val, nil
+	}
+
+	return 0, nil
 }

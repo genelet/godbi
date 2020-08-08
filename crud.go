@@ -228,23 +228,23 @@ func (self *Crud) singleCondition(ids []interface{}, extra ...url.Values) (strin
 	return sql, extraValues
 }
 
-// InsertHash inserts one row into the table.
+// insertHash inserts one row into the table.
 // args: the input row data expressed as url.Values.
 // The keys are column names, and their values are columns' values.
 //
-func (self *Crud) InsertHash(args url.Values) error {
-	return self.insertHash("INSERT", args)
+func (self *Crud) insertHash(args url.Values) error {
+	return self._insertHash("INSERT", args)
 }
 
-// ReplaceHash inserts one row as using 'REPLACE' instead of 'INSERT'
+// replaceHash inserts one row as using 'REPLACE' instead of 'INSERT'
 // args: the input row data expressed as url.Values.
 // The keys are column names, and their values are columns' values.
 //
-func (self *Crud) ReplaceHash(args url.Values) error {
-	return self.insertHash("REPLACE", args)
+func (self *Crud) replaceHash(args url.Values) error {
+	return self._insertHash("REPLACE", args)
 }
 
-func (self *Crud) insertHash(how string, args url.Values) error {
+func (self *Crud) _insertHash(how string, args url.Values) error {
 	fields := make([]string, 0)
 	values := make([]interface{}, 0)
 	for k, v := range args {
@@ -257,23 +257,23 @@ func (self *Crud) insertHash(how string, args url.Values) error {
 	return self.DoSQL(sql, values...)
 }
 
-// UpdateHash updates multiple rows using data expressed in type Values.
+// updateHash updates multiple rows using data expressed in type Values.
 // args: columns names and their new values.
 // ids: primary key's value, either a single value or array of values.
 // extra: optional, extra constraints put on row's WHERE statement.
 //
-func (self *Crud) UpdateHash(args url.Values, ids []interface{}, extra ...url.Values) error {
+func (self *Crud) updateHash(args url.Values, ids []interface{}, extra ...url.Values) error {
 	empties := make([]string, 0)
-	return self.UpdateHashNulls(args, ids, empties, extra...)
+	return self.updateHashNulls(args, ids, empties, extra...)
 }
 
-// UpdateHashNull updates multiple rows using data expressed in type Values.
+// updateHashNull updates multiple rows using data expressed in type Values.
 // args: columns names and their new values.
 // empties: if these columns have no values in args, they are forced to be NULL.
 // ids: primary key's value, either a single value or array of values.
 // extra: optional, extra constraints on WHERE statement.
 //
-func (self *Crud) UpdateHashNulls(args url.Values, ids []interface{}, empties []string, extra ...url.Values) error {
+func (self *Crud) updateHashNulls(args url.Values, ids []interface{}, empties []string, extra ...url.Values) error {
 	if empties == nil {
 		empties = make([]string, 0)
 	}
@@ -315,11 +315,11 @@ func (self *Crud) UpdateHashNulls(args url.Values, ids []interface{}, empties []
 	return self.DoSQL(sql, values...)
 }
 
-// InsupdTable update a row if it is found to exists, or to inserts a new row
+// insupdTable update a row if it is found to exists, or to inserts a new row
 // args: row's column names and values
 // uniques: combination of one or multiple columns to assert uniqueness.
 //
-func (self *Crud) InsupdTable(args url.Values, uniques []string) error {
+func (self *Crud) insupdTable(args url.Values, uniques []string) error {
 	s := "SELECT " + self.CurrentKey + " FROM " + self.CurrentTable + "\nWHERE "
 	v := make([]interface{}, 0)
 	for i, val := range uniques {
@@ -344,7 +344,7 @@ func (self *Crud) InsupdTable(args url.Values, uniques []string) error {
 
 	if len(lists) == 1 {
 		id := lists[0][self.CurrentKey]
-		if err := self.UpdateHash(args, []interface{}{id}); err != nil {
+		if err := self.updateHash(args, []interface{}{id}); err != nil {
 			return err
 		}
 		id64, err := strconv.ParseInt(fmt.Sprintf("%d", id), 10, 64)
@@ -354,7 +354,7 @@ func (self *Crud) InsupdTable(args url.Values, uniques []string) error {
 		self.LastID = id64
 		self.Updated = true
 	} else {
-		if err := self.InsertHash(args); err != nil {
+		if err := self.insertHash(args); err != nil {
 			return err
 		}
 		self.Updated = false
@@ -363,9 +363,9 @@ func (self *Crud) InsupdTable(args url.Values, uniques []string) error {
 	return nil
 }
 
-// DeleteHash deletes rows by extra: constraints on WHERE statement.
+// deleteHash deletes rows by extra: constraints on WHERE statement.
 //
-func (self *Crud) DeleteHash(extra ...url.Values) error {
+func (self *Crud) deleteHash(extra ...url.Values) error {
 	sql := "DELETE FROM " + self.CurrentTable
 	if !hasValue(extra) {
 		return errors.New("delete whole table is not supported")
@@ -377,7 +377,7 @@ func (self *Crud) DeleteHash(extra ...url.Values) error {
 	return self.DoSQL(sql, values...)
 }
 
-// EditHash selects one or multiple rows from the primary key.
+// editHash selects one or multiple rows from the primary key.
 // lists: received the query results in slice of maps.
 // ids: primary key values array.
 // extra: optional, extra constraints on WHERE statement.
@@ -387,7 +387,7 @@ func (self *Crud) DeleteHash(extra ...url.Values) error {
 // 3) map[string]string{name: label} - column name is mapped to label
 // 4) map[string][2]string{name: label, type} -- column name to label and data type
 //
-func (self *Crud) EditHash(lists *[]map[string]interface{}, editPars interface{}, ids []interface{}, extra ...url.Values) error {
+func (self *Crud) editHash(lists *[]map[string]interface{}, editPars interface{}, ids []interface{}, extra ...url.Values) error {
 	sql, labels, types := selectType(editPars)
 	sql = "SELECT " + sql + "\nFROM " + self.CurrentTable
 	where, extraValues := self.singleCondition(ids, extra...)
@@ -398,7 +398,7 @@ func (self *Crud) EditHash(lists *[]map[string]interface{}, editPars interface{}
 	return self.SelectSQLTypeLabel(lists, types, labels, sql, extraValues...)
 }
 
-// TopicsHash selects all rows.
+// topicsHash selects all rows.
 // lists: received the query results in slice of maps.
 // extra: optional, extra constraints on WHERE statement.
 // topicsPars: defining which and how columns are returned:
@@ -407,14 +407,14 @@ func (self *Crud) EditHash(lists *[]map[string]interface{}, editPars interface{}
 // 3) map[string]string{name: label} - column name is mapped to label
 // 4) map[string][2]string{name: label, type} -- column name to label and data type
 //
-func (self *Crud) TopicsHash(lists *[]map[string]interface{}, selectPars interface{}, extra ...url.Values) error {
-	return self.TopicsHashOrder(lists, selectPars, "", extra...)
+func (self *Crud) topicsHash(lists *[]map[string]interface{}, selectPars interface{}, extra ...url.Values) error {
+	return self.topicsHashOrder(lists, selectPars, "", extra...)
 }
 
-// TopicsHashOrder is the same as TopicsHash with the order string
+// topicsHashOrder is the same as topicsHash with the order string
 // order: a string like 'ORDER BY ...'
 //
-func (self *Crud) TopicsHashOrder(lists *[]map[string]interface{}, selectPars interface{}, order string, extra ...url.Values) error {
+func (self *Crud) topicsHashOrder(lists *[]map[string]interface{}, selectPars interface{}, order string, extra ...url.Values) error {
 	sql, labels, types := selectType(selectPars)
 	var table []string
 	if hasValue(self.CurrentTables) {
@@ -441,12 +441,12 @@ func (self *Crud) TopicsHashOrder(lists *[]map[string]interface{}, selectPars in
 	return self.SelectSQLTypeLabel(lists, types, labels, sql)
 }
 
-// TotalHash returns the total number of rows available
+// totalHash returns the total number of rows available
 // This function is used for pagination.
 // v: the total number is returned in this referenced variable
 // extra: optional, extra constraints on WHERE statement.
 //
-func (self *Crud) TotalHash(v interface{}, extra ...url.Values) error {
+func (self *Crud) totalHash(v interface{}, extra ...url.Values) error {
 	str := "SELECT COUNT(*) FROM " + self.CurrentTable
 
 	if hasValue(extra) {

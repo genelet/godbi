@@ -6,7 +6,6 @@ import (
 	"errors"
 	"io/ioutil"
 	"math"
-	"math/rand"
 	"net/url"
 	"regexp"
 	"strconv"
@@ -58,7 +57,7 @@ type Model struct {
 	UpdatePars     []string           `json:"update_pars,omitempty"`
 	InsupdPars     []string           `json:"insupd_pars,omitempty"`
 	TopicsPars     []string           `json:"topics_pars,omitempty"`
-	TopicsHashPars map[string]string  `json:"topics_hash,omitempty"`
+	topicsHashPars map[string]string  `json:"topics_hash,omitempty"`
 
 	TotalForce  int    `json:"total_force,omitempty"`
 	Empties     string `json:"empties,omitempty"`
@@ -195,14 +194,14 @@ func (self *Model) getFv(pars []string) url.Values {
 func (self *Model) getIdVal(extra ...url.Values) []interface{} {
 	if hasValue(self.CurrentKeys) {
 		if hasValue(extra) {
-			return self.ProperValues(self.CurrentKeys, extra[0])
+			return self.properValues(self.CurrentKeys, extra[0])
 		}
-		return self.ProperValues(self.CurrentKeys, nil)
+		return self.properValues(self.CurrentKeys, nil)
 	}
 	if hasValue(extra) {
-		return []interface{}{self.ProperValue(self.CurrentKey, extra[0])}
+		return []interface{}{self.properValue(self.CurrentKey, extra[0])}
 	}
-	return []interface{}{self.ProperValue(self.CurrentKey, nil)}
+	return []interface{}{self.properValue(self.CurrentKey, nil)}
 }
 
 // Topics selects many rows, optionally with restriction defined in 'extra'.
@@ -214,7 +213,7 @@ func (self *Model) Topics(extra ...url.Values) error {
 		if totalForce < -1 { // take the absolute as the total number
 			nt = int64(math.Abs(float64(totalForce)))
 		} else if totalForce == -1 || ARGS.Get(self.Totalno) == "" { // optionally cal
-			if err := self.TotalHash(&nt, extra...); err != nil {
+			if err := self.totalHash(&nt, extra...); err != nil {
 				return err
 			}
 		} else {
@@ -227,13 +226,13 @@ func (self *Model) Topics(extra ...url.Values) error {
 	}
 
 	var fields interface{}
-	if self.TopicsHashPars == nil {
+	if self.topicsHashPars == nil {
 		fields = self.filteredFields(self.TopicsPars)
 	} else {
-		fields = self.TopicsHashPars
+		fields = self.topicsHashPars
 	}
 	self.aLISTS = make([]map[string]interface{}, 0)
-	return self.TopicsHashOrder(&self.aLISTS, fields, self.OrderString(), extra...)
+	return self.topicsHashOrder(&self.aLISTS, fields, self.OrderString(), extra...)
 }
 
 // Edit selects few rows (usually one) using primary key value in ARGS,
@@ -247,9 +246,9 @@ func (self *Model) Edit(extra ...url.Values) error {
 
 	self.aLISTS = make([]map[string]interface{}, 0)
 	if hasValue(extra) {
-		return self.EditHash(&self.aLISTS, fields, val, extra[0])
+		return self.editHash(&self.aLISTS, fields, val, extra[0])
 	}
-	return self.EditHash(&self.aLISTS, fields, val)
+	return self.editHash(&self.aLISTS, fields, val)
 }
 
 // Insert inserts a row using data passed in ARGS. Any value defined
@@ -268,7 +267,7 @@ func (self *Model) Insert(extra ...url.Values) error {
 	}
 
 	self.aLISTS = make([]map[string]interface{}, 0)
-	if err := self.InsertHash(fieldValues); err != nil {
+	if err := self.insertHash(fieldValues); err != nil {
 		return err
 	}
 
@@ -302,7 +301,7 @@ func (self *Model) Insupd(extra ...url.Values) error {
 		return errors.New("unique key value not found")
 	}
 
-	if err := self.InsupdTable(fieldValues, uniques); err != nil {
+	if err := self.insupdTable(fieldValues, uniques); err != nil {
 		return err
 	}
 
@@ -331,7 +330,7 @@ func (self *Model) Update(extra ...url.Values) error {
 		return nil
 	}
 
-	if err := self.UpdateHashNulls(fieldValues, val, self.aARGS[self.Empties], extra...); err != nil {
+	if err := self.updateHashNulls(fieldValues, val, self.aARGS[self.Empties], extra...); err != nil {
 		return err
 	}
 
@@ -357,7 +356,7 @@ func fromFv(fieldValues url.Values) []map[string]interface{} {
 
 // Delete deletes a row or multiple rows using the contraint in extra
 func (self *Model) Delete(extra ...url.Values) error {
-	if err := self.DeleteHash(extra...); err != nil {
+	if err := self.deleteHash(extra...); err != nil {
 		return err
 	}
 
@@ -369,45 +368,9 @@ func (self *Model) Delete(extra ...url.Values) error {
 	return nil
 }
 
-// Existing checks if table has val in field
-func (self *Model) Existing(table string, field string, val interface{}) error {
-	id := 0
-	return self.DB.QueryRow("SELECT "+field+" FROM "+table+" WHERE "+field+"=?", val).Scan(&id)
-}
-
-// Randomid create PK field's int value that does not exists in the table
-func (self *Model) Randomid(table string, field string, m ...interface{}) (int, error) {
-	ARGS := self.aARGS
-	var min, max, trials int
-	if m == nil {
-		min = 0
-		max = 4294967295
-		trials = 10
-	} else {
-		min = m[0].(int)
-		max = m[1].(int)
-		if m[2] == nil {
-			trials = 10
-		} else {
-			trials = m[2].(int)
-		}
-	}
-
-	for i := 0; i < trials; i++ {
-		val := min + int(rand.Float32()*float32(max-min))
-		if err := self.Existing(table, field, val); err != nil {
-			continue
-		}
-		ARGS.Set(field, strconv.FormatInt(int64(val), 10))
-		return val, nil
-	}
-
-	return 0, errors.New("cannot get a random id")
-}
-
-// ProperValue returns the value of key 'v' from extra.
+// properValue returns the value of key 'v' from extra.
 // In case it does not exist, it tries to get from ARGS.
-func (self *Model) ProperValue(v string, extra url.Values) interface{} {
+func (self *Model) properValue(v string, extra url.Values) interface{} {
 	ARGS := self.aARGS
 	if !hasValue(extra) {
 		return ARGS.Get(v)
@@ -418,9 +381,9 @@ func (self *Model) ProperValue(v string, extra url.Values) interface{} {
 	return ARGS.Get(v)
 }
 
-// ProperValues returns the values of multiple keys 'vs' from extra.
+// properValues returns the values of multiple keys 'vs' from extra.
 // In case it does not exists, it tries to get from ARGS.
-func (self *Model) ProperValues(vs []string, extra url.Values) []interface{} {
+func (self *Model) properValues(vs []string, extra url.Values) []interface{} {
 	ARGS := self.aARGS
 	outs := make([]interface{}, len(vs))
 	if !hasValue(extra) {
@@ -440,9 +403,9 @@ func (self *Model) ProperValues(vs []string, extra url.Values) []interface{} {
 	return outs
 }
 
-// ProperValuesHash is the same as ProperValues, but resulting in a map.
-func (self *Model) ProperValuesHash(vs []string, extra url.Values) map[string]interface{} {
-	values := self.ProperValues(vs, extra)
+// properValuesHash is the same as properValues, but resulting in a map.
+func (self *Model) properValuesHash(vs []string, extra url.Values) map[string]interface{} {
+	values := self.properValues(vs, extra)
 	hash := make(map[string]interface{})
 	for i, v := range vs {
 		hash[v] = values[i]
