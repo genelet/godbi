@@ -163,25 +163,31 @@ func (self *DBI) querySQLTypeLabel(lists *[]map[string]interface{}, typeLabels [
 	return self.pickup(rows, lists, typeLabels, selectLabels, query)
 }
 
-// SelectSQL is the same as querySQL excepts it uses a prepared statement.
+// SelectSQL selects data rows as slice of maps into 'lists'.
+// The data types in the rows are determined dynamically by the generic handle.
 //
 func (self *DBI) SelectSQL(lists *[]map[string]interface{}, query string, args ...interface{}) error {
 	return self.SelectSQLTypeLabel(lists, nil, nil, query, args...)
 }
 
-// SelectSQLType is the same as querySQLType excepts it uses a prepared statement.
+// SelectSQLType selects data rows as slice of maps into 'lists'.
+// The data types in the rows are predefined in the 'typeLabels'.
 //
 func (self *DBI) SelectSQLType(lists *[]map[string]interface{}, typeLabels []string, query string, args ...interface{}) error {
 	return self.SelectSQLTypeLabel(lists, typeLabels, nil, query, args...)
 }
 
-// SelectSQLLabel is the same as querySQLLabel excepts it uses a prepared statement.
+// SelectSQLLabel selects data rows as slice of maps into 'lists'.
+// The data types of the rows are determined dynamically by the generic handle.
+// The original SQL column names will be renamed by 'selectLabels'.
 //
 func (self *DBI) SelectSQLLabel(lists *[]map[string]interface{}, selectLabels []string, query string, args ...interface{}) error {
 	return self.SelectSQLTypeLabel(lists, nil, selectLabels, query, args...)
 }
 
-// SelectSQLTypeLabel is the same as querySQLTypeLabel excepts it uses a prepared statement.
+// SelectSQLTypeLabel selects data rows as slice of maps into 'lists'.
+// The data types of the rows are predefined in the 'typeLabels'.
+// The original SQL column names will be renamed by 'selectLabels'.
 //
 func (self *DBI) SelectSQLTypeLabel(lists *[]map[string]interface{}, typeLabels []string, selectLabels []string, query string, args ...interface{}) error {
 	//glog.Infof("godbi SQL statement: %s", query)

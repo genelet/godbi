@@ -24,13 +24,13 @@ type Navigate interface {
 	// getArgs: get ARGS; pass "true" for nextpages
 	getArgs(...bool) url.Values
 
-	// setArgs: set new input
+	// SetArgs: set new input
 	SetArgs(url.Values)
 
 	// getNextpages: get the nextpages
 	getNextpages(string) []*Page
 
-	// setDB: set SQL handle
+	// SetDB: set SQL handle
 	SetDB(*sql.DB)
 }
 
