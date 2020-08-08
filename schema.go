@@ -13,18 +13,6 @@ type Schema struct {
 	Models map[string]Navigate
 }
 
-// Page type describes next page's structure
-// Model: the name of the model
-// Action: the method name on the model
-// Manual: constraint conditions manually assigned
-// RelateItem: current page's column versus next page's column. The value is forced as constraint.
-type Page struct {
-	Model      string            `json:"model"`
-	Action     string            `json:"action"`
-	Manual     map[string]string `json:"manual,omitempty"`
-	RelateItem map[string]string `json:"relate_item,omitempty"`
-}
-
 func NewSchema(s map[string]Navigate) *Schema {
 	return &Schema{nil, s}
 }
@@ -103,17 +91,4 @@ func (self *Schema) Run(model, action string, args url.Values, extra ...url.Valu
 	}
 
 	return lists, nil
-}
-
-func (self *Page) refresh(item map[string]interface{}, extra url.Values) (url.Values, bool) {
-	newExtra := extra
-	found := false
-	for k, v := range self.RelateItem {
-		if t, ok := item[k]; ok {
-			found = true
-			newExtra.Set(v, interface2String(t))
-			break
-		}
-	}
-	return newExtra, found
 }

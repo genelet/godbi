@@ -37,37 +37,19 @@ type Navigate interface {
 // Model works on table's CRUD in web applications.
 //
 type Model struct {
-	Crud
+	DBI
+	Table
 	Navigate
 
 	// Actions: map between name and action functions
 	Actions map[string]func(...url.Values) error
+	// Updated: for Insupd only, indicating if the row is updated or new
+	Updated bool
 
 	// aARGS: the input data received by the web request
 	aARGS url.Values
-
 	// aLISTS: output data as slice of map, which represents a table row
 	aLISTS []map[string]interface{}
-
-	// Nextpages: defining how to call other models' actions
-	Nextpages      map[string][]*Page `json:"nextpages,omitempty"`
-	CurrentIDAuto  string             `json:"current_id_auto,omitempty"`
-	InsertPars     []string           `json:"insert_pars,omitempty"`
-	EditPars       []string           `json:"edit_pars,omitempty"`
-	UpdatePars     []string           `json:"update_pars,omitempty"`
-	InsupdPars     []string           `json:"insupd_pars,omitempty"`
-	TopicsPars     []string           `json:"topics_pars,omitempty"`
-	topicsHashPars map[string]string  `json:"topics_hash,omitempty"`
-
-	TotalForce  int    `json:"total_force,omitempty"`
-	Empties     string `json:"empties,omitempty"`
-	Fields      string `json:"fields,omitempty"`
-	Maxpageno   string `json:"maxpageno,omitempty"`
-	Totalno     string `json:"totalno,omitempty"`
-	Rowcount    string `json:"rawcount,omitempty"`
-	Pageno      string `json:"pageno,omitempty"`
-	Sortreverse string `json:"sortreverse,omitempty"`
-	Sortby      string `json:"sortby,omitempty"`
 }
 
 // NewModel creates a new Model struct from json file 'filename'

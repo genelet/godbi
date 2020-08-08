@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestPage(t *testing.T) {
+func TestSchema(t *testing.T) {
 	db, err := getdb()
 	if err != nil {
 		panic(err)
