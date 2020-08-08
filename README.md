@@ -87,14 +87,14 @@ func main() {
 
     dbi := &godbi.DBI{DB:db}
 
-    // create a new table and insert some data using ExecSQL
+    // create a new table and insert some data using execSQL
     //
-    if err = dbi.ExecSQL(`DROP TABLE IF EXISTS letters`); err != nil { panic(err) }
-    if err = dbi.ExecSQL(`CREATE TABLE letters (
+    if err = dbi.execSQL(`DROP TABLE IF EXISTS letters`); err != nil { panic(err) }
+    if err = dbi.execSQL(`CREATE TABLE letters (
         id int auto_increment primary key, x varchar(1))`); err != nil { panic(err) }
-    if err = dbi.ExecSQL(`INSERT INTO letters (x) VALUES ('m')`); err != nil { panic(err) }
-    if err = dbi.ExecSQL(`INSERT INTO letters (x) VALUES ('n')`); err != nil { panic(err) }
-    if err = dbi.ExecSQL(`INSERT INTO letters (x) VALUES ('p')`); err != nil { panic(err) }
+    if err = dbi.execSQL(`INSERT INTO letters (x) VALUES ('m')`); err != nil { panic(err) }
+    if err = dbi.execSQL(`INSERT INTO letters (x) VALUES ('n')`); err != nil { panic(err) }
+    if err = dbi.execSQL(`INSERT INTO letters (x) VALUES ('p')`); err != nil { panic(err) }
 
     // select data from the table and put them into lists
     //
@@ -104,7 +104,7 @@ func main() {
     // print it
     log.Printf("%v", lists)
 
-    dbi.ExecSQL(`DROP TABLE letters`)
+    dbi.execSQL(`DROP TABLE letters`)
 
     os.Exit(0)
 }
@@ -121,10 +121,10 @@ Running this example will result in something like
 
 <br /><br />
 
-### 1.2  Execution with `ExecSQL` & `DoSQL`
+### 1.2  Execution with `execSQL` & `DoSQL`
 
 ```go
-func (*DBI) ExecSQL(query string, args ...interface{}) error
+func (*DBI) execSQL(query string, args ...interface{}) error
 func (*DBI) DoSQL  (query string, args ...interface{}) error
 ```
 
@@ -291,11 +291,11 @@ func main() {
 
     dbi := &godbi.DBI{DB:db}
 
-    if err = dbi.ExecSQL(`drop procedure if exists proc_w2`); err != nil { panic(err) }
-    if err = dbi.ExecSQL(`drop table if exists letters`); err != nil { panic(err) }
-    if err = dbi.ExecSQL(`create table letters(
+    if err = dbi.execSQL(`drop procedure if exists proc_w2`); err != nil { panic(err) }
+    if err = dbi.execSQL(`drop table if exists letters`); err != nil { panic(err) }
+    if err = dbi.execSQL(`create table letters(
         id int auto_increment primary key, x varchar(1))`); err != nil { panic(err) }
-    if err = dbi.ExecSQL(`create procedure proc_w2(IN x0 varchar(1),OUT y0 int)
+    if err = dbi.execSQL(`create procedure proc_w2(IN x0 varchar(1),OUT y0 int)
         begin
         delete from letters;
         insert into letters (x) values('m');
@@ -314,8 +314,8 @@ func main() {
     log.Printf("lists is: %v", lists)
     log.Printf("OUT is: %v", hash)
 
-    dbi.ExecSQL(`drop table if exists letters`)
-    dbi.ExecSQL(`drop procedure if exists proc_w2`)
+    dbi.execSQL(`drop table if exists letters`)
+    dbi.execSQL(`drop procedure if exists proc_w2`)
 
     os.Exit(0)
 }
@@ -396,8 +396,8 @@ func main() {
     dbi := godbi.DBI{DB:db}
     crud := &godbi.Crud{dbi, "atesting", nil, "id", nil, false}
 
-    if err = crud.ExecSQL(`DROP TABLE IF EXISTS atesting`); err != nil { panic(err) }
-    if err = crud.ExecSQL(`CREATE TABLE atesting (
+    if err = crud.execSQL(`DROP TABLE IF EXISTS atesting`); err != nil { panic(err) }
+    if err = crud.execSQL(`CREATE TABLE atesting (
         id int auto_increment, x varchar(255), y varchar(255), primary key (id))`); err != nil { panic(err) }
 
     // create 3 rows one by one using url.Values

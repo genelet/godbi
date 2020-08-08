@@ -21,15 +21,15 @@ func TestProcedure(t *testing.T) {
 	}
 	dbi := &DBI{DB:db}
 
-	dbi.ExecSQL(`drop procedure if exists proc_w`)
-	dbi.ExecSQL(`drop procedure if exists proc_w_resultset`)
-	dbi.ExecSQL(`drop table if exists letters`)
-	ret := dbi.ExecSQL(`create table letters(x varchar(1))`)
+	dbi.execSQL(`drop procedure if exists proc_w`)
+	dbi.execSQL(`drop procedure if exists proc_w_resultset`)
+	dbi.execSQL(`drop table if exists letters`)
+	ret := dbi.execSQL(`create table letters(x varchar(1))`)
 	if ret != nil {
 		t.Errorf("create table failed")
 	}
 
-    ret = dbi.ExecSQL(`create procedure proc_w_resultset() begin insert into letters values('m'); insert into letters values('n'); select x from letters; select 1; select 2; insert into letters values('a'); end`)
+    ret = dbi.execSQL(`create procedure proc_w_resultset() begin insert into letters values('m'); insert into letters values('n'); select x from letters; select 1; select 2; insert into letters values('a'); end`)
     if ret != nil {
 		t.Errorf("create stored procedure failed")
     }
@@ -47,7 +47,7 @@ func TestProcedure(t *testing.T) {
 		t.Errorf("%s n wanted", lists[1]["x"])
 	}
 
-	ret = dbi.ExecSQL(`create procedure proc_w(IN x0 varchar(1),OUT y0 int) begin delete from letters; insert into letters values('m'); insert into letters values('n'); insert into letters values('p'); select x from letters where x=x0; insert into letters values('a'); set y0=100; end`)
+	ret = dbi.execSQL(`create procedure proc_w(IN x0 varchar(1),OUT y0 int) begin delete from letters; insert into letters values('m'); insert into letters values('n'); insert into letters values('p'); select x from letters where x=x0; insert into letters values('a'); set y0=100; end`)
 	if ret != nil {
 		t.Errorf("Running stored procedure failed")
 	}
@@ -68,8 +68,8 @@ func TestProcedure(t *testing.T) {
 	if hash["y0"].(int64) != 100 {
 		t.Errorf("%s 100 wanted", hash["y0"])
 	}
-	dbi.ExecSQL(`drop procedure if exists proc_w`)
-	dbi.ExecSQL(`drop procedure if exists proc_w_resultset`)
-	dbi.ExecSQL(`drop table if exists letters`)
+	dbi.execSQL(`drop procedure if exists proc_w`)
+	dbi.execSQL(`drop procedure if exists proc_w_resultset`)
+	dbi.execSQL(`drop table if exists letters`)
 	db.Close()
 }

@@ -12,12 +12,12 @@ func TestCrudDb(t *testing.T) {
 	}
 	crud := newCrud(db, "atesting", "id", nil, nil)
 
-	crud.ExecSQL(`drop table if exists atesting`)
-	ret := crud.ExecSQL(`drop table if exists testing`)
+	crud.execSQL(`drop table if exists atesting`)
+	ret := crud.execSQL(`drop table if exists testing`)
 	if ret != nil {
 		t.Errorf("create table testing failed %s", ret.Error())
 	}
-	ret = crud.ExecSQL(`CREATE TABLE atesting (id int auto_increment, x varchar(255), y varchar(255), primary key (id))`)
+	ret = crud.execSQL(`CREATE TABLE atesting (id int auto_increment, x varchar(255), y varchar(255), primary key (id))`)
 	if ret != nil {
 		t.Errorf("create table atesting failed")
 	}

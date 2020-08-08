@@ -20,10 +20,10 @@ type DBI struct {
 	Affected int64
 }
 
-// ExecSQL excutes a query like 'Exec', and refreshes the LastID and Affected
+// execSQL excutes a query like 'Exec', and refreshes the LastID and Affected
 // If the execution fails, it returns error; otherwise nil.
 //
-func (self *DBI) ExecSQL(query string, args ...interface{}) error {
+func (self *DBI) execSQL(query string, args ...interface{}) error {
 	//glog.Infof("godbi SQL statement: %s", query)
 	//glog.Infof("godbi input data: %v", args)
 
@@ -46,7 +46,7 @@ func (self *DBI) ExecSQL(query string, args ...interface{}) error {
 	return nil
 }
 
-// DoSQL is the same as ExecSQL, except for using a prepared statement,
+// DoSQL is the same as SQL's Exec, except for using a prepared statement,
 // which is safe for concurrent use by multiple goroutines.
 //
 func (self *DBI) DoSQL(query string, args ...interface{}) error {

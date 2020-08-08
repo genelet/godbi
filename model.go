@@ -53,6 +53,9 @@ type Model struct {
 }
 
 // NewModel creates a new Model struct from json file 'filename'
+// You should use SetDB to assign a database handle and
+// SetArgs to set input data, a url.Value, to make it working
+//
 func NewModel(filename string) (*Model, error) {
 	var parsed *Model
 	content, err := ioutil.ReadFile(filename)

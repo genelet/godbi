@@ -25,11 +25,11 @@ func TestModelSimple(t *testing.T) {
 	model.Fields = "fields"
 	model.Empties = "empties"
 
-	ret := model.ExecSQL(`drop table if exists testing`)
+	ret := model.execSQL(`drop table if exists testing`)
 	if ret != nil {
 		t.Errorf("create table testing failed %s", ret.Error())
 	}
-	ret = model.ExecSQL(`CREATE TABLE testing (id int auto_increment, x varchar(255), y varchar(255), primary key (id))`)
+	ret = model.execSQL(`CREATE TABLE testing (id int auto_increment, x varchar(255), y varchar(255), primary key (id))`)
 	if ret != nil {
 		t.Errorf("create table testing failed %s", ret.Error())
 	}
@@ -151,7 +151,7 @@ func TestModelSimple(t *testing.T) {
 		t.Errorf("%s %d wanted", ret.Error(), model.Affected)
 	}
 
-	model.ExecSQL(`truncate table testing`)
+	model.execSQL(`truncate table testing`)
 	delete(args, "id")
 	for i := 1; i < 100; i++ {
 		delete(args, "id")
@@ -267,11 +267,11 @@ func TestModel(t *testing.T) {
 	ARGS := url.Values{}
 	model.SetDB(db)
 	model.SetArgs(ARGS)
-	err = model.ExecSQL(`drop table if exists atesting`)
+	err = model.execSQL(`drop table if exists atesting`)
 	if err != nil {
 		panic(err)
 	}
-	err = model.ExecSQL(`CREATE TABLE atesting (id int auto_increment not null primary key, x varchar(8), y varchar(8), z varchar(8))`)
+	err = model.execSQL(`CREATE TABLE atesting (id int auto_increment not null primary key, x varchar(8), y varchar(8), z varchar(8))`)
 	if err != nil {
 		panic(err)
 	}
@@ -293,11 +293,11 @@ func TestModel(t *testing.T) {
 		t.Errorf("'ORDER BY id DESC LIMIT 20 OFFSET 80' expected, got %s", str)
 	}
 
-	err = model.ExecSQL(`drop table if exists atesting`)
+	err = model.execSQL(`drop table if exists atesting`)
 	if err != nil {
 		panic(err)
 	}
-	err = model.ExecSQL(`CREATE TABLE atesting (id int auto_increment not null primary key, x varchar(8), y varchar(8), z varchar(8))`)
+	err = model.execSQL(`CREATE TABLE atesting (id int auto_increment not null primary key, x varchar(8), y varchar(8), z varchar(8))`)
 	if err != nil {
 		panic(err)
 	}

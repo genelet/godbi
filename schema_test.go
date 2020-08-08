@@ -17,11 +17,11 @@ func TestSchema(t *testing.T) {
 	}
 	model.DB = db
 
-	err = model.ExecSQL(`drop table if exists atesting`)
+	err = model.execSQL(`drop table if exists atesting`)
 	if err != nil {
 		panic(err)
 	}
-	err = model.ExecSQL(`CREATE TABLE atesting (id int auto_increment not null primary key, x varchar(8), y varchar(8), z varchar(8))`)
+	err = model.execSQL(`CREATE TABLE atesting (id int auto_increment not null primary key, x varchar(8), y varchar(8), z varchar(8))`)
 	if err != nil {
 		panic(err)
 	}
@@ -53,11 +53,11 @@ func TestSchema(t *testing.T) {
 		panic(err)
 	}
 	supp.DB = db
-	err = supp.ExecSQL(`drop table if exists testing`)
+	err = supp.execSQL(`drop table if exists testing`)
 	if err != nil {
 		panic(err)
 	}
-	err = supp.ExecSQL(`CREATE TABLE testing (tid int auto_increment not null primary key, child varchar(8), id int)`)
+	err = supp.execSQL(`CREATE TABLE testing (tid int auto_increment not null primary key, child varchar(8), id int)`)
 	if err != nil {
 		panic(err)
 	}
