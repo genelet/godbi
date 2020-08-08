@@ -343,7 +343,7 @@ Type `Crud` lets us to run CRUD verbs easily on a table.
 type Crud struct {
     DBI
     CurrentTable string    `json:"current_table,omitempty"`  // the current table name
-    CurrentTables []*Table `json:"current_tables,omitempty"` // optional, use multiple table JOINs in Read All
+    CurrentTables []*Join `json:"current_tables,omitempty"` // optional, use multiple table JOINs in Read All
     CurrentKey string      `json:"current_key,omitempty"`    // the single primary key of the table
     CurrentKeys []string   `json:"current_keys,omitempty"`   // optional, if the primary key has multiple columns
     Updated bool           // for Insupd() only, if the row is updated or new
@@ -517,7 +517,7 @@ among multiple keys | AND conditions.
 The _R_ verb will use a JOIN SQL statement from related tables, if `CurrentTables` of type `Table` exists in `Crud`. Type `Table` is usually parsed from JSON.
 
 ```go
-type Table struct { 
+type Join struct { 
     Name string   `json:"name"`             // name of the table
     Alias string  `json:"alias,omitempty"`  // optional alias of the table
     Type string   `json:"type,omitempty"`   // INNER or LEFT, how the table is joined
@@ -530,7 +530,7 @@ type Table struct {
 The tables in `CurrentTables` should be arranged with correct orders. Use the following function to create a SQL logic:
 
 ```go
-func TableString(tables []*Table) string
+func joinString(tables []*Join) string
 ```
 
 <details>
@@ -542,9 +542,9 @@ str := `[
     {"name":"user_project", "alias":"j"},
     {"name":"user_component", "alias":"c", "type":"INNER", "using":"projectid"},
     {"name":"user_table", "alias":"t", "type":"LEFT", "on":"c.tableid=t.tableid"}]`
-tables := make([]*Table, 0)
+tables := make([]*Join, 0)
 if err := json.Unmarshal([]byte(str), &tables); err != nil { panic(err) }
-log.Printf("%s", TableString())
+log.Printf("%s", joinString())
 ```
 
 will output

@@ -12,7 +12,7 @@ import (
 
 // Table describes a table used in multiple joined SELECT query.
 //
-type Table struct {
+type Join struct {
 	// Name: the name of the table
 	Name string `json:"name"`
 	// Alias: the alias of the name
@@ -27,9 +27,9 @@ type Table struct {
 	Sortby string `json:"sortby,omitempty"`
 }
 
-// TableString outputs the joined SQL statements from multiple tables.
+// joinString outputs the joined SQL statements from multiple tables.
 //
-func TableString(tables []*Table) string {
+func joinString(tables []*Join) string {
 	sql := ""
 	for i, table := range tables {
 		name := table.Name
@@ -48,7 +48,7 @@ func TableString(tables []*Table) string {
 	return sql
 }
 
-func (self *Table) getAlias() string {
+func (self *Join) getAlias() string {
 	if self.Alias != "" {
 		return self.Alias
 	}
@@ -74,7 +74,7 @@ type Crud struct {
 	// CurrentTable: the current table name
 	CurrentTable string `json:"current_table,omitempty"`
 	// CurrentTables: optional, for read-all SELECT with other joined tables
-	CurrentTables []*Table `json:"current_tables,omitempty"`
+	CurrentTables []*Join `json:"current_tables,omitempty"`
 	// CurrentKey: the single primary key of the table
 	CurrentKey string `json:"current_key,omitempty"`
 	// CurrentKeys: optional, if the primary key has multiple columns
@@ -83,14 +83,14 @@ type Crud struct {
 	Updated bool
 }
 
-// NewCrud creates a new Crud struct.
+// newCrud creates a new Crud struct.
 // db: the DB handle
 // table: the name of table
 // currentKey: the column name of the primary key
 // currentKeys: if the PK consists of multiple columns, as []string
 // tables: array of joined tables for real-all SELECT
 //
-func NewCrud(db *sql.DB, table, currentKey string, tables []*Table, currentKeys []string) *Crud {
+func newCrud(db *sql.DB, table, currentKey string, tables []*Join, currentKeys []string) *Crud {
 	crud := new(Crud)
 	crud.DB = db
 	crud.CurrentTable = table
@@ -418,7 +418,7 @@ func (self *Crud) topicsHashOrder(lists *[]map[string]interface{}, selectPars in
 	sql, labels, types := selectType(selectPars)
 	var table []string
 	if hasValue(self.CurrentTables) {
-		sql = "SELECT " + sql + "\nFROM " + TableString(self.CurrentTables)
+		sql = "SELECT " + sql + "\nFROM " + joinString(self.CurrentTables)
 		table = []string{self.CurrentTables[0].getAlias()}
 	} else {
 		sql = "SELECT " + sql + "\nFROM " + self.CurrentTable

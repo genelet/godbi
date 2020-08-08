@@ -19,7 +19,7 @@ func hasValue(extra interface{}) bool {
 		if len(v) == 0 {
 			return false
 		}
-	case []*Table:
+	case []*Join:
 		if len(v) == 0 {
 			return false
 		}
