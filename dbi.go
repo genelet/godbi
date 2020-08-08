@@ -439,7 +439,7 @@ func (self *DBI) SelectDoProcLabel(lists *[]map[string]interface{}, hash map[str
 }
 
 // existing checks if table has val in field
-func (self *DBI) eless xisting(table string, field string, val interface{}) error {
+func (self *DBI) existing(table string, field string, val interface{}) error {
 	id := 0
 	return self.DB.QueryRow("SELECT "+field+" FROM "+table+" WHERE "+field+"=?", val).Scan(&id)
 }
