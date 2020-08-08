@@ -217,7 +217,7 @@ func (self *Model) Topics(extra ...url.Values) error {
 		fields = self.topicsHashPars
 	}
 	self.aLISTS = make([]map[string]interface{}, 0)
-	return self.topicsHashOrder(&self.aLISTS, fields, self.OrderString(), extra...)
+	return self.topicsHashOrder(&self.aLISTS, fields, self.orderString(), extra...)
 }
 
 // Edit selects few rows (usually one) using primary key value in ARGS,
@@ -398,8 +398,8 @@ func (self *Model) properValuesHash(vs []string, extra url.Values) map[string]in
 	return hash
 }
 
-// OrderString outputs the ORDER BY string using information in args
-func (self *Model) OrderString() string {
+// orderString outputs the ORDER BY string using information in args
+func (self *Model) orderString() string {
 	ARGS := self.aARGS
 	column := ""
 	if ARGS.Get(self.Sortby) != "" {

@@ -276,19 +276,19 @@ func TestModel(t *testing.T) {
 		panic(err)
 	}
 
-	str := model.OrderString()
+	str := model.orderString()
 	if str != "ORDER BY id" {
 		t.Errorf("id expected, got %s", str)
 	}
 
 	ARGS.Set("sortreverse", "1")
 	ARGS.Set("rowcount", "20")
-	str = model.OrderString()
+	str = model.orderString()
 	if str != "ORDER BY id DESC LIMIT 20 OFFSET 0" {
 		t.Errorf("'id DESC LIMIT 20 OFFSET 0' expected, got %s", str)
 	}
 	ARGS.Set("pageno", "5")
-	str = model.OrderString()
+	str = model.orderString()
 	if str != "ORDER BY id DESC LIMIT 20 OFFSET 80" {
 		t.Errorf("'ORDER BY id DESC LIMIT 20 OFFSET 80' expected, got %s", str)
 	}
@@ -334,7 +334,7 @@ func TestModel(t *testing.T) {
 	a.Set("rowcount", "20")
 	a.Set("pageno", "5")
 	model.SetArgs(a)
-	str = model.OrderString()
+	str = model.orderString()
 	if str != "ORDER BY id DESC LIMIT 20 OFFSET 80" {
 		t.Errorf("'ORDER BY id DESC LIMIT 20 OFFSET 80' expected, got %s", str)
 	}
