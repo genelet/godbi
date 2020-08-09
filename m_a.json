@@ -1,0 +1,24 @@
+{
+    "current_table": "m_a",
+    "current_key" : "id",
+    "current_id_auto" : "id",
+    "insupd_pars" : ["x","y"],
+    "insert_pars" : ["x","y","z"],
+    "edit_pars" : ["x","y","z","id"],
+    "topics_pars" : ["id","x","y","z"],
+
+	"nextpages" : {
+        "insert" : [
+            {"model":"tb", "action":"insert", "relate_item":{"id":"id"}}
+        ],
+        "insupd" : [
+            {"model":"tb", "action":"insert", "relate_item":{"id":"id"}}
+        ],
+        "edit" : [
+            {"model":"tb", "action":"topics", "relate_item":{"id":"id"}}
+        ],
+        "topics" : [
+            {"model":"ta", "action":"edit", "relate_item":{"id":"id"}}
+        ]
+    }
+}
