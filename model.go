@@ -42,7 +42,7 @@ type Model struct {
 	Navigate
 
 	// Actions: map between name and action functions
-	Actions map[string]func(...url.Values) error
+	Actions map[string]func(...url.Values) error            `json:"-"`
 	// Updated: for Insupd only, indicating if the row is updated or new
 	Updated bool
 
