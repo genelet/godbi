@@ -2,7 +2,6 @@ package godbi
 
 import (
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"io/ioutil"
 	"math"
@@ -57,42 +56,16 @@ type Model struct {
 // SetArgs to set input data, a url.Value, to make it working
 //
 func NewModel(filename string) (*Model, error) {
-	var parsed *Model
 	content, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}
-	err = json.Unmarshal(content, &parsed)
+
+	table, err := newTable(content)
 	if err != nil {
 		return nil, err
 	}
-
-	if parsed.Sortby == "" {
-		parsed.Sortby = "sortby"
-	}
-	if parsed.Sortreverse == "" {
-		parsed.Sortreverse = "sortreverse"
-	}
-	if parsed.Pageno == "" {
-		parsed.Pageno = "pageno"
-	}
-	if parsed.Totalno == "" {
-		parsed.Totalno = "totalno"
-	}
-	if parsed.Rowcount == "" {
-		parsed.Rowcount = "rowcount"
-	}
-	if parsed.Maxpageno == "" {
-		parsed.Maxpageno = "maxpage"
-	}
-	if parsed.Fields == "" {
-		parsed.Fields = "fields"
-	}
-	if parsed.Empties == "" {
-		parsed.Empties = "empties"
-	}
-
-	return parsed, nil
+	return &Model{Table:*table}, nil
 }
 
 // GetLists get main data as slice of mapped row
@@ -210,30 +183,29 @@ func (self *Model) Topics(extra ...url.Values) error {
 		ARGS.Set(self.Maxpageno, strconv.FormatInt(maxPageno, 10))
 	}
 
-	var fields interface{}
-	if self.topicsHashPars == nil {
-		fields = self.filteredFields(self.TopicsPars)
-	} else {
-		fields = self.topicsHashPars
-	}
+	hashPars := self.topicsHashPars
+    if fields, ok := self.aARGS[self.Fields]; ok {
+        hashPars = generalHashPars(self.TopicsHash, self.TopicsPars, fields)
+    }
+
 	self.aLISTS = make([]map[string]interface{}, 0)
-	return self.topicsHashOrder(&self.aLISTS, fields, self.orderString(), extra...)
+	return self.topicsHashOrder(&self.aLISTS, hashPars, self.orderString(), extra...)
 }
 
 // Edit selects few rows (usually one) using primary key value in ARGS,
 // optionally with restrictions defined in 'extra'.
 func (self *Model) Edit(extra ...url.Values) error {
 	val := self.getIdVal(extra...)
-	fields := self.filteredFields(self.EditPars)
-	if !hasValue(fields) {
+	hashPars := self.editHashPars
+    if fields, ok := self.aARGS[self.Fields]; ok {
+        hashPars = generalHashPars(self.EditHash, self.EditPars, fields)
+    }
+	if !hasValue(val) {
 		return errors.New("pk value not provided")
 	}
 
 	self.aLISTS = make([]map[string]interface{}, 0)
-	if hasValue(extra) {
-		return self.editHash(&self.aLISTS, fields, val, extra[0])
-	}
-	return self.editHash(&self.aLISTS, fields, val)
+	return self.editHash(&self.aLISTS, hashPars, val, extra...)
 }
 
 // Insert inserts a row using data passed in ARGS. Any value defined

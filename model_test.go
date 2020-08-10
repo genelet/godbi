@@ -41,7 +41,8 @@ func TestModelSimple(t *testing.T) {
 	model.CurrentKey = "id"
 	model.CurrentIDAuto = "id"
 	model.InsertPars = []string{"id", "x", "y"}
-	model.TopicsPars = []string{"id", "x", "y"}
+	model.TopicsPars = []interface{}{"id", "x", "y"}
+	model.topicsHashPars = generalHashPars(nil, model.TopicsPars, nil)
 
 	args["x"] = []string{"a"}
 	args["y"] = []string{"b"}
@@ -68,7 +69,8 @@ func TestModelSimple(t *testing.T) {
 	}
 
 	model.UpdatePars = []string{"id", "x", "y"}
-	model.EditPars = []string{"id", "x", "y"}
+	model.EditPars = []interface{}{"id", "x", "y"}
+	model.editHashPars = generalHashPars(nil, model.EditPars, nil)
 	args.Set("id", "2")
 	args["x"] = []string{"c"}
 	args["y"] = []string{"z"}
@@ -190,6 +192,7 @@ func TestModelSimple(t *testing.T) {
 		if ret != nil {
 			t.Errorf("%s edit table testing failed", ret.Error())
 		}
+
 		if int(LISTS[0]["id"].(int64)) != i {
 			t.Errorf("%d %d edit id failed", i, int(LISTS[0]["id"].(int64)))
 		}

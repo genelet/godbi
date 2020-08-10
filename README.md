@@ -379,10 +379,10 @@ Here is the `Table` type:
     InsertPars     []string           `json:"insert_pars,omitempty"`     // columns to insert in C
     UpdatePars     []string           `json:"update_pars,omitempty"`     // columns to update in U
     InsupdPars     []string           `json:"insupd_pars,omitempty"`     // unique columns in PATCH
-    EditPars       []string           `json:"edit_pars,omitempty"`       // columns to query in R (one)
-    TopicsPars     []string           `json:"topics_pars,omitempty"`     // columns to query in R (all)
-    EditHash       interface{}        `json:"edit_hash,omitempty"`       // R(o) columns with specific types or names
-    TopicsHash     interface{}        `json:"topics_hash,omitempty"`     // R(a) columns with specific types or names
+    EditPars       []interface{}      `json:"edit_pars,omitempty"`       // columns to query in R (one)
+    EditHash   map[string]interface{} `json:"edit_hash,omitempty"`       // R(a) with specific types and labels
+    TopicsPars     []interface{}      `json:"topics_pars,omitempty"`     // columns to query in R (all)
+    TopicsHash map[string]interface{} `json:"topics_hash,omitempty"`     // R(a) with specific types and labels
     TotalForce     int                `json:"total_force,omitempty"`     // if to calculate total counts in R(a)
 
     Nextpages      map[string][]*Page `json:"nextpages,omitempty"`       // to call other models' verbs
@@ -431,15 +431,15 @@ occasionally we need specific names and types in output. Here is what *godbi* wi
 in case of existence of *EditHash* or/and *TopicsHash*.
 
 <details>
-    <summary>Click to show <em>EditHash</em> or <em>TopicsHash</em></summary>
+    <summary>Click to show <em>EditPars</em>, <em>EditHash</em>, <em>TopicsPars</em> and <em>TopicsHash</em></summary>
     <p>
 
-interface | column names
---------- | ------------
- *[]string{name}* | just a list of column names
- *[][2]string{name, type}* | a list of column names and associated data types
- *map[string]string{name: label}* | rename the column names by labels
- *map[string][2]string{name: label, type}* | rename the column names to labels and use the specific types
+interface | variable | column names
+--------- | -------- | ------------
+ *[]string{name}* | EditPars, TopicsPars | just a list of column names
+ *[][2]string{name, type}* | EditPars, TopicsPars | column names and their data types
+ *map[string]string{name: label}* | EditHash, TopicsHash | rename the column names by labels
+ *map[string][2]string{name: label, type}* | EditHash, TopicsHash | rename and use the specific types
 
 </p>
 </details>

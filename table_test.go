@@ -7,7 +7,52 @@ import (
 	"testing"
 )
 
-func TestTable(t *testing.T) {
+func TestTable1(t *testing.T) {
+	str := `{
+    "current_table": "m_a",
+    "current_key" : "id",
+    "current_id_auto" : "id",
+    "insupd_pars" : ["x","y"],
+    "insert_pars" : ["x","y","z"],
+    "edit_pars"   : ["x","y","z","id"],
+    "topics_pars" : [["id","int"],["x","string"],["y","string"]]}`
+	table, err := newTable([]byte(str))
+	if err != nil { t.Fatal(err) }
+
+	x := table.editHashPars.([]string)
+	if x[0] != "x" {
+		t.Errorf("%#v", table.editHashPars)
+	}
+	y := table.topicsHashPars.([][2]string)
+	if y[0][0]!="id" || y[0][1]!="int" {
+		t.Errorf("%#v", table.topicsHashPars)
+	}
+}
+
+func TestTable2(t *testing.T) {
+	str := `{
+    "current_table": "m_a",
+    "current_key" : "id",
+    "current_id_auto" : "id",
+    "insupd_pars" : ["x","y"],
+    "insert_pars" : ["x","y","z"],
+    "edit_pars"   : ["x","y","z","id"],
+    "topics_pars" : [["id","int"],["x","string"],["y","string"]],
+    "edit_hash" : {"x1":"x","y1":"y","z1":"z","id1":"id"},
+    "topics_hash" : {"x1":["x","string"],"y1":["y","string"],"id1":["id","int"]} }`
+	table, err := newTable([]byte(str))
+	if err != nil { t.Fatal(err) }
+	x := table.editHashPars.(map[string]string)
+	if x["x1"] != "x" {
+		t.Errorf("%#v", table.editHashPars)
+	}
+	y := table.topicsHashPars.(map[string][2]string)
+	if y["id1"][0]!="id" || y["id1"][1]!="int" {
+		t.Errorf("%#v", table.topicsHashPars)
+	}
+}
+
+func TestTables(t *testing.T) {
 	str := `[
     {"name":"user_project", "alias":"j", "sortby":"c.componentid"},
     {"name":"user_component", "alias":"c", "type":"INNER", "using":"projectid"},

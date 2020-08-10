@@ -95,16 +95,20 @@ type Table struct {
 	// InsertPars: the columns used for Create
 	InsertPars []string `json:"insert_pars,omitempty"`
 	// EditPar: the columns used for Read One
-	EditPars []string `json:"edit_pars,omitempty"`
+	EditPars []interface{} `json:"edit_pars,omitempty"`
+	// EditHash: the columns used for Read One
+	EditHash map[string]interface{} `json:"edit_hash,omitempty"`
 	// UpdatePars: the columns used for Update
 	UpdatePars []string `json:"update_pars,omitempty"`
 	// InsupdPars: combination of the columns gives uniqueness
 	InsupdPars []string `json:"insupd_pars,omitempty"`
 	// TopicsPars: the columns used for Read All
-	TopicsPars []string `json:"topics_pars,omitempty"`
+	TopicsPars []interface{} `json:"topics_pars,omitempty"`
 	// TopicsHash: a map between SQL columns and output keys
-	TopicsHash     map[string]json.RawMessage `json:"topics_hash,omitempty"`
-	topicsHashPars map[string]string
+	TopicsHash map[string]interface{} `json:"topics_hash,omitempty"`
+
+	editHashPars interface{}
+	topicsHashPars interface{}
 
 	// TotalForce controls how the total number of rows be calculated for Topics
 	// <-1	use ABS(TotalForce) as the total count
@@ -126,6 +130,89 @@ type Table struct {
 	Sortby      string `json:"sortby,omitempty"`
 }
 
+func generalHashPars(TopicsHash map[string]interface{}, TopicsPars []interface{}, fields []string) interface{} {
+	if hasValue(TopicsHash) {
+		s2 := make(map[string][2]string)
+		s1 := make(map[string]string)
+		for k, vs := range TopicsHash {
+			if fields != nil && len(fields)>0 && !grep(fields, k) {
+				continue
+			}
+			switch v := vs.(type) {
+			case []interface{}:
+				s2[k] = [2]string{v[0].(string), v[1].(string)}
+			default:
+				s1[k] = v.(string)
+			}
+		}
+		if len(s2) > 0 {
+			return s2
+		} else {
+			return s1
+		}
+	} else {
+		s2 := make([][2]string,0)
+		s1 := make([]string,0)
+		for _, vs := range TopicsPars {
+			switch v := vs.(type) {
+			case []interface{}:
+				if fields != nil && len(fields)>0 && !grep(fields, v[0].(string)) {
+					continue
+				}
+				s2 = append(s2, [2]string{v[0].(string), v[1].(string)})
+			default:
+				if fields != nil && len(fields)>0 && !grep(fields, v.(string)) {
+					continue
+				}
+				s1 = append(s1, v.(string))
+			}
+		}
+		if len(s2) > 0 {
+			return s2
+		} else {
+			return s1
+		}
+	}
+	return nil
+}
+
+func newTable(content []byte) (*Table, error) {
+	var parsed *Table
+	if err := json.Unmarshal(content, &parsed); err != nil {
+		return nil, err
+	}
+
+	parsed.topicsHashPars = generalHashPars(parsed.TopicsHash, parsed.TopicsPars, nil)
+	parsed.editHashPars   = generalHashPars(parsed.EditHash, parsed.EditPars, nil)
+
+	if parsed.Sortby == "" {
+		parsed.Sortby = "sortby"
+	}
+	if parsed.Sortreverse == "" {
+		parsed.Sortreverse = "sortreverse"
+	}
+	if parsed.Pageno == "" {
+		parsed.Pageno = "pageno"
+	}
+	if parsed.Totalno == "" {
+		parsed.Totalno = "totalno"
+	}
+	if parsed.Rowcount == "" {
+		parsed.Rowcount = "rowcount"
+	}
+	if parsed.Maxpageno == "" {
+		parsed.Maxpageno = "maxpage"
+	}
+	if parsed.Fields == "" {
+		parsed.Fields = "fields"
+	}
+	if parsed.Empties == "" {
+		parsed.Empties = "empties"
+	}
+
+	return parsed, nil
+}
+
 // selectType returns variables' SELECT sql string, labels and types. 4 cases of interface{}
 // []string{name}	just a list of column names
 // [][2]string{name, type}	a list of column names and associated data types
@@ -133,6 +220,10 @@ type Table struct {
 // map[string][2]string{name: label, type}	rename the column names to labels and use the specific types
 //
 func selectType(selectPars interface{}) (string, []string, []string) {
+	if selectPars == nil {
+		return "", nil, nil
+	}
+
 	switch vs := selectPars.(type) {
 	case []string:
 		labels := make([]string, 0)
