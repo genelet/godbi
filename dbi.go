@@ -312,7 +312,7 @@ func (self *DBI) pickup(rows *sql.Rows, lists *[]map[string]interface{}, typeLab
 				case "string":
 					x := x[j].(*sql.NullString)
 					if x.Valid {
-						res[v] = strings.TrimRight(x.String, "\x00")
+						res[v] = strings.TrimSpace(x.String)
 					}
 				default:
 				}
@@ -321,9 +321,9 @@ func (self *DBI) pickup(rows *sql.Rows, lists *[]map[string]interface{}, typeLab
 				if name != nil {
 					switch val := name.(type) {
 					case []uint8:
-						res[v] = strings.TrimRight(string(val), "\x00")
+						res[v] = strings.TrimSpace(string(val))
 					case string:
-						res[v] = strings.TrimRight(val, "\x00")
+						res[v] = strings.TrimSpace(val)
 					default:
 						res[v] = name
 					}
