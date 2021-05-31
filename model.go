@@ -5,7 +5,6 @@ import (
 	"errors"
 	"io/ioutil"
 	"math"
-	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -15,16 +14,22 @@ import (
 //
 type Navigate interface {
 	// GetAction: get an action function by name
-	GetAction(string) func(...url.Values) error
+	GetAction(string) func(...map[string]interface{}) error
 
-	// GetLists: get the main data
-	GetLists() []map[string]interface{}
+	// CopyLists: get the main data
+	CopyLists() []map[string]interface{}
+
+	// clentLists: empty main data
+	cleanLists()
 
 	// getArgs: get ARGS; pass "true" for nextpages
-	getArgs(...bool) url.Values
+	getArgs(...bool) map[string]interface{}
+
+	// nonePass: keys that should not be passed to the nextpage but assign to this args only
+	nonePass() []string
 
 	// SetArgs: set new input
-	SetArgs(url.Values)
+	SetArgs(map[string]interface{})
 
 	// getNextpages: get the nextpages
 	getNextpages(string) []*Page
@@ -41,19 +46,19 @@ type Model struct {
 	Navigate
 
 	// Actions: map between name and action functions
-	Actions map[string]func(...url.Values) error            `json:"-"`
+	Actions map[string]func(...map[string]interface{}) error `json:"-"`
 	// Updated: for Insupd only, indicating if the row is updated or new
 	Updated bool
 
 	// aARGS: the input data received by the web request
-	aARGS url.Values
+	aARGS map[string]interface{}
 	// aLISTS: output data as slice of map, which represents a table row
 	aLISTS []map[string]interface{}
 }
 
 // NewModel creates a new Model struct from json file 'filename'
 // You should use SetDB to assign a database handle and
-// SetArgs to set input data, a url.Value, to make it working
+// SetArgs to set input data, a map[string]interface{} to make it working
 //
 func NewModel(filename string) (*Model, error) {
 	content, err := ioutil.ReadFile(filename)
@@ -65,16 +70,45 @@ func NewModel(filename string) (*Model, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Model{Table:*table}, nil
+	model := &Model{Table:*table}
+	model.SetArgs(nil)
+	model.SetDefaultActions()
+	return model, nil
 }
 
-// GetLists get main data as slice of mapped row
-func (self *Model) GetLists() []map[string]interface{} {
-	return self.aLISTS
+func (self *Model) SetDefaultActions() {
+    actions := make(map[string]func(...map[string]interface{})error)
+    actions["topics"] = func(args ...map[string]interface{}) error { return self.Topics(args...) }
+    actions["edit"]   = func(args ...map[string]interface{}) error { return self.Edit(args...) }
+    actions["insert"] = func(args ...map[string]interface{}) error { return self.Insert(args...) }
+    actions["update"] = func(args ...map[string]interface{}) error { return self.Update(args...) }
+    actions["insupd"] = func(args ...map[string]interface{}) error { return self.Insupd(args...) }
+    actions["delete"] = func(args ...map[string]interface{}) error { return self.Delete(args...) }
+    self.Actions = actions
+}
+
+// CopyLists get main data as slice of mapped row
+func (self *Model) CopyLists() []map[string]interface{} {
+	if self.aLISTS == nil {
+		return nil
+	}
+	lists := make([]map[string]interface{}, 0)
+	for _, item := range self.aLISTS {
+		lists = append(lists, item)
+	}
+	return lists
+}
+
+func (self *Model) cleanLists() {
+	self.aLISTS = nil
+}
+
+func (self *Model) nonePass() []string {
+	return []string{self.Fields, self.Sortby, self.Sortreverse, self.Rowcount, self.Totalno, self.Pageno, self.Maxpageno}
 }
 
 // GetAction returns action's function
-func (self *Model) GetAction(action string) func(...url.Values) error {
+func (self *Model) GetAction(action string) func(...map[string]interface{}) error {
 	if act, ok := self.Actions[action]; ok {
 		return act
 	}
@@ -84,10 +118,11 @@ func (self *Model) GetAction(action string) func(...url.Values) error {
 
 // getArgs returns the input data which may have extra keys added
 // pass true will turn off those pagination data
-func (self *Model) getArgs(is ...bool) url.Values {
-	args := url.Values{}
+func (self *Model) getArgs(is ...bool) map[string]interface{} {
+	args := make(map[string]interface{})
+	nones := self.nonePass()
 	for k, v := range self.aARGS {
-		if is != nil && is[0] && grep([]string{self.Sortby, self.Sortreverse, self.Rowcount, self.Totalno, self.Pageno, self.Maxpageno}, k) {
+		if is != nil && is[0] && grep(nones, k) {
 			continue
 		}
 		args[k] = v
@@ -97,8 +132,12 @@ func (self *Model) getArgs(is ...bool) url.Values {
 }
 
 // SetArgs sets input data
-func (self *Model) SetArgs(args url.Values) {
-	self.aARGS = args
+func (self *Model) SetArgs(args map[string]interface{}) {
+	if args==nil {
+		self.aARGS = make(map[string]interface{})
+	} else {
+		self.aARGS = args
+	}
 }
 
 // getNextpages returns the next pages of an action
@@ -127,7 +166,7 @@ func (self *Model) filteredFields(pars []string) []string {
 	}
 
 	out := make([]string, 0)
-	for _, field := range fields {
+	for _, field := range fields.([]string) {
 		for _, v := range pars {
 			if field == v {
 				out = append(out, v)
@@ -138,9 +177,9 @@ func (self *Model) filteredFields(pars []string) []string {
 	return out
 }
 
-func (self *Model) getFv(pars []string) url.Values {
+func (self *Model) getFv(pars []string) map[string]interface{} {
 	ARGS := self.aARGS
-	fieldValues := url.Values{}
+	fieldValues := make(map[string]interface{})
 	for _, f := range self.filteredFields(pars) {
 		if v, ok := ARGS[f]; ok {
 			fieldValues[f] = v
@@ -149,7 +188,7 @@ func (self *Model) getFv(pars []string) url.Values {
 	return fieldValues
 }
 
-func (self *Model) getIdVal(extra ...url.Values) []interface{} {
+func (self *Model) getIdVal(extra ...map[string]interface{}) []interface{} {
 	if hasValue(self.CurrentKeys) {
 		if hasValue(extra) {
 			return self.properValues(self.CurrentKeys, extra[0])
@@ -163,29 +202,48 @@ func (self *Model) getIdVal(extra ...url.Values) []interface{} {
 }
 
 // Topics selects many rows, optionally with restriction defined in 'extra'.
-func (self *Model) Topics(extra ...url.Values) error {
+func (self *Model) Topics(extra ...map[string]interface{}) error {
 	ARGS := self.aARGS
 	totalForce := self.TotalForce // 0 means no total calculation
-	if totalForce != 0 && ARGS.Get(self.Rowcount) != "" && (ARGS.Get(self.Pageno) == "" || ARGS.Get(self.Pageno) == "1") {
-		nt := int64(0)
+	if totalForce != 0 && ARGS[self.Rowcount] != nil && ARGS[self.Pageno] == nil {
+		nt := 0
 		if totalForce < -1 { // take the absolute as the total number
-			nt = int64(math.Abs(float64(totalForce)))
-		} else if totalForce == -1 || ARGS.Get(self.Totalno) == "" { // optionally cal
+			nt = int(math.Abs(float64(totalForce)))
+		} else if totalForce == -1 || ARGS[self.Totalno] == nil { // optionally cal
 			if err := self.totalHash(&nt, extra...); err != nil {
 				return err
 			}
 		} else {
-			nt, _ = strconv.ParseInt(ARGS.Get(self.Totalno), 10, 32)
+			ntInterface := ARGS[self.Totalno]
+			switch v := ntInterface.(type) {
+			case int:
+				nt = v
+			case string:
+				nt64, err := strconv.ParseInt(v, 10, 32)
+				if err != nil { return err }
+				nt = int(nt64)
+			default:
+			}
 		}
-		ARGS.Set(self.Totalno, strconv.FormatInt(nt, 10))
-		nr, _ := strconv.ParseInt(ARGS.Get(self.Rowcount), 10, 32)
-		maxPageno := int64((nt-1)/nr) + 1
-		ARGS.Set(self.Maxpageno, strconv.FormatInt(maxPageno, 10))
+		ARGS[self.Totalno] = nt
+		nr := 0
+		nrInterface := ARGS[self.Rowcount]
+		switch v := nrInterface.(type) {
+		case int:
+			nr = v
+		case string:
+			nr64, err := strconv.ParseInt(v, 10, 32)
+			if err != nil { return err }
+			nr = int(nr64)
+		default:
+		}
+		maxPageno := (nt-1)/nr + 1
+		ARGS[self.Maxpageno] = maxPageno
 	}
 
 	hashPars := self.topicsHashPars
     if fields, ok := self.aARGS[self.Fields]; ok {
-        hashPars = generalHashPars(self.TopicsHash, self.TopicsPars, fields)
+        hashPars = generalHashPars(self.TopicsHash, self.TopicsPars, fields.([]string))
     }
 
 	self.aLISTS = make([]map[string]interface{}, 0)
@@ -194,11 +252,11 @@ func (self *Model) Topics(extra ...url.Values) error {
 
 // Edit selects few rows (usually one) using primary key value in ARGS,
 // optionally with restrictions defined in 'extra'.
-func (self *Model) Edit(extra ...url.Values) error {
+func (self *Model) Edit(extra ...map[string]interface{}) error {
 	val := self.getIdVal(extra...)
 	hashPars := self.editHashPars
     if fields, ok := self.aARGS[self.Fields]; ok {
-        hashPars = generalHashPars(self.EditHash, self.EditPars, fields)
+        hashPars = generalHashPars(self.EditHash, self.EditPars, fields.([]string))
     }
 	if !hasValue(val) {
 		return errors.New("pk value not provided")
@@ -210,12 +268,12 @@ func (self *Model) Edit(extra ...url.Values) error {
 
 // Insert inserts a row using data passed in ARGS. Any value defined
 // in 'extra' will override that in ARGS and be used for that column.
-func (self *Model) Insert(extra ...url.Values) error {
+func (self *Model) Insert(extra ...map[string]interface{}) error {
 	fieldValues := self.getFv(self.InsertPars)
 	if hasValue(extra) {
 		for key, value := range extra[0] {
 			if grep(self.InsertPars, key) {
-				fieldValues.Set(key, value[0])
+				fieldValues[key] = value
 			}
 		}
 	}
@@ -230,8 +288,8 @@ func (self *Model) Insert(extra ...url.Values) error {
 
 	if self.CurrentIDAuto != "" {
 		autoID := strconv.FormatInt(self.LastID, 10)
-		fieldValues.Set(self.CurrentIDAuto, autoID)
-		self.aARGS.Set(self.CurrentIDAuto, autoID)
+		fieldValues[self.CurrentIDAuto] = autoID
+		self.aARGS[self.CurrentIDAuto] = autoID
 	}
 	self.aLISTS = fromFv(fieldValues)
 
@@ -240,7 +298,7 @@ func (self *Model) Insert(extra ...url.Values) error {
 
 // Insupd inserts a new row if it does not exist, or retrieves the old one,
 // depending on the unique of the columns defined in InsupdPars.
-func (self *Model) Insupd(extra ...url.Values) error {
+func (self *Model) Insupd(extra ...map[string]interface{}) error {
 	fieldValues := self.getFv(self.InsertPars)
 	if hasValue(extra) {
 		for key, value := range extra[0] {
@@ -263,7 +321,7 @@ func (self *Model) Insupd(extra ...url.Values) error {
 	}
 
 	if self.CurrentIDAuto != "" {
-		fieldValues.Set(self.CurrentIDAuto, strconv.FormatInt(self.LastID, 10))
+		fieldValues[self.CurrentIDAuto] = strconv.FormatInt(self.LastID, 10)
 	}
 	self.aLISTS = fromFv(fieldValues)
 
@@ -273,7 +331,7 @@ func (self *Model) Insupd(extra ...url.Values) error {
 // Update updates a row using values defined in ARGS
 // depending on the unique of the columns defined in UpdatePars.
 // extra is for SQL constrains
-func (self *Model) Update(extra ...url.Values) error {
+func (self *Model) Update(extra ...map[string]interface{}) error {
 	val := self.getIdVal(extra...)
 	if !hasValue(val) {
 		return errors.New("pk value not found")
@@ -282,44 +340,45 @@ func (self *Model) Update(extra ...url.Values) error {
 	fieldValues := self.getFv(self.UpdatePars)
 	if !hasValue(fieldValues) {
 		return errors.New("no data to update")
-	} else if len(fieldValues) == 1 && fieldValues.Get(self.CurrentKey) != "" {
+	} else if len(fieldValues) == 1 && fieldValues[self.CurrentKey] != nil {
 		self.aLISTS = fromFv(fieldValues)
 		return nil
 	}
 
-	if err := self.updateHashNulls(fieldValues, val, self.aARGS[self.Empties], extra...); err != nil {
+	var err error
+	if self.Empties != "" && self.aARGS[self.Empties] != nil {
+		err = self.updateHashNulls(fieldValues, val, self.aARGS[self.Empties].([]string), extra...)
+	} else {
+		err = self.updateHashNulls(fieldValues, val, nil, extra...)
+	}
+	if err != nil {
 		return err
 	}
 
 	if hasValue(self.CurrentKeys) {
 		for i, v := range self.CurrentKeys {
-			fieldValues.Set(v, val[i].(string))
+			fieldValues[v] = val[i]
 		}
 	} else {
-		fieldValues.Set(self.CurrentKey, val[0].(string))
+		fieldValues[self.CurrentKey] = val[0]
 	}
 	self.aLISTS = fromFv(fieldValues)
 
 	return nil
 }
 
-func fromFv(fieldValues url.Values) []map[string]interface{} {
-	hash := make(map[string]interface{})
-	for k, v := range fieldValues {
-		hash[k] = v[0]
-	}
-	return []map[string]interface{}{hash}
+func fromFv(fieldValues map[string]interface{}) []map[string]interface{} {
+	return []map[string]interface{}{fieldValues}
 }
 
 // Delete deletes a row or multiple rows using the contraint in extra
-func (self *Model) Delete(extra ...url.Values) error {
+func (self *Model) Delete(extra ...map[string]interface{}) error {
 	if err := self.deleteHash(extra...); err != nil {
 		return err
 	}
 
-	self.aLISTS = []map[string]interface{}{make(map[string]interface{})}
-	for k, v := range extra[0] {
-		self.aLISTS[0][k] = v[0]
+	if hasValue(extra) {
+		self.aLISTS = []map[string]interface{}{extra[0]}
 	}
 
 	return nil
@@ -327,41 +386,40 @@ func (self *Model) Delete(extra ...url.Values) error {
 
 // properValue returns the value of key 'v' from extra.
 // In case it does not exist, it tries to get from ARGS.
-func (self *Model) properValue(v string, extra url.Values) interface{} {
+func (self *Model) properValue(v string, extra map[string]interface{}) interface{} {
 	ARGS := self.aARGS
 	if !hasValue(extra) {
-		return ARGS.Get(v)
+		return ARGS[v]
 	}
-	if val := extra.Get(v); val != "" {
+	if val, ok := extra[v]; ok {
 		return val
 	}
-	return ARGS.Get(v)
+	return ARGS[v]
 }
 
 // properValues returns the values of multiple keys 'vs' from extra.
 // In case it does not exists, it tries to get from ARGS.
-func (self *Model) properValues(vs []string, extra url.Values) []interface{} {
+func (self *Model) properValues(vs []string, extra map[string]interface{}) []interface{} {
 	ARGS := self.aARGS
 	outs := make([]interface{}, len(vs))
 	if !hasValue(extra) {
 		for i, v := range vs {
-			outs[i] = ARGS.Get(v)
+			outs[i] = ARGS[v]
 		}
 		return outs
 	}
 	for i, v := range vs {
-		val := extra.Get(v)
-		if val != "" {
+		if val, ok := extra[v]; ok {
 			outs[i] = val
 		} else {
-			outs[i] = ARGS.Get(v)
+			outs[i] = ARGS[v]
 		}
 	}
 	return outs
 }
 
 // properValuesHash is the same as properValues, but resulting in a map.
-func (self *Model) properValuesHash(vs []string, extra url.Values) map[string]interface{} {
+func (self *Model) properValuesHash(vs []string, extra map[string]interface{}) map[string]interface{} {
 	values := self.properValues(vs, extra)
 	hash := make(map[string]interface{})
 	for i, v := range vs {
@@ -374,8 +432,8 @@ func (self *Model) properValuesHash(vs []string, extra url.Values) map[string]in
 func (self *Model) orderString() string {
 	ARGS := self.aARGS
 	column := ""
-	if ARGS.Get(self.Sortby) != "" {
-		column = ARGS.Get(self.Sortby)
+	if ARGS[self.Sortby] != nil {
+		column = ARGS[self.Sortby].(string)
 	} else if hasValue(self.CurrentTables) {
 		table := self.CurrentTables[0]
 		if table.Sortby != "" {
@@ -401,25 +459,33 @@ func (self *Model) orderString() string {
 	}
 
 	order := "ORDER BY " + column
-	if ARGS.Get(self.Sortreverse) != "" {
+	if ARGS[self.Sortreverse] != nil {
 		order += " DESC"
 	}
 
-	if ARGS.Get(self.Rowcount) != "" {
-		rowcount, err := strconv.Atoi(ARGS.Get(self.Rowcount))
-		if err != nil {
-			return ""
+	if rowInterface, ok := ARGS[self.Rowcount]; ok {
+		rowcount := 0
+		switch v := rowInterface.(type) {
+		case int:
+			rowcount = v
+		case string:
+			rowcount, _ = strconv.Atoi(v)
+		default:
 		}
 		pageno := 1
-		if ARGS.Get(self.Pageno) == "" {
-			ARGS.Set(self.Pageno, "1")
+		if _, ok := ARGS[self.Pageno]; !ok {
+			ARGS[self.Pageno] = 1
 		} else {
-			pageno, err = strconv.Atoi(ARGS.Get(self.Pageno))
-			if err != nil {
-				return ""
+			pInterface := ARGS[self.Pageno]
+			switch v := pInterface.(type) {
+			case int:
+				pageno = v
+			case string:
+				pageno, _ = strconv.Atoi(v)
+			default:
 			}
 		}
-		order += " LIMIT " + ARGS.Get(self.Rowcount) + " OFFSET " + strconv.Itoa((pageno-1)*rowcount)
+		order += " LIMIT " + strconv.Itoa(rowcount) + " OFFSET " + strconv.Itoa((pageno-1)*rowcount)
 	}
 
 	matched, err := regexp.MatchString("[;'\"]", order)

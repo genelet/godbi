@@ -4,34 +4,33 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"net/url"
 	"strconv"
 	"strings"
 )
 
 // insertHash inserts one row into the table.
-// args: the input row data expressed as url.Values.
+// args: the input row data expressed as map[string]interface{}.
 // The keys are column names, and their values are columns' values.
 //
-func (self *Model) insertHash(args url.Values) error {
+func (self *Model) insertHash(args map[string]interface{}) error {
 	return self._insertHash("INSERT", args)
 }
 
 // replaceHash inserts one row as using 'REPLACE' instead of 'INSERT'
-// args: the input row data expressed as url.Values.
+// args: the input row data expressed as map[string]interface{}.
 // The keys are column names, and their values are columns' values.
 //
-func (self *Model) replaceHash(args url.Values) error {
+func (self *Model) replaceHash(args map[string]interface{}) error {
 	return self._insertHash("REPLACE", args)
 }
 
-func (self *Model) _insertHash(how string, args url.Values) error {
+func (self *Model) _insertHash(how string, args map[string]interface{}) error {
 	fields := make([]string, 0)
 	values := make([]interface{}, 0)
 	for k, v := range args {
 		if v != nil {
 			fields = append(fields, k)
-			values = append(values, v[0])
+			values = append(values, v)
 		}
 	}
 	sql := how + " INTO " + self.CurrentTable + " (" + strings.Join(fields, ", ") + ") VALUES (" + strings.Join(strings.Split(strings.Repeat("?", len(fields)), ""), ",") + ")"
@@ -43,7 +42,7 @@ func (self *Model) _insertHash(how string, args url.Values) error {
 // ids: primary key's value, either a single value or array of values.
 // extra: optional, extra constraints put on row's WHERE statement.
 //
-func (self *Model) updateHash(args url.Values, ids []interface{}, extra ...url.Values) error {
+func (self *Model) updateHash(args map[string]interface{}, ids []interface{}, extra ...map[string]interface{}) error {
 	empties := make([]string, 0)
 	return self.updateHashNulls(args, ids, empties, extra...)
 }
@@ -54,7 +53,7 @@ func (self *Model) updateHash(args url.Values, ids []interface{}, extra ...url.V
 // ids: primary key's value, either a single value or array of values.
 // extra: optional, extra constraints on WHERE statement.
 //
-func (self *Model) updateHashNulls(args url.Values, ids []interface{}, empties []string, extra ...url.Values) error {
+func (self *Model) updateHashNulls(args map[string]interface{}, ids []interface{}, empties []string, extra ...map[string]interface{}) error {
 	if empties == nil {
 		empties = make([]string, 0)
 	}
@@ -74,12 +73,12 @@ func (self *Model) updateHashNulls(args url.Values, ids []interface{}, empties [
 	for k, v := range args {
 		fields = append(fields, k)
 		field0 = append(field0, k+"=?")
-		values = append(values, v[0])
+		values = append(values, v)
 	}
 
 	sql := "UPDATE " + self.CurrentTable + " SET " + strings.Join(field0, ", ")
 	for _, v := range empties {
-		if args.Get(v) != "" {
+		if args[v] != nil {
 			continue
 		}
 		sql += ", " + v + "=NULL"
@@ -100,7 +99,7 @@ func (self *Model) updateHashNulls(args url.Values, ids []interface{}, empties [
 // args: row's column names and values
 // uniques: combination of one or multiple columns to assert uniqueness.
 //
-func (self *Model) insupdTable(args url.Values, uniques []string) error {
+func (self *Model) insupdTable(args map[string]interface{}, uniques []string) error {
 	s := "SELECT " + self.CurrentKey + " FROM " + self.CurrentTable + "\nWHERE "
 	v := make([]interface{}, 0)
 	for i, val := range uniques {
@@ -108,8 +107,8 @@ func (self *Model) insupdTable(args url.Values, uniques []string) error {
 			s += " AND "
 		}
 		s += val + "=?"
-		x := args.Get(val)
-		if x == "" {
+		x := args[val]
+		if x == nil {
 			return errors.New("unique key value not found")
 		}
 		v = append(v, x)
@@ -146,7 +145,7 @@ func (self *Model) insupdTable(args url.Values, uniques []string) error {
 
 // deleteHash deletes rows by extra: constraints on WHERE statement.
 //
-func (self *Model) deleteHash(extra ...url.Values) error {
+func (self *Model) deleteHash(extra ...map[string]interface{}) error {
 	sql := "DELETE FROM " + self.CurrentTable
 	if !hasValue(extra) {
 		return errors.New("delete whole table is not supported")
@@ -168,7 +167,7 @@ func (self *Model) deleteHash(extra ...url.Values) error {
 // 3) map[string]string{name: label} - column name is mapped to label
 // 4) map[string][2]string{name: label, type} -- column name to label and data type
 //
-func (self *Model) editHash(lists *[]map[string]interface{}, editPars interface{}, ids []interface{}, extra ...url.Values) error {
+func (self *Model) editHash(lists *[]map[string]interface{}, editPars interface{}, ids []interface{}, extra ...map[string]interface{}) error {
 	sql, labels, types := selectType(editPars)
 	sql = "SELECT " + sql + "\nFROM " + self.CurrentTable
 	where, extraValues := self.singleCondition(ids, extra...)
@@ -188,14 +187,14 @@ func (self *Model) editHash(lists *[]map[string]interface{}, editPars interface{
 // 3) map[string]string{name: label} - column name is mapped to label
 // 4) map[string][2]string{name: label, type} -- column name to label and data type
 //
-func (self *Model) topicsHash(lists *[]map[string]interface{}, selectPars interface{}, extra ...url.Values) error {
+func (self *Model) topicsHash(lists *[]map[string]interface{}, selectPars interface{}, extra ...map[string]interface{}) error {
 	return self.topicsHashOrder(lists, selectPars, "", extra...)
 }
 
 // topicsHashOrder is the same as topicsHash with the order string
 // order: a string like 'ORDER BY ...'
 //
-func (self *Model) topicsHashOrder(lists *[]map[string]interface{}, selectPars interface{}, order string, extra ...url.Values) error {
+func (self *Model) topicsHashOrder(lists *[]map[string]interface{}, selectPars interface{}, order string, extra ...map[string]interface{}) error {
 	sql, labels, types := selectType(selectPars)
 	var table []string
 	if hasValue(self.CurrentTables) {
@@ -205,7 +204,7 @@ func (self *Model) topicsHashOrder(lists *[]map[string]interface{}, selectPars i
 		sql = "SELECT " + sql + "\nFROM " + self.CurrentTable
 	}
 
-	if hasValue(extra) {
+	if hasValue(extra) &&hasValue(extra[0]) {
 		where, values := selectCondition(extra[0], table...)
 		if where != "" {
 			sql += "\nWHERE " + where
@@ -227,7 +226,7 @@ func (self *Model) topicsHashOrder(lists *[]map[string]interface{}, selectPars i
 // v: the total number is returned in this referenced variable
 // extra: optional, extra constraints on WHERE statement.
 //
-func (self *Model) totalHash(v interface{}, extra ...url.Values) error {
+func (self *Model) totalHash(v interface{}, extra ...map[string]interface{}) error {
 	str := "SELECT COUNT(*) FROM " + self.CurrentTable
 
 	if hasValue(extra) {

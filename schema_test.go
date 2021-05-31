@@ -1,7 +1,6 @@
 package godbi
 
 import (
-	"net/url"
 	"testing"
 )
 
@@ -26,7 +25,7 @@ func TestSchema(t *testing.T) {
 		panic(err)
 	}
 
-	hash := url.Values{"x": []string{"a1234567"}, "y": []string{"b1234567"}}
+	hash := map[string]interface{}{"x": "a1234567", "y": "b1234567"}
 	model.SetDB(db)
 	model.SetArgs(hash)
 	err = model.Insupd()
@@ -34,14 +33,14 @@ func TestSchema(t *testing.T) {
 		panic(err)
 	}
 
-	hash = url.Values{"x": []string{"c1234567"}, "y": []string{"d1234567"}, "z": []string{"e1234"}}
+	hash = map[string]interface{}{"x": "c1234567", "y": "d1234567", "z": "e1234"}
 	model.SetArgs(hash)
 	err = model.Insupd()
 	if err != nil {
 		panic(err)
 	}
 
-	hash = url.Values{"x": []string{"e1234567"}, "y": []string{"f1234567"}, "z": []string{"e1234"}}
+	hash = map[string]interface{}{"x": "e1234567", "y": "f1234567", "z": "e1234"}
 	model.SetArgs(hash)
 	err = model.Insupd()
 	if err != nil {
@@ -62,28 +61,28 @@ func TestSchema(t *testing.T) {
 		panic(err)
 	}
 
-	hash = url.Values{"id": []string{"1"}, "child": []string{"john"}}
+	hash = map[string]interface{}{"id": "1", "child": "john"}
 	supp.SetArgs(hash)
 	err = supp.Insert()
 	if err != nil {
 		panic(err)
 	}
 
-	hash = url.Values{"id": []string{"1"}, "child": []string{"sam"}}
+	hash = map[string]interface{}{"id": "1", "child": "sam"}
 	supp.SetArgs(hash)
 	err = supp.Insert()
 	if err != nil {
 		panic(err)
 	}
 
-	hash = url.Values{"id": []string{"2"}, "child": []string{"mary"}}
+	hash = map[string]interface{}{"id": "2", "child": "mary"}
 	supp.SetArgs(hash)
 	err = supp.Insert()
 	if err != nil {
 		panic(err)
 	}
 
-	hash = url.Values{"id": []string{"3"}, "child": []string{"kkk"}}
+	hash = map[string]interface{}{"id": "3", "child": "kkk"}
 	supp.SetArgs(hash)
 	err = supp.Insert()
 	if err != nil {
@@ -95,17 +94,10 @@ func TestSchema(t *testing.T) {
 		panic(err)
 	}
 
-	ss := make(map[string]func(...url.Values) error)
-	ss["topics"] = func(args ...url.Values) error { return model.Topics(args...) }
-	model.Actions = ss
-	tt := make(map[string]func(...url.Values) error)
-	tt["topics"] = func(args ...url.Values) error { return st.Topics(args...) }
-	st.Actions = tt
+	schema := NewSchema(db, map[string]Navigate{"s": model, "testing": st})
 
-	schema := NewSchema(map[string]Navigate{"s": model, "testing": st})
-	schema.SetDB(db)
-
-	lists, err := schema.Run("s", "topics", url.Values{})
+	METHODS := map[string]string{"LIST":"topics", "GET":"edit", "POST":"insert", "PUT":"update", "PATCH":"insupd", "DELETE":"delete"}
+	lists, err := schema.Run("s", METHODS["LIST"], make(map[string]interface{}))
 	if err != nil {
 		panic(err)
 	}

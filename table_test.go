@@ -2,7 +2,6 @@ package godbi
 
 import (
 	"encoding/json"
-	"net/url"
 	"strings"
 	"testing"
 )
@@ -110,8 +109,7 @@ func TestCrudStr(t *testing.T) {
 		t.Errorf("%s wanted", labels)
 	}
 
-	extra := url.Values{}
-	extra.Set("firstname", "Peter")
+	extra := map[string]interface{}{"firstname": "Peter"}
 	sql, c := selectCondition(extra)
 	if sql != "(firstname =?)" {
 		t.Errorf("%s wanted", sql)
@@ -128,11 +126,8 @@ func TestCrudStr(t *testing.T) {
 		t.Errorf("%s wanted", c[0].(string))
 	}
 
-	extra.Set("lastname", "Marcus")
-	extra.Add("id", "1")
-	extra.Add("id", "2")
-	extra.Add("id", "3")
-	extra.Add("id", "4")
+	extra["lastname"] = "Marcus"
+	extra["id"] = []string{"1","2","3","4"}
 	sql, c = selectCondition(extra)
 	if !(strings.Contains(sql, "(firstname =?)") &&
 		strings.Contains(sql, "(id IN (?,?,?,?))") &&

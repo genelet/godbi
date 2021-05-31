@@ -2,7 +2,6 @@ package godbi
 
 import (
 	"math/rand"
-	"net/url"
 	"strconv"
 	"testing"
 )
@@ -34,7 +33,7 @@ func TestModelSimple(t *testing.T) {
 		t.Errorf("create table testing failed %s", ret.Error())
 	}
 
-	args := make(url.Values)
+	args := make(map[string]interface{})
 	model.SetDB(db)
 	model.SetArgs(args)
 
@@ -44,26 +43,26 @@ func TestModelSimple(t *testing.T) {
 	model.TopicsPars = []interface{}{"id", "x", "y"}
 	model.topicsHashPars = generalHashPars(nil, model.TopicsPars, nil)
 
-	args["x"] = []string{"a"}
-	args["y"] = []string{"b"}
+	args["x"] = "a"
+	args["y"] = "b"
 	ret = model.Insert()
 	if model.LastID != 1 {
-		t.Errorf("%d wanted", model.LastID)
+		t.Errorf("1 wanted but got %d", model.LastID)
 	}
-	hash := make(url.Values)
-	hash.Set("x", "c")
-	hash.Set("y", "d")
+	hash := make(map[string]interface{})
+	hash["x"] = "c"
+	hash["y"] = "d"
 	ret = model.insertHash(hash)
 	id := model.LastID
 	if id != 2 {
-		t.Errorf("%d wanted", id)
+		t.Errorf("2 wanted but got %d", id)
 	}
 
 	err = model.Topics()
 	if err != nil {
 		panic(err)
 	}
-	LISTS := model.GetLists()
+	LISTS := model.CopyLists()
 	if len(LISTS) != 2 {
 		t.Errorf("%d 2 columns wanted, %v", len(LISTS), LISTS)
 	}
@@ -71,15 +70,15 @@ func TestModelSimple(t *testing.T) {
 	model.UpdatePars = []string{"id", "x", "y"}
 	model.EditPars = []interface{}{"id", "x", "y"}
 	model.editHashPars = generalHashPars(nil, model.EditPars, nil)
-	args.Set("id", "2")
-	args["x"] = []string{"c"}
-	args["y"] = []string{"z"}
+	args["id"] = 2
+	args["x"] = "c"
+	args["y"] = "z"
 	ret = model.Update()
 	if ret != nil {
 		t.Errorf("%s update table testing failed", ret.Error())
 	}
 
-	LISTS = model.GetLists()
+	LISTS = model.CopyLists()
 	ret = model.Edit()
 	if ret != nil {
 		t.Errorf("%s edit table testing failed", ret.Error())
@@ -95,7 +94,7 @@ func TestModelSimple(t *testing.T) {
 	}
 
 	ret = model.Topics()
-	LISTS = model.GetLists()
+	LISTS = model.CopyLists()
 	if ret != nil {
 		panic(ret)
 	}
@@ -115,14 +114,14 @@ func TestModelSimple(t *testing.T) {
 		t.Errorf("%s z wanted", string(LISTS[1]["y"].(string)))
 	}
 
-	args["id"] = []string{"1"}
-	ret = model.Delete(url.Values{"id": args["id"]})
+	args["id"] = "1"
+	ret = model.Delete(map[string]interface{}{"id": args["id"]})
 	if ret != nil {
 		t.Errorf("%s delete table testing failed", ret.Error())
 	}
 
 	ret = model.Topics()
-	LISTS = model.GetLists()
+	LISTS = model.CopyLists()
 	if ret != nil {
 		t.Errorf("%s select table testing failed", ret.Error())
 	}
@@ -140,27 +139,27 @@ func TestModelSimple(t *testing.T) {
 		t.Errorf("%s z wanted", string(LISTS[0]["y"].(string)))
 	}
 
-	args["id"] = []string{"2"}
+	args["id"] = "2"
 	ret = model.Insert()
 	if ret.Error() == "" {
 		t.Errorf("%s wanted", ret.Error())
 	}
 
-	args["id"] = []string{"3"}
-	args["y"] = []string{"zz"}
+	args["id"] = "3"
+	args["y"] = "zz"
 	ret = model.Update()
 	if ret != nil || model.Affected != 0 {
-		t.Errorf("%s %d wanted", ret.Error(), model.Affected)
+		t.Errorf("%v %d wanted", ret, model.Affected)
 	}
 
 	model.execSQL(`truncate table testing`)
 	delete(args, "id")
 	for i := 1; i < 100; i++ {
 		delete(args, "id")
-		args["x"] = []string{"a"}
-		args["y"] = []string{"b"}
+		args["x"] = "a"
+		args["y"] = "b"
 		ret = model.Insert()
-		LISTS = model.GetLists()
+		LISTS = model.CopyLists()
 		if ret != nil {
 			t.Errorf("%s insert table testing failed", ret.Error())
 		}
@@ -170,10 +169,10 @@ func TestModelSimple(t *testing.T) {
 	}
 
 	for i := 1; i < 100; i++ {
-		args["id"] = []string{strconv.Itoa(i)}
-		args["y"] = []string{"c"}
+		args["id"] = strconv.Itoa(i)
+		args["y"] = "c"
 		ret = model.Update()
-		LISTS = model.GetLists()
+		LISTS = model.CopyLists()
 		if ret != nil {
 			t.Errorf("%s update table testing failed", ret.Error())
 		}
@@ -186,9 +185,9 @@ func TestModelSimple(t *testing.T) {
 	}
 
 	for i := 1; i < 100; i++ {
-		args["id"] = []string{strconv.Itoa(i)}
+		args["id"] = strconv.Itoa(i)
 		ret = model.Edit()
-		LISTS = model.GetLists()
+		LISTS = model.CopyLists()
 		if ret != nil {
 			t.Errorf("%s edit table testing failed", ret.Error())
 		}
@@ -197,26 +196,20 @@ func TestModelSimple(t *testing.T) {
 			t.Errorf("%d %d edit id failed", i, int(LISTS[0]["id"].(int64)))
 		}
 		if string(LISTS[0]["y"].(string)) != "c" {
-			t.Errorf("%s edit y failed", string(LISTS[0]["id"].(string)))
+			t.Errorf("%v edit y failed", LISTS[0])
 		}
 	}
 
-	args["rowcount"] = []string{"20"}
+	args["rowcount"] = 20
 	model.TotalForce = -1
 	ret = model.Topics()
-	LISTS = model.GetLists()
+	LISTS = model.CopyLists()
 	if ret != nil {
 		t.Errorf("%s edit table testing failed", ret.Error())
 	}
 	a := args
-	nt, err := strconv.Atoi(a["totalno"][0])
-	if err != nil {
-		panic(err)
-	}
-	nm, err := strconv.Atoi(a["max_pageno"][0])
-	if err != nil {
-		panic(err)
-	}
+	nt := a["totalno"].(int)
+	nm := a["max_pageno"].(int)
 	if nt != 99 {
 		t.Errorf("%d total is 99", nt)
 	}
@@ -229,10 +222,10 @@ func TestModelSimple(t *testing.T) {
 		}
 	}
 
-	args["pageno"] = []string{"3"}
-	args["rowcount"] = []string{"20"}
+	args["pageno"] = 3
+	args["rowcount"] = 20
 	ret = model.Topics()
-	LISTS = model.GetLists()
+	LISTS = model.CopyLists()
 	if ret != nil {
 		t.Errorf("%s topics table testing failed", ret.Error())
 	}
@@ -243,15 +236,15 @@ func TestModelSimple(t *testing.T) {
 	}
 
 	for i := 1; i < 100; i++ {
-		args["id"] = []string{strconv.Itoa(i)}
-		ret = model.Delete(url.Values{"id": args["id"]})
-		LISTS = model.GetLists()
+		args["id"] = strconv.Itoa(i)
+		ret = model.Delete(map[string]interface{}{"id": args["id"]})
+		LISTS = model.CopyLists()
 		if ret != nil {
 			t.Errorf("%s delete table testing failed", ret.Error())
 		}
 		x := LISTS[0]
 		if x["id"].(string) != strconv.FormatInt(int64(i), 10) {
-			t.Errorf("%d %s delete id failed", i, x["id"].(string))
+			t.Errorf("%d %v delete id failed", i, x)
 		}
 	}
 	db.Close()
@@ -267,7 +260,7 @@ func TestModel(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	ARGS := url.Values{}
+	ARGS := map[string]interface{}{}
 	model.SetDB(db)
 	model.SetArgs(ARGS)
 	err = model.execSQL(`drop table if exists atesting`)
@@ -284,13 +277,13 @@ func TestModel(t *testing.T) {
 		t.Errorf("id expected, got %s", str)
 	}
 
-	ARGS.Set("sortreverse", "1")
-	ARGS.Set("rowcount", "20")
+	ARGS["sortreverse"] = "1"
+	ARGS["rowcount"] = 20
 	str = model.orderString()
 	if str != "ORDER BY id DESC LIMIT 20 OFFSET 0" {
 		t.Errorf("'id DESC LIMIT 20 OFFSET 0' expected, got %s", str)
 	}
-	ARGS.Set("pageno", "5")
+	ARGS["pageno"] = 5
 	str = model.orderString()
 	if str != "ORDER BY id DESC LIMIT 20 OFFSET 80" {
 		t.Errorf("'ORDER BY id DESC LIMIT 20 OFFSET 80' expected, got %s", str)
@@ -305,16 +298,14 @@ func TestModel(t *testing.T) {
 		panic(err)
 	}
 
-	var hash url.Values
+	var hash map[string]interface{}
 	for i := 0; i < 100; i++ {
-		hash = url.Values{}
-		hash.Set("x", "a1234567")
-		hash.Set("y", "b1234567")
+		hash = map[string]interface{}{"x": "a1234567", "y": "b1234567"}
 		r := strconv.Itoa(int(rand.Int31()))
 		if len(r) > 8 {
 			r = r[0:8]
 		}
-		hash.Set("z", r)
+		hash["z"] = r
 		model.SetArgs(hash)
 		err = model.Insert()
 		if err != nil {
@@ -322,26 +313,26 @@ func TestModel(t *testing.T) {
 		}
 	}
 	a := hash
-	a.Set("rowcount", "20")
+	a["rowcount"] = 20
 	model.SetArgs(a)
 	err = model.Topics()
 	if err != nil {
 		panic(err)
 	}
-	lists := model.GetLists()
+	lists := model.CopyLists()
 	if len(lists) != 20 {
 		t.Errorf("%d records returned from topics", len(lists))
 	}
 
-	a.Set("sortreverse", "1")
-	a.Set("rowcount", "20")
-	a.Set("pageno", "5")
+	a["sortreverse"] = "1"
+	a["rowcount"] = 20
+	a["pageno"] = 5
 	model.SetArgs(a)
 	str = model.orderString()
 	if str != "ORDER BY id DESC LIMIT 20 OFFSET 80" {
 		t.Errorf("'ORDER BY id DESC LIMIT 20 OFFSET 80' expected, got %s", str)
 	}
-	if a["totalno"][0] != "100" {
+	if a["totalno"].(int) != 100 {
 		t.Errorf("100 records expected, but %#v", a)
 	}
 	db.Close()

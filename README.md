@@ -1,18 +1,16 @@
 # godbi
 
-_godbi_ adds a set of high-level functions to the generic SQL handle in GO, for easier database executions and queries. 
-
-Check *godoc* for definitions:
+_godbi_ adds a set of high-level functions to the generic SQL handle in GO. Check *godoc* for definitions:
 [![GoDoc](https://godoc.org/github.com/genelet/godbi?status.svg)](https://godoc.org/github.com/genelet/godbi)
 
 There are three levels of usages:
 
-- _Basic_: operating on raw SQL statements and stored procedures.
-- _Model_: operating on specific table and fulfilling CRUD actions, as *Model* in MVC pattern.
-- _Schema_: operating on whole database schema and fulfilling RESTful and GraphQL actions.
+- _Basic_: operating on raw SQL statements including stored procedures.
+- _Model_: fulfilling CRUD actions as *Model* in MVC pattern on a table.
+- _Schema_: fulfilling RESTful and GraphQL actions on multiple tables.
 
 _godbi_ is an ideal replacement of ORM. It runs SQL, CRUD, RESTful and GraphQL tasks gracefully and very efficiently.
-The package is fully tested in MySQL and PostgreSQL, and assumed to work with other relational databases.
+The package is fully tested in MySQL and PostgreSQL.
 
 <br /><br />
 
@@ -46,8 +44,8 @@ package godbi
 
 type DBI struct {
     *sql.DB          // Note this is the pointer to the handle
-    LastID    int64  // read only, saves the last inserted id
-    Affected  int64  // read only, saves the affected rows
+    LastID    int64  // saves the last inserted id
+    Affected  int64  // saves the affected rows
 }
 
 ```
@@ -60,7 +58,7 @@ dbi := &DBI{DB: the_standard_sql_handle}
 
 #### 1.1.2) Example
 
-In this example, we create a MySQL handle using database credentials in the environment; then create a new table _letters_ and add 3 rows. We query the data using `SelectSQL` and put the result into `lists` as slice of maps.
+In this example, we create a MySQL handle using credentials in the environment; then create a new table _letters_ with 3 rows. We query the data using `SelectSQL` and put the result into `lists` as slice of maps.
 
 <details>
     <summary>Click for Sample 1</summary>
@@ -575,7 +573,7 @@ type Navigate interface {
     SetArgs(url.Values)                            // set http request data
     SetDB(*sql.DB)                                 // set the database handle
     GetAction(string)   func(...url.Values) error  // get function by action name
-    GetLists()          []map[string]interface{}   // get result after an action
+    CopyLists()          []map[string]interface{}   // get result after an action
 }
 ```
 
@@ -627,7 +625,7 @@ among multiple keys | AND conditions.
 After we have run an action on the model, we can retrieve data using
 
 ```go
-(*Model) GetLists()
+(*Model) CopyLists()
 ```
 
 The closure associated with the action name can be get back:
@@ -746,14 +744,14 @@ func main() {
     log.Println(model.LastID)
 
     if err := model.Topics(); err != nil { panic(err) }
-    log.Println(model.GetLists())
+    log.Println(model.CopyLists())
 
     args.Set("id","2")
     args["x"] = []string{"c"}
     args["y"] = []string{"z"}
     if err := model.Update(); err != nil { panic(err) }
     if err := model.Edit(); err != nil { panic(err) }
-    log.Println(model.GetLists())
+    log.Println(model.CopyLists())
 
     os.Exit(0)
 }

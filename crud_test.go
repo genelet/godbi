@@ -1,7 +1,6 @@
 package godbi
 
 import (
-	"net/url"
 	"testing"
 )
 
@@ -21,22 +20,19 @@ func TestCrudDb(t *testing.T) {
 	if ret != nil {
 		t.Errorf("create table atesting failed")
 	}
-	hash := make(url.Values)
-	hash.Set("x", "a")
-	hash.Set("y", "b")
+	hash := map[string]interface{}{"x":"a", "y":"b"}
 	ret = crud.insertHash(hash)
 	if crud.LastID != 1 {
 		t.Errorf("%d wanted", crud.LastID)
 	}
-	hash.Set("x", "c")
-	hash.Set("y", "d")
+	hash["x"] = "c"
+	hash["y"] = "d"
 	ret = crud.insertHash(hash)
 	id := crud.LastID
 	if id != 2 {
 		t.Errorf("%d wanted", id)
 	}
-	hash1 := make(url.Values)
-	hash1.Set("y", "z")
+	hash1 := map[string]interface{}{"y":"z"}
 	ret = crud.updateHash(hash1, []interface{}{id})
 	if ret != nil {
 		t.Errorf("%s update table testing failed", ret.Error())
@@ -88,7 +84,7 @@ func TestCrudDb(t *testing.T) {
 		t.Errorf("%d total table testing failed", what)
 	}
 
-	ret = crud.deleteHash(url.Values{"id": []string{"1"}})
+	ret = crud.deleteHash(map[string]interface{}{"id": 1})
 	if ret != nil {
 		t.Errorf("%s delete table testing failed", ret.Error())
 	}
@@ -113,17 +109,13 @@ func TestCrudDb(t *testing.T) {
 		t.Errorf("%s z wanted", string(lists[0]["y"].(string)))
 	}
 
-	hash = make(url.Values)
-	hash.Set("id", "2")
-	hash.Set("x", "a")
-	hash.Set("y", "b")
+	hash = map[string]interface{}{"id":"2", "x":"a", "y":"b"}
 	ret = crud.insertHash(hash)
 	if ret.Error() == "" {
 		t.Errorf("%s wanted", ret.Error())
 	}
 
-	hash1 = make(url.Values)
-	hash1.Set("y", "zz")
+	hash1 = map[string]interface{}{"y": "zz"}
 	ret = crud.updateHash(hash1, []interface{}{3})
 	if ret != nil {
 		t.Errorf("%s wanted", ret.Error())

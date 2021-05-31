@@ -2,7 +2,6 @@ package godbi
 
 import (
 	"encoding/json"
-	"net/url"
 	"regexp"
 	"strings"
 )
@@ -64,13 +63,16 @@ type Page struct {
 	RelateItem map[string]string `json:"relate_item,omitempty"`
 }
 
-func (self *Page) refresh(item map[string]interface{}, extra url.Values) (url.Values, bool) {
-	newExtra := extra
+func (self *Page) refresh(item, extra map[string]interface{}) (map[string]interface{}, bool) {
+	newExtra := make(map[string]interface{})
+	for k, v := range extra {
+		newExtra[k] = v
+	}
 	found := false
 	for k, v := range self.RelateItem {
 		if t, ok := item[k]; ok {
 			found = true
-			newExtra.Set(v, interface2String(t))
+			newExtra[v] = t
 			break
 		}
 	}
@@ -268,11 +270,11 @@ func selectType(selectPars interface{}) (string, []string, []string) {
 // 3) if key is "_gsql", it means a raw SQL statement.
 // 4) it is the AND condition between keys.
 //
-func selectCondition(extra url.Values, table ...string) (string, []interface{}) {
+func selectCondition(extra map[string]interface{}, table ...string) (string, []interface{}) {
 	sql := ""
 	values := make([]interface{}, 0)
 	i := 0
-	for field, value := range extra {
+	for field, valueInterface := range extra {
 		if i > 0 {
 			sql += " AND "
 		}
@@ -285,19 +287,35 @@ func selectCondition(extra url.Values, table ...string) (string, []interface{}) 
 				field = table[0] + "." + field
 			}
 		}
-		n := len(value)
-		if n > 1 {
+		switch value := valueInterface.(type) {
+		case []int:
+			n := len(value)
 			sql += field + " IN (" + strings.Join(strings.Split(strings.Repeat("?", n), ""), ",") + ")"
 			for _, v := range value {
 				values = append(values, v)
 			}
-		} else {
+		case []int64:
+			n := len(value)
+			sql += field + " IN (" + strings.Join(strings.Split(strings.Repeat("?", n), ""), ",") + ")"
+			for _, v := range value {
+				values = append(values, v)
+			}
+		case []string:
+			n := len(value)
+			sql += field + " IN (" + strings.Join(strings.Split(strings.Repeat("?", n), ""), ",") + ")"
+			for _, v := range value {
+				values = append(values, v)
+			}
+		case string:
 			if len(field) >= 5 && field[(len(field)-5):len(field)] == "_gsql" {
-				sql += value[0]
+				sql += value
 			} else {
 				sql += field + " =?"
-				values = append(values, value[0])
+				values = append(values, value)
 			}
+		default:
+			sql += field + " =?"
+			values = append(values, value)
 		}
 		sql += ")"
 	}
@@ -310,7 +328,7 @@ func selectCondition(extra url.Values, table ...string) (string, []interface{}) 
 // To select a single PK equaling to 1234, just use ids = []int{1234}
 // if PK has multiple columns, i.e. CurrentKeys exists, ids should be a slice of value arrays.
 //
-func (self *Table) singleCondition(ids []interface{}, extra ...url.Values) (string, []interface{}) {
+func (self *Table) singleCondition(ids []interface{}, extra ...map[string]interface{}) (string, []interface{}) {
 	sql := ""
 	extraValues := make([]interface{}, 0)
 
@@ -347,7 +365,7 @@ func (self *Table) singleCondition(ids []interface{}, extra ...url.Values) (stri
 		}
 	}
 
-	if hasValue(extra) {
+	if hasValue(extra) && hasValue(extra[0]) {
 		s, arr := selectCondition(extra[0])
 		sql += " AND " + s
 		for _, v := range arr {

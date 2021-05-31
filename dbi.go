@@ -62,11 +62,11 @@ func (self *DBI) DoSQL(query string, args ...interface{}) error {
 		return err
 	}
 
-	LastID, err := res.LastInsertId()
+	lastID, err := res.LastInsertId()
 	if err != nil {
 		return err
 	}
-	self.LastID = LastID
+	self.LastID = lastID
 	affected, err := res.RowsAffected()
 	if err != nil {
 		return err
@@ -344,6 +344,23 @@ func (self *DBI) pickup(rows *sql.Rows, lists *[]map[string]interface{}, typeLab
 func (self *DBI) GetSQLLabel(res map[string]interface{}, query string, selectLabels []string, args ...interface{}) error {
 	lists := make([]map[string]interface{}, 0)
 	if err := self.SelectSQLLabel(&lists, selectLabels, query, args...); err != nil {
+		return err
+	}
+	if len(lists) >= 1 {
+		for k, v := range lists[0] {
+			if v != nil {
+				res[k] = v
+			}
+		}
+	}
+	return nil
+}
+
+// GetSQL returns one row as map into 'res'.
+//
+func (self *DBI) GetSQL(res map[string]interface{}, query string, args ...interface{}) error {
+	lists := make([]map[string]interface{}, 0)
+	if err := self.SelectSQL(&lists, query, args...); err != nil {
 		return err
 	}
 	if len(lists) >= 1 {

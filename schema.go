@@ -3,7 +3,6 @@ package godbi
 import (
 	"database/sql"
 	"errors"
-	"net/url"
 )
 
 // Schema describes all models and actions in a database schema
@@ -13,21 +12,8 @@ type Schema struct {
 	Models map[string]Navigate
 }
 
-func NewSchema(s map[string]Navigate) *Schema {
-	return &Schema{nil, s}
-}
-
-func (self *Schema) SetDB(db *sql.DB) {
-	self.db = db
-}
-
-func (self *Schema) GetNavigate(model string, args url.Values) Navigate {
-	if model := self.Models[model]; model != nil {
-		model.SetDB(self.db)
-		model.SetArgs(args)
-		return model
-	}
-	return nil
+func NewSchema(db *sql.DB, s map[string]Navigate) *Schema {
+	return &Schema{db, s}
 }
 
 // Run runs action by model and action string names
@@ -36,11 +22,22 @@ func (self *Schema) GetNavigate(model string, args url.Values) Navigate {
 // extra: optional extra parameters
 // The output are data and optional error code
 //
-func (self *Schema) Run(model, action string, args url.Values, extra ...url.Values) ([]map[string]interface{}, error) {
-	modelObj := self.GetNavigate(model, args)
-	if modelObj == nil {
+func (self *Schema) Run(model, action string, args map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
+	modelObj, ok := self.Models[model]
+	if !ok {
 		return nil, errors.New("model not found in schema models")
 	}
+	nones := modelObj.nonePass()
+	if hasValue(extra) && hasValue(extra[0]) {
+		for _, item := range nones {
+			if fs, ok := extra[0][item]; ok {
+				args[item] = fs
+				delete(extra[0], item)
+			}
+		}
+	}
+	modelObj.SetDB(self.db)
+	modelObj.SetArgs(args)
 	act := modelObj.GetAction(action)
 	if act == nil {
 		return nil, errors.New("action not found in schema model")
@@ -49,12 +46,14 @@ func (self *Schema) Run(model, action string, args url.Values, extra ...url.Valu
 	if err := act(extra...); err != nil {
 		return nil, err
 	}
-	lists := modelObj.GetLists()
+	lists := modelObj.CopyLists()
 	modelArgs := modelObj.getArgs(true) // for nextpages to use
 	nextpages := modelObj.getNextpages(action)
 
-	modelObj.SetArgs(url.Values{})
+	modelObj.SetArgs(nil)
 	modelObj.SetDB(nil)
+	modelObj.cleanLists()
+
 
 	if !hasValue(lists) || nextpages == nil {
 		return lists, nil
@@ -64,13 +63,13 @@ func (self *Schema) Run(model, action string, args url.Values, extra ...url.Valu
 		if hasValue(extra) {
 			extra = extra[1:]
 		}
-		extra0 := url.Values{}
+		extra0 := make(map[string]interface{})
 		if hasValue(extra) {
 			extra0 = extra[0]
 		}
 		if page.Manual != nil {
 			for k, v := range page.Manual {
-				extra0.Set(k, v)
+				extra0[k] = v
 			}
 		}
 		for _, item := range lists {
@@ -78,7 +77,7 @@ func (self *Schema) Run(model, action string, args url.Values, extra ...url.Valu
 			if !ok {
 				continue
 			}
-			newExtras := []url.Values{newExtra0}
+			newExtras := []map[string]interface{}{newExtra0}
 			if hasValue(extra) {
 				newExtras = append(newExtras, extra[:1]...)
 			}
