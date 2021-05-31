@@ -133,11 +133,7 @@ func (self *Model) getArgs(is ...bool) map[string]interface{} {
 
 // SetArgs sets input data
 func (self *Model) SetArgs(args map[string]interface{}) {
-	if args==nil {
-		self.aARGS = make(map[string]interface{})
-	} else {
-		self.aARGS = args
-	}
+	self.aARGS = args
 }
 
 // getNextpages returns the next pages of an action
