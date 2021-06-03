@@ -137,7 +137,7 @@ func generalHashPars(TopicsHash map[string]interface{}, TopicsPars []interface{}
 		s2 := make(map[string][2]string)
 		s1 := make(map[string]string)
 		for k, vs := range TopicsHash {
-			if fields != nil && len(fields)>0 && !grep(fields, k) {
+			if fields != nil && !grep(fields, k) {
 				continue
 			}
 			switch v := vs.(type) {
@@ -149,33 +149,30 @@ func generalHashPars(TopicsHash map[string]interface{}, TopicsPars []interface{}
 		}
 		if len(s2) > 0 {
 			return s2
-		} else {
-			return s1
 		}
-	} else {
-		s2 := make([][2]string,0)
-		s1 := make([]string,0)
-		for _, vs := range TopicsPars {
-			switch v := vs.(type) {
-			case []interface{}:
-				if fields != nil && len(fields)>0 && !grep(fields, v[0].(string)) {
-					continue
-				}
-				s2 = append(s2, [2]string{v[0].(string), v[1].(string)})
-			default:
-				if fields != nil && len(fields)>0 && !grep(fields, v.(string)) {
-					continue
-				}
-				s1 = append(s1, v.(string))
+		return s1
+	}
+
+	s2 := make([][2]string,0)
+	s1 := make([]string,0)
+	for _, vs := range TopicsPars {
+		switch v := vs.(type) {
+		case []interface{}:
+			if fields != nil && !grep(fields, v[0].(string)) {
+				continue
 			}
-		}
-		if len(s2) > 0 {
-			return s2
-		} else {
-			return s1
+			s2 = append(s2, [2]string{v[0].(string), v[1].(string)})
+		default:
+			if fields != nil && !grep(fields, v.(string)) {
+				continue
+			}
+			s1 = append(s1, v.(string))
 		}
 	}
-	return nil
+	if len(s2) > 0 {
+		return s2
+	}
+	return s1
 }
 
 func newTable(content []byte) (*Table, error) {

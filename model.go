@@ -160,7 +160,6 @@ func (self *Model) filteredFields(pars []string) []string {
 	if !ok {
 		return pars
 	}
-
 	out := make([]string, 0)
 	for _, field := range fields.([]string) {
 		for _, v := range pars {

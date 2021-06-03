@@ -97,7 +97,7 @@ func TestSchema(t *testing.T) {
 	schema := NewSchema(db, map[string]Navigate{"s": model, "testing": st})
 
 	METHODS := map[string]string{"LIST":"topics", "GET":"edit", "POST":"insert", "PUT":"update", "PATCH":"insupd", "DELETE":"delete"}
-	lists, err := schema.Run("s", METHODS["LIST"], make(map[string]interface{}))
+	lists, err := schema.Run("s", METHODS["LIST"])
 	if err != nil {
 		panic(err)
 	}
@@ -110,6 +110,17 @@ func TestSchema(t *testing.T) {
 		relate[0]["child"].(string) != "john" {
 		t.Errorf("%#v", list0)
 		t.Errorf("%#v", relate)
+	}
+
+	lists, err = schema.Run("s", METHODS["LIST"], nil, nil, map[string]interface{}{"fields":[]string{"child","tid"}})
+	if err != nil {
+		panic(err)
+	}
+	// map[string]interface {}{"id":1, "testing_topics":[]map[string]interface {}{map[string]interface {}{"child":"john", "tid":1}, map[string]interface {}{"child":"sam", "tid":2}}, "x":"a1234567", "y":"b1234567"} 
+	list0 = lists[0]
+	relate = list0["testing_topics"].([]map[string]interface{})
+	if _, ok := relate[0]["id"]; ok {
+		t.Errorf("%#v", list0)
 	}
 
 	db.Close()

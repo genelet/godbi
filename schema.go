@@ -16,23 +16,30 @@ func NewSchema(db *sql.DB, s map[string]Navigate) *Schema {
 	return &Schema{db, s}
 }
 
-// Run runs action by model and action string names
-// args: the input data
-// db: the database handle
-// extra: optional extra parameters
-// The output are data and optional error code
+// Run runs action by model and action string names.
+// It returns the searched data and optional error code.
 //
-func (self *Schema) Run(model, action string, args map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
+// Model is the model name, and action the action name.
+// The first extra is the input data, shared by all sub actions.
+// The rest are specific data for each actions starting with the current one.
+//
+func (self *Schema) Run(model, action string, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
 	modelObj, ok := self.Models[model]
 	if !ok {
 		return nil, errors.New("model not found in schema models")
 	}
-	nones := modelObj.nonePass()
-	if hasValue(extra) && hasValue(extra[0]) {
-		for _, item := range nones {
-			if fs, ok := extra[0][item]; ok {
-				args[item] = fs
-				delete(extra[0], item)
+
+	var args map[string]interface{}
+	if hasValue(extra) {
+		args = extra[0]
+		extra = extra[1:] // shift immediately to make sure ARGS not in extra
+		nones := modelObj.nonePass() // move none passed pars to ARGS
+		if hasValue(extra[0]) {
+			for _, item := range nones {
+				if fs, ok := extra[0][item]; ok {
+					args[item] = fs
+					delete(extra[0], item)
+				}
 			}
 		}
 	}
@@ -77,11 +84,13 @@ func (self *Schema) Run(model, action string, args map[string]interface{}, extra
 			if !ok {
 				continue
 			}
-			newExtras := []map[string]interface{}{newExtra0}
+			//newExtras := []map[string]interface{}{newExtra0}
+			newExtras := []map[string]interface{}{modelArgs, newExtra0}
 			if hasValue(extra) {
 				newExtras = append(newExtras, extra[:1]...)
 			}
-			newLists, err := self.Run(page.Model, page.Action, modelArgs, newExtras...)
+			//newLists, err := self.Run(page.Model, page.Action, modelArgs, newExtras...)
+			newLists, err := self.Run(page.Model, page.Action, newExtras...)
 			if err != nil {
 				return nil, err
 			}

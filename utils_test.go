@@ -17,6 +17,9 @@ func TestUtils(t *testing.T) {
 	if grep(x, "abc") == false {
 		t.Errorf("%s matched", "abc")
 	}
+	if grep([]string{"child","tid"}, "tid")==false {
+		t.Errorf("%#v does not match %s", []string{"child","tid"}, "tid")
+	}
 	x1 := []interface{}{"a","b"}
 	x2 := map[string]interface{}{"a":"b"}
 	x3 := make([]interface{},0)
