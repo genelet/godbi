@@ -22,7 +22,6 @@ func TestModelSimple(t *testing.T) {
 	model.Totalno = "totalno"
 	model.Maxpageno = "max_pageno"
 	model.Fields = "fields"
-	model.Empties = "empties"
 
 	ret := model.execSQL(`drop table if exists testing`)
 	if ret != nil {

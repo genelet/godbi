@@ -102,6 +102,7 @@ type Table struct {
 	EditHash map[string]interface{} `json:"edit_hash,omitempty"`
 	// UpdatePars: the columns used for Update
 	UpdatePars []string `json:"update_pars,omitempty"`
+	Empties    []string `json:"empties,omitempty"`
 	// InsupdPars: combination of the columns gives uniqueness
 	InsupdPars []string `json:"insupd_pars,omitempty"`
 	// TopicsPars: the columns used for Read All
@@ -116,13 +117,12 @@ type Table struct {
 	// <-1	use ABS(TotalForce) as the total count
 	// -1	always calculate the total count
 	// 0	don't calculate the total count
-	// 0	calculate only if the total count is not passed in args
+	// 1	calculate only if the total count is not passed in args
 	TotalForce int `json:"total_force,omitempty"`
 
 	// Nextpages: defining how to call other models' actions
 	Nextpages map[string][]*Page `json:"nextpages,omitempty"`
 
-	Empties     string `json:"empties,omitempty"`
 	Fields      string `json:"fields,omitempty"`
 	Maxpageno   string `json:"maxpageno,omitempty"`
 	Totalno     string `json:"totalno,omitempty"`
@@ -247,9 +247,6 @@ func newTable(content []byte) (*Table, error) {
 	}
 	if parsed.Fields == "" {
 		parsed.Fields = "fields"
-	}
-	if parsed.Empties == "" {
-		parsed.Empties = "empties"
 	}
 
 	return parsed, nil

@@ -340,12 +340,7 @@ func (self *Model) Update(extra ...map[string]interface{}) error {
 		return nil
 	}
 
-	var err error
-	if self.Empties != "" && self.aARGS[self.Empties] != nil {
-		err = self.updateHashNulls(fieldValues, val, self.aARGS[self.Empties].([]string), extra...)
-	} else {
-		err = self.updateHashNulls(fieldValues, val, nil, extra...)
-	}
+	err := self.updateHashNulls(fieldValues, val, self.Empties, extra...)
 	if err != nil {
 		return err
 	}
