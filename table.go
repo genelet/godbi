@@ -10,17 +10,17 @@ import (
 //
 type Join struct {
 	// Name: the name of the table
-	Name string `json:"name"`
+	Name string `json:"name" hcl:"name,label"`
 	// Alias: the alias of the name
-	Alias string `json:"alias,omitempty"`
+	Alias string `json:"alias,omitempty" hcl:"alias,optional"`
 	// Type: INNER or LEFT, how the table if joined
-	Type string `json:"type,omitempty"`
+	Type string `json:"type,omitempty" hcl:"type,optional"`
 	// Using: optional, join by USING column name.
-	Using string `json:"using,omitempty"`
+	Using string `json:"using,omitempty" hcl:"using,optional"`
 	// On: optional, join by ON condition
-	On string `json:"on,omitempty"`
+	On string `json:"on,omitempty" hcl:"on,optional"`
 	// Sortby: optional, column to sort, only applied to the first table
-	Sortby string `json:"sortby,omitempty"`
+	Sortby string `json:"sortby,omitempty" hcl:"sortby,optional"`
 }
 
 // joinString outputs the joined SQL statements from multiple tables.
@@ -361,6 +361,14 @@ func selectCondition(extra map[string]interface{}, table ...string) (string, []i
 	}
 
 	return sql, values
+}
+
+func (self *Table) SetTopicsPars(newPars interface{}) {
+	self.topicsHashPars = newPars
+}
+
+func (self *Table) SetEditPars(newPars interface{}) {
+	self.editHashPars = newPars
 }
 
 // singleCondition returns WHERE constrains in existence of ids.
