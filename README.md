@@ -519,7 +519,7 @@ type Page struct {
     Model      string            `json:"model"`                 // name of the next model to call  
     Action     string            `json:"action"`                // action name of the next model
     RelateItem map[string]string `json:"relate_item,omitempty"` // column name mapped to that of the next model
-    Manual     map[string]string `json:"manual,omitempty"`      // manually assign these constraints
+    Extra      map[string]string `json:"extra,omitempty"`      // manually assign these constraints
 }
 ```
 

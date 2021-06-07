@@ -34,7 +34,7 @@ func (self *Schema) Run(model, action string, extra ...map[string]interface{}) (
 		args = extra[0]
 		extra = extra[1:] // shift immediately to make sure ARGS not in extra
 		nones := modelObj.nonePass() // move none passed pars to ARGS
-		if hasValue(extra[0]) {
+		if hasValue(extra) && hasValue(extra[0]) {
 			for _, item := range nones {
 				if fs, ok := extra[0][item]; ok {
 					args[item] = fs
@@ -74,8 +74,8 @@ func (self *Schema) Run(model, action string, extra ...map[string]interface{}) (
 		if hasValue(extra) {
 			extra0 = extra[0]
 		}
-		if page.Manual != nil {
-			for k, v := range page.Manual {
+		if page.Extra != nil { // use name Extra instead of Manual
+			for k, v := range page.Extra {
 				extra0[k] = v
 			}
 		}

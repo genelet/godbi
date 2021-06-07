@@ -59,7 +59,7 @@ func (self *Join) getAlias() string {
 type Page struct {
 	Model      string            `json:"model"`
 	Action     string            `json:"action"`
-	Manual     map[string]string `json:"manual,omitempty"`
+	Extra      map[string]string `json:"extra,omitempty"`
 	RelateItem map[string]string `json:"relate_item,omitempty"`
 }
 
@@ -173,6 +173,49 @@ func generalHashPars(TopicsHash map[string]interface{}, TopicsPars []interface{}
 		return s2
 	}
 	return s1
+}
+
+func filterPars(selectPars interface{}, fields []string) interface{} {
+	if fields == nil || selectPars == nil {
+		return nil
+	}
+
+	switch vs := selectPars.(type) {
+	case []string:
+		labels := make([]string, 0)
+		for _, v := range vs {
+			if grep(fields, v) {
+				labels = append(labels, v)
+			}
+		}
+		return labels
+	case [][2]string:
+		labels := make([][2]string, 0)
+		for _, v := range vs {
+			if grep(fields, v[0]) {
+				labels = append(labels, v)
+			}
+		}
+		return labels
+	case map[string]string:
+		labels := make(map[string]string, 0)
+		for key, val := range vs {
+			if grep(fields, val) {
+				labels[key] = val
+			}
+		}
+		return labels
+	case map[string][2]string:
+		labels := make(map[string][2]string, 0)
+		for key, val := range vs {
+			if grep(fields, val[0]) {
+				labels[key] = val
+			}
+		}
+		return labels
+	default:
+	}
+	return nil
 }
 
 func newTable(content []byte) (*Table, error) {

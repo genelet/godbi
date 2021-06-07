@@ -238,7 +238,7 @@ func (self *Model) Topics(extra ...map[string]interface{}) error {
 
 	hashPars := self.topicsHashPars
     if fields, ok := self.aARGS[self.Fields]; ok {
-        hashPars = generalHashPars(self.TopicsHash, self.TopicsPars, fields.([]string))
+        hashPars = filterPars(hashPars, fields.([]string))
     }
 
 	self.aLISTS = make([]map[string]interface{}, 0)
@@ -251,7 +251,7 @@ func (self *Model) Edit(extra ...map[string]interface{}) error {
 	val := self.getIdVal(extra...)
 	hashPars := self.editHashPars
     if fields, ok := self.aARGS[self.Fields]; ok {
-        hashPars = generalHashPars(self.EditHash, self.EditPars, fields.([]string))
+        hashPars = filterPars(hashPars, fields.([]string))
     }
 	if !hasValue(val) {
 		return errors.New("pk value not provided")
