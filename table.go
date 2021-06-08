@@ -57,10 +57,10 @@ func (self *Join) getAlias() string {
 // Manual: constraint conditions manually assigned
 // RelateItem: current page's column versus next page's column. The value is forced as constraint.
 type Page struct {
-	Model      string            `json:"model"`
-	Action     string            `json:"action"`
-	Extra      map[string]string `json:"extra,omitempty"`
-	RelateItem map[string]string `json:"relate_item,omitempty"`
+	Model      string            `json:"model" hcl:"model,label"`
+	Action     string            `json:"action" hcl:"action,label"`
+	Extra      map[string]string `json:"extra,omitempty" hcl:"extra,optional"`
+	RelateItem map[string]string `json:"relate_item,omitempty" hcl:"related"`
 }
 
 func (self *Page) refresh(item, extra map[string]interface{}) (map[string]interface{}, bool) {
