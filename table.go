@@ -60,7 +60,7 @@ type Page struct {
 	Model      string            `json:"model" hcl:"model,label"`
 	Action     string            `json:"action" hcl:"action,label"`
 	Extra      map[string]string `json:"extra,omitempty" hcl:"extra,optional"`
-	RelateItem map[string]string `json:"relate_item,omitempty" hcl:"related"`
+	RelateItem map[string]string `json:"relate_item,omitempty" hcl:"relate_item"`
 }
 
 func (self *Page) refresh(item, extra map[string]interface{}) (map[string]interface{}, bool) {
