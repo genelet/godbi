@@ -8,7 +8,7 @@ import (
 // Schema describes all models and actions in a database schema
 //
 type Schema struct {
-	db     *sql.DB
+	*sql.DB
 	Models map[string]Navigate
 }
 
@@ -43,7 +43,7 @@ func (self *Schema) Run(model, action string, extra ...map[string]interface{}) (
 			}
 		}
 	}
-	modelObj.SetDB(self.db)
+	modelObj.SetDB(self.DB)
 	modelObj.SetArgs(args)
 	act := modelObj.GetAction(action)
 	if act == nil {
