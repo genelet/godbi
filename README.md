@@ -573,7 +573,7 @@ type Navigate interface {
     SetArgs(url.Values)                            // set http request data
     SetDB(*sql.DB)                                 // set the database handle
     GetAction(string)   func(...url.Values) error  // get function by action name
-    CopyLists()          []map[string]interface{}   // get result after an action
+    GetLists()          []map[string]interface{}   // get result after an action
 }
 ```
 
@@ -625,7 +625,7 @@ among multiple keys | AND conditions.
 After we have run an action on the model, we can retrieve data using
 
 ```go
-(*Model) CopyLists()
+(*Model) GetLists()
 ```
 
 The closure associated with the action name can be get back:
@@ -744,14 +744,14 @@ func main() {
     log.Println(model.LastID)
 
     if err := model.Topics(); err != nil { panic(err) }
-    log.Println(model.CopyLists())
+    log.Println(model.GetLists())
 
     args.Set("id","2")
     args["x"] = []string{"c"}
     args["y"] = []string{"z"}
     if err := model.Update(); err != nil { panic(err) }
     if err := model.Edit(); err != nil { panic(err) }
-    log.Println(model.CopyLists())
+    log.Println(model.GetLists())
 
     os.Exit(0)
 }

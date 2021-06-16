@@ -5,15 +5,31 @@ import (
 	"errors"
 )
 
-// Schema describes all models and actions in a database schema
+// Navigate is interface to implement Model
 //
-type Schema struct {
+type Navigate interface {
+	// NonePass: keys in restriction extra which should not be passed to the nextpage but assign to this args only
+	NonePass() []string
+
+	// SetArgs: set new input
+	SetArgs(map[string]interface{})
+
+	// SetDB: set SQL handle
+	SetDB(*sql.DB)
+
+	// RunAction runs action by name with optional restrictions
+	RunAction(string, ...map[string]interface{}) ([]map[string]interface{}, map[string]interface{}, []*Page, error)
+}
+
+// Graph describes all models and actions in a database schema
+//
+type Graph struct {
 	*sql.DB
 	Models map[string]Navigate
 }
 
-func NewSchema(db *sql.DB, s map[string]Navigate) *Schema {
-	return &Schema{db, s}
+func NewGraph(db *sql.DB, s map[string]Navigate) *Graph {
+	return &Graph{db, s}
 }
 
 // Run runs action by model and action string names.
@@ -23,7 +39,7 @@ func NewSchema(db *sql.DB, s map[string]Navigate) *Schema {
 // The first extra is the input data, shared by all sub actions.
 // The rest are specific data for each actions starting with the current one.
 //
-func (self *Schema) Run(model, action string, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
+func (self *Graph) Run(model, action string, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
 	modelObj, ok := self.Models[model]
 	if !ok {
 		return nil, errors.New("model not found in schema models")
@@ -33,7 +49,7 @@ func (self *Schema) Run(model, action string, extra ...map[string]interface{}) (
 	if hasValue(extra) {
 		args = extra[0]
 		extra = extra[1:] // shift immediately to make sure ARGS not in extra
-		nones := modelObj.nonePass() // move none passed pars to ARGS
+		nones := modelObj.NonePass() // move none passed pars to ARGS
 		if hasValue(extra) && hasValue(extra[0]) {
 			for _, item := range nones {
 				if fs, ok := extra[0][item]; ok {
@@ -43,24 +59,15 @@ func (self *Schema) Run(model, action string, extra ...map[string]interface{}) (
 			}
 		}
 	}
+
 	modelObj.SetDB(self.DB)
 	modelObj.SetArgs(args)
-	act := modelObj.GetAction(action)
-	if act == nil {
-		return nil, errors.New("action not found in schema model")
-	}
-
-	if err := act(extra...); err != nil {
-		return nil, err
-	}
-	lists := modelObj.CopyLists()
-	modelArgs := modelObj.getArgs(true) // for nextpages to use
-	nextpages := modelObj.getNextpages(action)
-
+	lists, modelArgs, nextpages, err := modelObj.RunAction(action, extra...)
 	modelObj.SetArgs(nil)
 	modelObj.SetDB(nil)
-	modelObj.cleanLists()
-
+	if err != nil {
+		return nil, err
+	}
 
 	if !hasValue(lists) || nextpages == nil {
 		return lists, nil

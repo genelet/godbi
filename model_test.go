@@ -61,7 +61,7 @@ func TestModelSimple(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	LISTS := model.CopyLists()
+	LISTS := model.GetLists()
 	if len(LISTS) != 2 {
 		t.Errorf("%d 2 columns wanted, %v", len(LISTS), LISTS)
 	}
@@ -77,7 +77,7 @@ func TestModelSimple(t *testing.T) {
 		t.Errorf("%s update table testing failed", ret.Error())
 	}
 
-	LISTS = model.CopyLists()
+	LISTS = model.GetLists()
 	ret = model.Edit()
 	if ret != nil {
 		t.Errorf("%s edit table testing failed", ret.Error())
@@ -93,7 +93,7 @@ func TestModelSimple(t *testing.T) {
 	}
 
 	ret = model.Topics()
-	LISTS = model.CopyLists()
+	LISTS = model.GetLists()
 	if ret != nil {
 		panic(ret)
 	}
@@ -120,7 +120,7 @@ func TestModelSimple(t *testing.T) {
 	}
 
 	ret = model.Topics()
-	LISTS = model.CopyLists()
+	LISTS = model.GetLists()
 	if ret != nil {
 		t.Errorf("%s select table testing failed", ret.Error())
 	}
@@ -158,7 +158,7 @@ func TestModelSimple(t *testing.T) {
 		args["x"] = "a"
 		args["y"] = "b"
 		ret = model.Insert()
-		LISTS = model.CopyLists()
+		LISTS = model.GetLists()
 		if ret != nil {
 			t.Errorf("%s insert table testing failed", ret.Error())
 		}
@@ -171,7 +171,7 @@ func TestModelSimple(t *testing.T) {
 		args["id"] = strconv.Itoa(i)
 		args["y"] = "c"
 		ret = model.Update()
-		LISTS = model.CopyLists()
+		LISTS = model.GetLists()
 		if ret != nil {
 			t.Errorf("%s update table testing failed", ret.Error())
 		}
@@ -186,7 +186,7 @@ func TestModelSimple(t *testing.T) {
 	for i := 1; i < 100; i++ {
 		args["id"] = strconv.Itoa(i)
 		ret = model.Edit()
-		LISTS = model.CopyLists()
+		LISTS = model.GetLists()
 		if ret != nil {
 			t.Errorf("%s edit table testing failed", ret.Error())
 		}
@@ -202,7 +202,7 @@ func TestModelSimple(t *testing.T) {
 	args["rowcount"] = 20
 	model.TotalForce = -1
 	ret = model.Topics()
-	LISTS = model.CopyLists()
+	LISTS = model.GetLists()
 	if ret != nil {
 		t.Errorf("%s edit table testing failed", ret.Error())
 	}
@@ -224,7 +224,7 @@ func TestModelSimple(t *testing.T) {
 	args["pageno"] = 3
 	args["rowcount"] = 20
 	ret = model.Topics()
-	LISTS = model.CopyLists()
+	LISTS = model.GetLists()
 	if ret != nil {
 		t.Errorf("%s topics table testing failed", ret.Error())
 	}
@@ -237,7 +237,7 @@ func TestModelSimple(t *testing.T) {
 	for i := 1; i < 100; i++ {
 		args["id"] = strconv.Itoa(i)
 		ret = model.Delete(map[string]interface{}{"id": args["id"]})
-		LISTS = model.CopyLists()
+		LISTS = model.GetLists()
 		if ret != nil {
 			t.Errorf("%s delete table testing failed", ret.Error())
 		}
@@ -318,7 +318,7 @@ func TestModel(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	lists := model.CopyLists()
+	lists := model.GetLists()
 	if len(lists) != 20 {
 		t.Errorf("%d records returned from topics", len(lists))
 	}

@@ -10,40 +10,11 @@ import (
 	"strings"
 )
 
-// Navigate is interface to implement Model
-//
-type Navigate interface {
-	// GetAction: get an action function by name
-	GetAction(string) func(...map[string]interface{}) error
-
-	// CopyLists: get the main data
-	CopyLists() []map[string]interface{}
-
-	// clentLists: empty main data
-	cleanLists()
-
-	// getArgs: get ARGS; pass "true" for nextpages
-	getArgs(...bool) map[string]interface{}
-
-	// nonePass: keys that should not be passed to the nextpage but assign to this args only
-	nonePass() []string
-
-	// SetArgs: set new input
-	SetArgs(map[string]interface{})
-
-	// getNextpages: get the nextpages
-	getNextpages(string) []*Page
-
-	// SetDB: set SQL handle
-	SetDB(*sql.DB)
-}
-
 // Model works on table's CRUD in web applications.
 //
 type Model struct {
 	DBI
 	Table
-	Navigate
 
 	// Actions: map between name and action functions
 	Actions map[string]func(...map[string]interface{}) error `json:"-"`
@@ -87,48 +58,12 @@ func (self *Model) SetDefaultActions() {
     self.Actions = actions
 }
 
-// CopyLists get main data as slice of mapped row
-func (self *Model) CopyLists() []map[string]interface{} {
-	if self.aLISTS == nil {
-		return nil
-	}
-	lists := make([]map[string]interface{}, 0)
-	for _, item := range self.aLISTS {
-		lists = append(lists, item)
-	}
-	return lists
+func (self *Model) GetLists() []map[string]interface{} {
+	return self.aLISTS
 }
 
-func (self *Model) cleanLists() {
-	self.aLISTS = nil
-}
-
-func (self *Model) nonePass() []string {
+func (self *Model) NonePass() []string {
 	return []string{self.Fields, self.Sortby, self.Sortreverse, self.Rowcount, self.Totalno, self.Pageno, self.Maxpageno}
-}
-
-// GetAction returns action's function
-func (self *Model) GetAction(action string) func(...map[string]interface{}) error {
-	if act, ok := self.Actions[action]; ok {
-		return act
-	}
-
-	return nil
-}
-
-// getArgs returns the input data which may have extra keys added
-// pass true will turn off those pagination data
-func (self *Model) getArgs(is ...bool) map[string]interface{} {
-	args := make(map[string]interface{})
-	nones := self.nonePass()
-	for k, v := range self.aARGS {
-		if is != nil && is[0] && grep(nones, k) {
-			continue
-		}
-		args[k] = v
-	}
-
-	return args
 }
 
 // SetArgs sets input data
@@ -136,22 +71,39 @@ func (self *Model) SetArgs(args map[string]interface{}) {
 	self.aARGS = args
 }
 
-// getNextpages returns the next pages of an action
-func (self *Model) getNextpages(action string) []*Page {
-	if !hasValue(self.Nextpages) {
-		return nil
-	}
-	nps, ok := self.Nextpages[action]
-	if !ok {
-		return nil
-	}
-	return nps
-}
-
 // SetDB sets the DB handle
 func (self *Model) SetDB(db *sql.DB) {
 	self.DB = db
 	self.aLISTS = make([]map[string]interface{}, 0)
+}
+
+func (self *Model) RunAction(action string, extra ...map[string]interface{}) ([]map[string]interface{}, map[string]interface{}, []*Page, error) {
+	act, ok := self.Actions[action]
+	if !ok {
+        return nil, nil, nil, errors.New("action not found in graph")
+	}
+
+	if err := act(extra...); err != nil {
+        return nil, nil, nil, err
+	}
+
+	modelArgs := make(map[string]interface{})
+	nones := self.NonePass()
+	for k, v := range self.aARGS {
+		if grep(nones, k) {
+			continue
+		}
+		modelArgs[k] = v
+	}
+
+	var nextpages []*Page
+	if hasValue(self.Nextpages) {
+		if nps, ok := self.Nextpages[action]; ok {
+			nextpages = nps
+		}
+	}
+
+	return self.aLISTS, modelArgs, nextpages, nil
 }
 
 func (self *Model) filteredFields(pars []string) []string {

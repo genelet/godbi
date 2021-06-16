@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestSchema(t *testing.T) {
+func TestGraph(t *testing.T) {
 	db, err := getdb()
 	if err != nil {
 		panic(err)
@@ -94,10 +94,10 @@ func TestSchema(t *testing.T) {
 		panic(err)
 	}
 
-	schema := NewSchema(db, map[string]Navigate{"s": model, "testing": st})
+	graph := NewGraph(db, map[string]Navigate{"s": model, "testing": st})
 
 	METHODS := map[string]string{"LIST":"topics", "GET":"edit", "POST":"insert", "PUT":"update", "PATCH":"insupd", "DELETE":"delete"}
-	lists, err := schema.Run("s", METHODS["LIST"])
+	lists, err := graph.Run("s", METHODS["LIST"])
 	if err != nil {
 		panic(err)
 	}
@@ -112,7 +112,7 @@ func TestSchema(t *testing.T) {
 		t.Errorf("%#v", relate)
 	}
 
-	lists, err = schema.Run("s", METHODS["LIST"], nil, nil, map[string]interface{}{"fields":[]string{"child","tid"}})
+	lists, err = graph.Run("s", METHODS["LIST"], nil, nil, map[string]interface{}{"fields":[]string{"child","tid"}})
 	if err != nil {
 		panic(err)
 	}
