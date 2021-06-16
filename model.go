@@ -16,8 +16,6 @@ type Model struct {
 	DBI
 	Table
 
-	// Actions: map between name and action functions
-	Actions map[string]func(...map[string]interface{}) error `json:"-"`
 	// Updated: for Insupd only, indicating if the row is updated or new
 	Updated bool
 
@@ -43,19 +41,7 @@ func NewModel(filename string) (*Model, error) {
 	}
 	model := &Model{Table:*table}
 	model.SetArgs(nil)
-	model.SetDefaultActions()
 	return model, nil
-}
-
-func (self *Model) SetDefaultActions() {
-    actions := make(map[string]func(...map[string]interface{})error)
-    actions["topics"] = func(args ...map[string]interface{}) error { return self.Topics(args...) }
-    actions["edit"]   = func(args ...map[string]interface{}) error { return self.Edit(args...) }
-    actions["insert"] = func(args ...map[string]interface{}) error { return self.Insert(args...) }
-    actions["update"] = func(args ...map[string]interface{}) error { return self.Update(args...) }
-    actions["insupd"] = func(args ...map[string]interface{}) error { return self.Insupd(args...) }
-    actions["delete"] = func(args ...map[string]interface{}) error { return self.Delete(args...) }
-    self.Actions = actions
 }
 
 func (self *Model) GetLists() []map[string]interface{} {
@@ -78,12 +64,25 @@ func (self *Model) SetDB(db *sql.DB) {
 }
 
 func (self *Model) RunAction(action string, extra ...map[string]interface{}) ([]map[string]interface{}, map[string]interface{}, []*Page, error) {
-	act, ok := self.Actions[action]
-	if !ok {
+	var err error
+	switch action {
+	case "topics", "LIST":
+		err = self.Topics(extra...)
+	case "edit", "GET":
+		err = self.Edit(extra...)
+	case "insert", "POST":
+		err = self.Insert(extra...)
+	case "update", "PUT":
+		err = self.Update(extra...)
+	case "insupd", "PATCH":
+		err = self.Insupd(extra...)
+	case "delete", "DELETE":
+		err = self.Delete(extra...)
+	default:
         return nil, nil, nil, errors.New("action not found in graph")
 	}
 
-	if err := act(extra...); err != nil {
+	if err != nil {
         return nil, nil, nil, err
 	}
 
@@ -260,7 +259,7 @@ func (self *Model) Insupd(extra ...map[string]interface{}) error {
 
 	uniques := self.InsupdPars
 	if !hasValue(uniques) {
-		return errors.New("unique key value not found")
+		return errors.New("unique key value not found in model")
 	}
 
 	if err := self.insupdTable(fieldValues, uniques); err != nil {
