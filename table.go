@@ -110,8 +110,8 @@ type Table struct {
 	// TopicsHash: a map between SQL columns and output keys
 	TopicsHash map[string]interface{} `json:"topics_hash,omitempty"`
 
-	editHashPars interface{}
-	topicsHashPars interface{}
+	editHashPars map[string]interface{}
+	topicsHashPars map[string]interface{}
 
 	// TotalForce controls how the total number of rows be calculated for Topics
 	// <-1	use ABS(TotalForce) as the total count
@@ -132,19 +132,20 @@ type Table struct {
 	Sortby      string `json:"sortby,omitempty"`
 }
 
-func generalHashPars(TopicsHash map[string]interface{}, TopicsPars []interface{}, fields []string) interface{} {
+func generalHashPars(TopicsHash map[string]interface{}, TopicsPars []interface{}, fields []string) map[string]interface{} {
+	s1 := make(map[string]interface{})
+	s2 := make(map[string]interface{})
+
 	if hasValue(TopicsHash) {
-		s2 := make(map[string][2]string)
-		s1 := make(map[string]string)
 		for k, vs := range TopicsHash {
 			if fields != nil && !grep(fields, k) {
 				continue
 			}
 			switch v := vs.(type) {
 			case []interface{}:
-				s2[k] = [2]string{v[0].(string), v[1].(string)}
+				s2[k] = v
 			default:
-				s1[k] = v.(string)
+				s1[k] = []interface{}{v.(string), ""}
 			}
 		}
 		if len(s2) > 0 {
@@ -153,20 +154,20 @@ func generalHashPars(TopicsHash map[string]interface{}, TopicsPars []interface{}
 		return s1
 	}
 
-	s2 := make([][2]string,0)
-	s1 := make([]string,0)
 	for _, vs := range TopicsPars {
 		switch v := vs.(type) {
 		case []interface{}:
 			if fields != nil && !grep(fields, v[0].(string)) {
 				continue
 			}
-			s2 = append(s2, [2]string{v[0].(string), v[1].(string)})
+			name := v[0].(string)
+			s2[name] = []interface{}{name, v[1].(string)}
 		default:
 			if fields != nil && !grep(fields, v.(string)) {
 				continue
 			}
-			s1 = append(s1, v.(string))
+			name := v.(string)
+			s1[name] = []interface{}{name, ""}
 		}
 	}
 	if len(s2) > 0 {
@@ -175,47 +176,18 @@ func generalHashPars(TopicsHash map[string]interface{}, TopicsPars []interface{}
 	return s1
 }
 
-func filterPars(selectPars interface{}, fields []string) interface{} {
+func filterPars(selectPars map[string]interface{}, fields []string) map[string]interface{} {
 	if fields == nil || selectPars == nil {
 		return nil
 	}
 
-	switch vs := selectPars.(type) {
-	case []string:
-		labels := make([]string, 0)
-		for _, v := range vs {
-			if grep(fields, v) {
-				labels = append(labels, v)
-			}
+	labels := make(map[string]interface{})
+	for key, val := range selectPars {
+		if grep(fields, key) {
+			labels[key] = val
 		}
-		return labels
-	case [][2]string:
-		labels := make([][2]string, 0)
-		for _, v := range vs {
-			if grep(fields, v[0]) {
-				labels = append(labels, v)
-			}
-		}
-		return labels
-	case map[string]string:
-		labels := make(map[string]string, 0)
-		for key, val := range vs {
-			if grep(fields, val) {
-				labels[key] = val
-			}
-		}
-		return labels
-	case map[string][2]string:
-		labels := make(map[string][2]string, 0)
-		for key, val := range vs {
-			if grep(fields, val[0]) {
-				labels[key] = val
-			}
-		}
-		return labels
-	default:
 	}
-	return nil
+	return labels
 }
 
 func newTable(content []byte) (*Table, error) {
@@ -252,53 +224,21 @@ func newTable(content []byte) (*Table, error) {
 	return parsed, nil
 }
 
-// selectType returns variables' SELECT sql string, labels and types. 4 cases of interface{}
-// []string{name}	just a list of column names
-// [][2]string{name, type}	a list of column names and associated data types
-// map[string]string{name: label}	rename the column names by labels
-// map[string][2]string{name: label, type}	rename the column names to labels and use the specific types
+// selectType returns variables' SELECT sql string and labels as []interface{}
+// which can be used in SelectSQL
 //
-func selectType(selectPars interface{}) (string, []string, []string) {
+func selectType(selectPars map[string]interface{}) (string, []interface{}) {
 	if selectPars == nil {
-		return "", nil, nil
+		return "", nil
 	}
 
-	switch vs := selectPars.(type) {
-	case []string:
-		labels := make([]string, 0)
-		for _, v := range vs {
-			labels = append(labels, v)
-		}
-		return strings.Join(labels, ", "), labels, nil
-	case [][2]string:
-		labels := make([]string, 0)
-		types := make([]string, 0)
-		for _, v := range vs {
-			labels = append(labels, v[0])
-			types = append(labels, v[1])
-		}
-		return strings.Join(labels, ", "), labels, types
-	case map[string]string:
-		labels := make([]string, 0)
-		keys := make([]string, 0)
-		for key, val := range vs {
-			keys = append(keys, key)
-			labels = append(labels, val)
-		}
-		return strings.Join(keys, ", "), labels, nil
-	case map[string][2]string:
-		labels := make([]string, 0)
-		keys := make([]string, 0)
-		types := make([]string, 0)
-		for key, val := range vs {
-			keys = append(keys, key)
-			labels = append(labels, val[0])
-			types = append(labels, val[1])
-		}
-		return strings.Join(keys, ", "), labels, types
-	default:
+	keys   := make([]string, 0)
+	labels := make([]interface{}, 0)
+	for key, val := range selectPars {
+		keys = append(keys, key)
+		labels = append(labels, val)
 	}
-	return selectPars.(string), []string{selectPars.(string)}, nil
+	return strings.Join(keys, ", "), labels
 }
 
 // selectCondition returns the WHERE constraint
@@ -360,11 +300,11 @@ func selectCondition(extra map[string]interface{}, table ...string) (string, []i
 	return sql, values
 }
 
-func (self *Table) SetTopicsPars(newPars interface{}) {
+func (self *Table) SetTopicsPars(newPars map[string]interface{}) {
 	self.topicsHashPars = newPars
 }
 
-func (self *Table) SetEditPars(newPars interface{}) {
+func (self *Table) SetEditPars(newPars map[string]interface{}) {
 	self.editHashPars = newPars
 }
 

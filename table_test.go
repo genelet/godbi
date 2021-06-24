@@ -18,13 +18,15 @@ func TestTable1(t *testing.T) {
 	table, err := newTable([]byte(str))
 	if err != nil { t.Fatal(err) }
 
-	x := table.editHashPars.([]string)
-	if x[0] != "x" {
-		t.Errorf("%#v", table.editHashPars)
+	x := table.editHashPars
+	e := x["x"].([]interface{})
+	if e[0].(string) != "x" {
+		t.Errorf("%#v", x)
 	}
-	y := table.topicsHashPars.([][2]string)
-	if y[0][0]!="id" || y[0][1]!="int" {
-		t.Errorf("%#v", table.topicsHashPars)
+	y := table.topicsHashPars
+	id:= y["id"].([]interface{})
+	if id[0].(string)!="id" || id[1].(string)!="int" {
+		t.Errorf("%#v", y)
 	}
 }
 
@@ -41,13 +43,15 @@ func TestTable2(t *testing.T) {
     "topics_hash" : {"x1":["x","string"],"y1":["y","string"],"id1":["id","int"]} }`
 	table, err := newTable([]byte(str))
 	if err != nil { t.Fatal(err) }
-	x := table.editHashPars.(map[string]string)
-	if x["x1"] != "x" {
-		t.Errorf("%#v", table.editHashPars)
+	x := table.editHashPars
+	x1 := x["x1"].([]interface{})
+	if x1[0].(string) != "x" {
+		t.Errorf("%#v", x)
 	}
-	y := table.topicsHashPars.(map[string][2]string)
-	if y["id1"][0]!="id" || y["id1"][1]!="int" {
-		t.Errorf("%#v", table.topicsHashPars)
+	y := table.topicsHashPars
+	id:= y["id1"].([]interface{})
+	if id[0].(string)!="id" || id[1].(string)!="int" {
+		t.Errorf("%#v", x)
 	}
 }
 
@@ -73,40 +77,41 @@ LEFT JOIN user_table t USING (tableid)` {
 }
 
 func TestCrudStr(t *testing.T) {
-	selectPar := "firstname"
-	sql, labels, types := selectType(selectPar)
+	selectPar := generalHashPars(nil, []interface{}{"firstname"}, []string{"firstname"})
+	sql, labels := selectType(selectPar)
 	if sql != "firstname" {
 		t.Errorf("%s wanted", sql)
 	}
-	if labels[0] != "firstname" {
-		t.Errorf("%s wanted", labels[0])
+	f := labels[0].([]interface{})
+	if f[0].(string) != "firstname" {
+		t.Errorf("%s wanted", labels)
 	}
-	if types != nil {
-		t.Errorf("%v wanted", types)
+	if f[1].(string) != "" {
+		t.Errorf("%v wanted", labels)
 	}
 
-	selectPars := []string{"firstname", "lastname", "id"}
-	sql, labels, types = selectType(selectPars)
-	if sql != "firstname, lastname, id" {
+	selectPars := generalHashPars(nil, []interface{}{"firstname", "lastname", "id"}, []string{"firstname", "lastname", "id"})
+	sql, labels = selectType(selectPars)
+	if !(strings.Contains(sql, "firstname") && strings.Contains(sql, "lastname") && strings.Contains(sql, "id")) {
 		t.Errorf("%s wanted", sql)
 	}
-	if labels[0] != "firstname" {
-		t.Errorf("%s wanted", labels[0])
+	f = labels[0].([]interface{})
+	if !(f[0].(string) == "firstname" || f[0].(string) == "id" || f[0].(string) == "lastname") {
+		t.Errorf("%s wanted", labels)
 	}
-	if types != nil {
-		t.Errorf("%v wanted", types)
+	if f[1].(string) != "" {
+		t.Errorf("%v wanted", labels)
 	}
 
-	selectHash := map[string]string{"firstname": "First", "lastname": "Last", "id": "ID"}
-	sql, labels, types = selectType(selectHash)
+	selectHash := map[string]interface{}{"firstname": []interface{}{"First", "string"}, "lastname": []interface{}{"Last", "string"}, "id": []interface{}{"ID", "int"}}
+	sql, labels = selectType(selectHash)
 	if !strings.Contains(sql, "firstname") {
 		t.Errorf("%s wanted", sql)
 	}
-	if types != nil {
-		t.Errorf("%s wanted", types)
-	}
-	if !grep(labels, "First") {
-		t.Errorf("%s wanted", labels)
+	f = labels[0].([]interface{})
+	str := f[0].(string)
+	if !(str=="First" || str=="Last" || str=="ID")  {
+		t.Errorf("%v wanted", labels)
 	}
 
 	extra := map[string]interface{}{"firstname": "Peter"}

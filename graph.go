@@ -1,6 +1,7 @@
 package godbi
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 )
@@ -18,7 +19,7 @@ type Navigate interface {
 	SetDB(*sql.DB)
 
 	// RunAction runs action by name with optional restrictions
-	RunAction(string, ...map[string]interface{}) ([]map[string]interface{}, map[string]interface{}, []*Page, error)
+	RunActionContext(context.Context, string, ...map[string]interface{}) ([]map[string]interface{}, map[string]interface{}, []*Page, error)
 }
 
 // Graph describes all models and actions in a database schema
@@ -35,11 +36,22 @@ func NewGraph(db *sql.DB, s map[string]Navigate) *Graph {
 // Run runs action by model and action string names.
 // It returns the searched data and optional error code.
 //
-// Model is the model name, and action the action name.
+// 'model' is the model name, and 'action' the action name.
 // The first extra is the input data, shared by all sub actions.
-// The rest are specific data for each actions starting with the current one.
+// The rest are specific data for each action starting with the current one.
 //
 func (self *Graph) Run(model, action string, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
+	return self.RunContext(context.Background(), model, action, extra...)
+}
+
+// RunContext runs action by model and action string names.
+// It returns the searched data and optional error code.
+//
+// 'model' is the model name, and 'action' the action name.
+// The first extra is the input data, shared by all sub actions.
+// The rest are specific data for each action starting with the current one.
+//
+func (self *Graph) RunContext(ctx context.Context, model, action string, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
 	modelObj, ok := self.Models[model]
 	if !ok {
 		return nil, errors.New("model not found in schema models")
@@ -62,7 +74,7 @@ func (self *Graph) Run(model, action string, extra ...map[string]interface{}) ([
 
 	modelObj.SetDB(self.DB)
 	modelObj.SetArgs(args)
-	lists, modelArgs, nextpages, err := modelObj.RunAction(action, extra...)
+	lists, modelArgs, nextpages, err := modelObj.RunActionContext(ctx, action, extra...)
 	modelObj.SetArgs(nil)
 	modelObj.SetDB(nil)
 	if err != nil {
@@ -96,8 +108,8 @@ func (self *Graph) Run(model, action string, extra ...map[string]interface{}) ([
 			if hasValue(extra) {
 				newExtras = append(newExtras, extra[:1]...)
 			}
-			//newLists, err := self.Run(page.Model, page.Action, modelArgs, newExtras...)
-			newLists, err := self.Run(page.Model, page.Action, newExtras...)
+			// run: page.Model, page.Action, modelArgs, newExtras...
+			newLists, err := self.RunContext(ctx, page.Model, page.Action, newExtras...)
 			if err != nil {
 				return nil, err
 			}

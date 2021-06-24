@@ -2,15 +2,18 @@ package godbi
 
 import (
 	"math/rand"
+	"context"
 	"strconv"
 	"testing"
 )
 
-func TestModelSimple(t *testing.T) {
+func TestModelSimpleContext(t *testing.T) {
 	db, err := getdb()
 	if err != nil {
 		panic(err)
 	}
+
+	ctx := context.Background()
 
 	model := new(Model)
 	model.DB = db
@@ -23,14 +26,8 @@ func TestModelSimple(t *testing.T) {
 	model.Maxpageno = "max_pageno"
 	model.Fields = "fields"
 
-	ret := model.execSQL(`drop table if exists testing`)
-	if ret != nil {
-		t.Errorf("create table testing failed %s", ret.Error())
-	}
-	ret = model.execSQL(`CREATE TABLE testing (id int auto_increment, x varchar(255), y varchar(255), primary key (id))`)
-	if ret != nil {
-		t.Errorf("create table testing failed %s", ret.Error())
-	}
+	db.Exec(`drop table if exists testing`)
+	db.Exec(`CREATE TABLE testing (id int auto_increment, x varchar(255), y varchar(255), primary key (id))`)
 
 	args := make(map[string]interface{})
 	model.SetDB(db)
@@ -44,20 +41,22 @@ func TestModelSimple(t *testing.T) {
 
 	args["x"] = "a"
 	args["y"] = "b"
-	ret = model.Insert()
+	err = model.InsertContext(ctx)
+	if err != nil { t.Fatal(err) }
 	if model.LastID != 1 {
 		t.Errorf("1 wanted but got %d", model.LastID)
 	}
 	hash := make(map[string]interface{})
 	hash["x"] = "c"
 	hash["y"] = "d"
-	ret = model.insertHash(hash)
+	err = model.insertHashContext(ctx, hash)
+	if err != nil { t.Fatal(err) }
 	id := model.LastID
 	if id != 2 {
 		t.Errorf("2 wanted but got %d", id)
 	}
 
-	err = model.Topics()
+	err = model.TopicsContext(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -72,16 +71,12 @@ func TestModelSimple(t *testing.T) {
 	args["id"] = 2
 	args["x"] = "c"
 	args["y"] = "z"
-	ret = model.Update()
-	if ret != nil {
-		t.Errorf("%s update table testing failed", ret.Error())
-	}
+	err = model.UpdateContext(ctx)
+	if err != nil { t.Fatal(err) }
 
 	LISTS = model.GetLists()
-	ret = model.Edit()
-	if ret != nil {
-		t.Errorf("%s edit table testing failed", ret.Error())
-	}
+	err = model.EditContext(ctx)
+	if err != nil { t.Fatal(err) }
 	if len(LISTS) != 1 {
 		t.Errorf("%d records returned from edit", len(LISTS))
 	}
@@ -92,11 +87,9 @@ func TestModelSimple(t *testing.T) {
 		t.Errorf("%s z wanted", string(LISTS[0]["y"].(string)))
 	}
 
-	ret = model.Topics()
+	err = model.TopicsContext(ctx)
+	if err != nil { t.Fatal(err) }
 	LISTS = model.GetLists()
-	if ret != nil {
-		panic(ret)
-	}
 	if len(LISTS) != 2 {
 		t.Errorf("%d from topics, %v", len(LISTS), LISTS)
 	}
@@ -114,16 +107,12 @@ func TestModelSimple(t *testing.T) {
 	}
 
 	args["id"] = "1"
-	ret = model.Delete(map[string]interface{}{"id": args["id"]})
-	if ret != nil {
-		t.Errorf("%s delete table testing failed", ret.Error())
-	}
+	err = model.DeleteContext(ctx, map[string]interface{}{"id": args["id"]})
+	if err != nil { t.Fatal(err) }
 
-	ret = model.Topics()
+	err = model.TopicsContext(ctx)
+	if err != nil { t.Fatal(err) }
 	LISTS = model.GetLists()
-	if ret != nil {
-		t.Errorf("%s select table testing failed", ret.Error())
-	}
 	if len(LISTS) != 1 {
 		t.Errorf("%d records returned from edit", len(LISTS))
 	}
@@ -139,29 +128,25 @@ func TestModelSimple(t *testing.T) {
 	}
 
 	args["id"] = "2"
-	ret = model.Insert()
-	if ret.Error() == "" {
-		t.Errorf("%s wanted", ret.Error())
+	err = model.InsertContext(ctx)
+	if err == nil {
+		t.Errorf("key id=2 exists. but still inserted. wrong")
 	}
 
 	args["id"] = "3"
 	args["y"] = "zz"
-	ret = model.Update()
-	if ret != nil || model.Affected != 0 {
-		t.Errorf("%v %d wanted", ret, model.Affected)
-	}
+	err = model.UpdateContext(ctx)
+	if err != nil { t.Fatal(err) }
 
-	model.execSQL(`truncate table testing`)
+	db.Exec(`truncate table testing`)
 	delete(args, "id")
 	for i := 1; i < 100; i++ {
 		delete(args, "id")
 		args["x"] = "a"
 		args["y"] = "b"
-		ret = model.Insert()
+		err = model.InsertContext(ctx)
+		if err != nil { t.Fatal(err) }
 		LISTS = model.GetLists()
-		if ret != nil {
-			t.Errorf("%s insert table testing failed", ret.Error())
-		}
 		if LISTS[0]["id"].(string) != strconv.Itoa(i) {
 			t.Errorf("%d %s insert table auto id failed", i, LISTS[0]["id"].(string))
 		}
@@ -170,11 +155,9 @@ func TestModelSimple(t *testing.T) {
 	for i := 1; i < 100; i++ {
 		args["id"] = strconv.Itoa(i)
 		args["y"] = "c"
-		ret = model.Update()
+		err = model.UpdateContext(ctx)
+		if err != nil { t.Fatal(err) }
 		LISTS = model.GetLists()
-		if ret != nil {
-			t.Errorf("%s update table testing failed", ret.Error())
-		}
 		if LISTS[0]["id"].(string) != strconv.Itoa(i) {
 			t.Errorf("%d %s update id failed", i, LISTS[0]["id"].(string))
 		}
@@ -185,12 +168,9 @@ func TestModelSimple(t *testing.T) {
 
 	for i := 1; i < 100; i++ {
 		args["id"] = strconv.Itoa(i)
-		ret = model.Edit()
+		err = model.EditContext(ctx)
+		if err != nil { t.Fatal(err) }
 		LISTS = model.GetLists()
-		if ret != nil {
-			t.Errorf("%s edit table testing failed", ret.Error())
-		}
-
 		if int(LISTS[0]["id"].(int64)) != i {
 			t.Errorf("%d %d edit id failed", i, int(LISTS[0]["id"].(int64)))
 		}
@@ -201,11 +181,9 @@ func TestModelSimple(t *testing.T) {
 
 	args["rowcount"] = 20
 	model.TotalForce = -1
-	ret = model.Topics()
+	err = model.TopicsContext(ctx)
+	if err != nil { t.Fatal(err) }
 	LISTS = model.GetLists()
-	if ret != nil {
-		t.Errorf("%s edit table testing failed", ret.Error())
-	}
 	a := args
 	nt := a["totalno"].(int)
 	nm := a["max_pageno"].(int)
@@ -223,11 +201,9 @@ func TestModelSimple(t *testing.T) {
 
 	args["pageno"] = 3
 	args["rowcount"] = 20
-	ret = model.Topics()
+	err = model.TopicsContext(ctx)
+	if err != nil { t.Fatal(err) }
 	LISTS = model.GetLists()
-	if ret != nil {
-		t.Errorf("%s topics table testing failed", ret.Error())
-	}
 	for i := 1; i <= 20; i++ {
 		if LISTS[i-1]["id"].(int64) != int64(40+i) {
 			t.Errorf("%d %d topics id failed", 40+i, LISTS[i-1]["id"].(int))
@@ -236,11 +212,9 @@ func TestModelSimple(t *testing.T) {
 
 	for i := 1; i < 100; i++ {
 		args["id"] = strconv.Itoa(i)
-		ret = model.Delete(map[string]interface{}{"id": args["id"]})
+		err = model.DeleteContext(ctx, map[string]interface{}{"id": args["id"]})
+		if err != nil { t.Fatal(err) }
 		LISTS = model.GetLists()
-		if ret != nil {
-			t.Errorf("%s delete table testing failed", ret.Error())
-		}
 		x := LISTS[0]
 		if x["id"].(string) != strconv.FormatInt(int64(i), 10) {
 			t.Errorf("%d %v delete id failed", i, x)
@@ -249,11 +223,13 @@ func TestModelSimple(t *testing.T) {
 	db.Close()
 }
 
-func TestModel(t *testing.T) {
+func TestModelContext(t *testing.T) {
 	db, err := getdb()
 	if err != nil {
 		panic(err)
 	}
+
+	ctx := context.Background()
 
 	model, err := NewModel("m1.json")
 	if err != nil {
@@ -262,11 +238,8 @@ func TestModel(t *testing.T) {
 	ARGS := map[string]interface{}{}
 	model.SetDB(db)
 	model.SetArgs(ARGS)
-	err = model.execSQL(`drop table if exists atesting`)
-	if err != nil {
-		panic(err)
-	}
-	err = model.execSQL(`CREATE TABLE atesting (id int auto_increment not null primary key, x varchar(8), y varchar(8), z varchar(8))`)
+	db.Exec(`drop table if exists atesting`)
+	db.Exec(`CREATE TABLE atesting (id int auto_increment not null primary key, x varchar(8), y varchar(8), z varchar(8))`)
 	if err != nil {
 		panic(err)
 	}
@@ -288,14 +261,8 @@ func TestModel(t *testing.T) {
 		t.Errorf("'ORDER BY id DESC LIMIT 20 OFFSET 80' expected, got %s", str)
 	}
 
-	err = model.execSQL(`drop table if exists atesting`)
-	if err != nil {
-		panic(err)
-	}
-	err = model.execSQL(`CREATE TABLE atesting (id int auto_increment not null primary key, x varchar(8), y varchar(8), z varchar(8))`)
-	if err != nil {
-		panic(err)
-	}
+	db.Exec(`drop table if exists atesting`)
+	db.Exec(`CREATE TABLE atesting (id int auto_increment not null primary key, x varchar(8), y varchar(8), z varchar(8))`)
 
 	var hash map[string]interface{}
 	for i := 0; i < 100; i++ {
@@ -306,7 +273,7 @@ func TestModel(t *testing.T) {
 		}
 		hash["z"] = r
 		model.SetArgs(hash)
-		err = model.Insert()
+		err = model.InsertContext(ctx)
 		if err != nil {
 			panic(err)
 		}
@@ -314,7 +281,7 @@ func TestModel(t *testing.T) {
 	a := hash
 	a["rowcount"] = 20
 	model.SetArgs(a)
-	err = model.Topics()
+	err = model.TopicsContext(ctx)
 	if err != nil {
 		panic(err)
 	}

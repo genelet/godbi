@@ -2,6 +2,7 @@ package godbi
 
 import (
 	"database/sql"
+	"context"
 	"errors"
 	"io/ioutil"
 	"math"
@@ -64,20 +65,24 @@ func (self *Model) SetDB(db *sql.DB) {
 }
 
 func (self *Model) RunAction(action string, extra ...map[string]interface{}) ([]map[string]interface{}, map[string]interface{}, []*Page, error) {
+	return self.RunActionContext(context.Background(), action, extra...)
+}
+
+func (self *Model) RunActionContext(ctx context.Context, action string, extra ...map[string]interface{}) ([]map[string]interface{}, map[string]interface{}, []*Page, error) {
 	var err error
 	switch action {
 	case "topics", "LIST":
-		err = self.Topics(extra...)
+		err = self.TopicsContext(ctx, extra...)
 	case "edit", "GET":
-		err = self.Edit(extra...)
+		err = self.EditContext(ctx, extra...)
 	case "insert", "POST":
-		err = self.Insert(extra...)
+		err = self.InsertContext(ctx, extra...)
 	case "update", "PUT":
-		err = self.Update(extra...)
+		err = self.UpdateContext(ctx, extra...)
 	case "insupd", "PATCH":
-		err = self.Insupd(extra...)
+		err = self.InsupdContext(ctx, extra...)
 	case "delete", "DELETE":
-		err = self.Delete(extra...)
+		err = self.DeleteContext(ctx, extra...)
 	default:
         return nil, nil, nil, errors.New("action not found in graph")
 	}
@@ -147,8 +152,16 @@ func (self *Model) getIdVal(extra ...map[string]interface{}) []interface{} {
 	return []interface{}{self.properValue(self.CurrentKey, nil)}
 }
 
-// Topics selects many rows, optionally with restriction defined in 'extra'.
+// Topics searches many rows, optionally with restriction defined in 'extra'.
+//
 func (self *Model) Topics(extra ...map[string]interface{}) error {
+	return self.TopicsContext(context.Background(), extra...)
+}
+
+// TopicsContext searches many rows
+// optionally with restriction defined in 'extra'.
+//
+func (self *Model) TopicsContext(ctx context.Context, extra ...map[string]interface{}) error {
 	ARGS := self.aARGS
 	totalForce := self.TotalForce // 0 means no total calculation
 	if totalForce != 0 && ARGS[self.Rowcount] != nil && ARGS[self.Pageno] == nil {
@@ -156,7 +169,7 @@ func (self *Model) Topics(extra ...map[string]interface{}) error {
 		if totalForce < -1 { // take the absolute as the total number
 			nt = int(math.Abs(float64(totalForce)))
 		} else if totalForce == -1 || ARGS[self.Totalno] == nil { // optionally cal
-			if err := self.totalHash(&nt, extra...); err != nil {
+			if err := self.totalHashContext(ctx, &nt, extra...); err != nil {
 				return err
 			}
 		} else {
@@ -193,12 +206,20 @@ func (self *Model) Topics(extra ...map[string]interface{}) error {
     }
 
 	self.aLISTS = make([]map[string]interface{}, 0)
-	return self.topicsHashOrder(&self.aLISTS, hashPars, self.orderString(), extra...)
+	return self.topicsHashOrderContext(ctx, &self.aLISTS, hashPars, self.orderString(), extra...)
 }
 
-// Edit selects few rows (usually one) using primary key value in ARGS,
+// Edit searches few rows (usually one) by primary key collected in ARGS,
 // optionally with restrictions defined in 'extra'.
+//
 func (self *Model) Edit(extra ...map[string]interface{}) error {
+	return self.EditContext(context.Background(), extra...)
+}
+
+// EditContext searches few rows (usually one) by primary key
+// collected in ARGS, optionally with restrictions defined in 'extra'.
+//
+func (self *Model) EditContext(ctx context.Context, extra ...map[string]interface{}) error {
 	val := self.getIdVal(extra...)
 	hashPars := self.editHashPars
     if fields, ok := self.aARGS[self.Fields]; ok {
@@ -209,12 +230,20 @@ func (self *Model) Edit(extra ...map[string]interface{}) error {
 	}
 
 	self.aLISTS = make([]map[string]interface{}, 0)
-	return self.editHash(&self.aLISTS, hashPars, val, extra...)
+	return self.editHashContext(ctx, &self.aLISTS, hashPars, val, extra...)
 }
 
 // Insert inserts a row using data passed in ARGS. Any value defined
-// in 'extra' will override that in ARGS and be used for that column.
+// in 'extra' will override that key in ARGS.
+//
 func (self *Model) Insert(extra ...map[string]interface{}) error {
+	return self.InsertContext(context.Background(), extra...)
+}
+
+// InsertContext inserts a row using data passed in ARGS. Any value defined
+// in 'extra' will override that key in ARGS.
+//
+func (self *Model) InsertContext(ctx context.Context, extra ...map[string]interface{}) error {
 	fieldValues := self.getFv(self.InsertPars)
 	if hasValue(extra) {
 		for key, value := range extra[0] {
@@ -228,7 +257,7 @@ func (self *Model) Insert(extra ...map[string]interface{}) error {
 	}
 
 	self.aLISTS = make([]map[string]interface{}, 0)
-	if err := self.insertHash(fieldValues); err != nil {
+	if err := self.insertHashContext(ctx, fieldValues); err != nil {
 		return err
 	}
 
@@ -242,9 +271,17 @@ func (self *Model) Insert(extra ...map[string]interface{}) error {
 	return nil
 }
 
-// Insupd inserts a new row if it does not exist, or retrieves the old one,
+// Insupd inserts a new row if it does not exist, or updates the old one,
 // depending on the unique of the columns defined in InsupdPars.
+//
 func (self *Model) Insupd(extra ...map[string]interface{}) error {
+	return self.InsupdContext(context.Background(), extra...)
+}
+
+// InsupdContext inserts a new row if it does not exist, or updates the old
+// one, depending on the unique of the columns defined in InsupdPars.
+//
+func (self *Model) InsupdContext(ctx context.Context, extra ...map[string]interface{}) error {
 	fieldValues := self.getFv(self.InsertPars)
 	if hasValue(extra) {
 		for key, value := range extra[0] {
@@ -262,7 +299,7 @@ func (self *Model) Insupd(extra ...map[string]interface{}) error {
 		return errors.New("unique key value not found in model")
 	}
 
-	if err := self.insupdTable(fieldValues, uniques); err != nil {
+	if err := self.insupdTableContext(ctx, fieldValues, uniques); err != nil {
 		return err
 	}
 
@@ -275,9 +312,15 @@ func (self *Model) Insupd(extra ...map[string]interface{}) error {
 }
 
 // Update updates a row using values defined in ARGS
-// depending on the unique of the columns defined in UpdatePars.
-// extra is for SQL constrains
+// optionally with constraints in extra
+//
 func (self *Model) Update(extra ...map[string]interface{}) error {
+	return self.UpdateContext(context.Background(), extra...)
+}
+
+// UpdateContext updates a row using values defined in ARGS
+// optionally with constraints in extra
+func (self *Model) UpdateContext(ctx context.Context, extra ...map[string]interface{}) error {
 	val := self.getIdVal(extra...)
 	if !hasValue(val) {
 		return errors.New("pk value not found")
@@ -291,7 +334,7 @@ func (self *Model) Update(extra ...map[string]interface{}) error {
 		return nil
 	}
 
-	err := self.updateHashNulls(fieldValues, val, self.Empties, extra...)
+	err := self.updateHashNullsContext(ctx, fieldValues, val, self.Empties, extra...)
 	if err != nil {
 		return err
 	}
@@ -312,9 +355,16 @@ func fromFv(fieldValues map[string]interface{}) []map[string]interface{} {
 	return []map[string]interface{}{fieldValues}
 }
 
-// Delete deletes a row or multiple rows using the contraint in extra
+// Delete deletes rows (usually one) using contraints in extra
+//
 func (self *Model) Delete(extra ...map[string]interface{}) error {
-	if err := self.deleteHash(extra...); err != nil {
+	return self.DeleteContext(context.Background(), extra...)
+}
+
+// DeleteContext deletes rows (usually one) using contraints in extra
+//
+func (self *Model) DeleteContext(ctx context.Context, extra ...map[string]interface{}) error {
+	if err := self.deleteHashContext(ctx, extra...); err != nil {
 		return err
 	}
 

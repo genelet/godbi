@@ -2,47 +2,50 @@ package godbi
 
 import (
 	"testing"
+	"context"
 )
 
-func TestCrudDb(t *testing.T) {
+func TestCrudDbContext(t *testing.T) {
 	db, err := getdb()
 	if err != nil {
 		panic(err)
 	}
-	crud := newCrud(db, "atesting", "id", nil, nil)
+	crud := new(Model)
+	crud.DB = db
+	crud.CurrentTable = "atesting"
+	crud.CurrentKey = "id"
 
-	crud.execSQL(`drop table if exists atesting`)
-	ret := crud.execSQL(`drop table if exists testing`)
-	if ret != nil {
-		t.Errorf("create table testing failed %s", ret.Error())
-	}
-	ret = crud.execSQL(`CREATE TABLE atesting (id int auto_increment, x varchar(255), y varchar(255), primary key (id))`)
-	if ret != nil {
-		t.Errorf("create table atesting failed")
+	ctx := context.Background()
+
+	db.Exec(`drop table if exists atesting`)
+	db.Exec(`drop table if exists testing`)
+	err = crud.DoSQLContext(ctx, `CREATE TABLE atesting (id int auto_increment, x varchar(255), y varchar(255), primary key (id))`)
+	if err != nil {
+		t.Errorf("create table atesting failed %#v", err)
 	}
 	hash := map[string]interface{}{"x":"a", "y":"b"}
-	ret = crud.insertHash(hash)
+	err = crud.insertHashContext(ctx, hash)
 	if crud.LastID != 1 {
 		t.Errorf("%d wanted", crud.LastID)
 	}
 	hash["x"] = "c"
 	hash["y"] = "d"
-	ret = crud.insertHash(hash)
+	err = crud.insertHashContext(ctx, hash)
 	id := crud.LastID
 	if id != 2 {
 		t.Errorf("%d wanted", id)
 	}
 	hash1 := map[string]interface{}{"y":"z"}
-	ret = crud.updateHash(hash1, []interface{}{id})
-	if ret != nil {
-		t.Errorf("%s update table testing failed", ret.Error())
+	err = crud.updateHashContext(ctx, hash1, []interface{}{id})
+	if err != nil {
+		t.Errorf("%s update table testing failed", err.Error())
 	}
 
 	lists := make([]map[string]interface{}, 0)
-	label := []string{"x", "y"}
-	ret = crud.editHash(&lists, label, []interface{}{id})
-	if ret != nil {
-		t.Errorf("%s select table testing failed", ret.Error())
+	label := map[string]interface{}{"x":[]interface{}{"x",""}, "y":[]interface{}{"y",""}}
+	err = crud.editHashContext(ctx, &lists, label, []interface{}{id})
+	if err != nil {
+		t.Errorf("%s select table testing failed", err.Error())
 	}
 	if len(lists) != 1 {
 		t.Errorf("%d records returned from edit", len(lists))
@@ -55,9 +58,9 @@ func TestCrudDb(t *testing.T) {
 	}
 
 	lists = make([]map[string]interface{}, 0)
-	ret = crud.topicsHash(&lists, label)
-	if ret != nil {
-		t.Errorf("%s select table testing failed", ret.Error())
+	err = crud.topicsHashContext(ctx, &lists, label)
+	if err != nil {
+		t.Errorf("%s select table testing failed", err.Error())
 	}
 	if len(lists) != 2 {
 		t.Errorf("%d records returned from edit, should be 2", len(lists))
@@ -76,24 +79,24 @@ func TestCrudDb(t *testing.T) {
 	}
 
 	what := 0
-	ret = crud.totalHash(&what)
-	if ret != nil {
-		t.Errorf("%s total table testing failed", ret.Error())
+	err = crud.totalHashContext(ctx, &what)
+	if err != nil {
+		t.Errorf("%s total table testing failed", err.Error())
 	}
 	if what != 2 {
 		t.Errorf("%d total table testing failed", what)
 	}
 
-	ret = crud.deleteHash(map[string]interface{}{"id": 1})
-	if ret != nil {
-		t.Errorf("%s delete table testing failed", ret.Error())
+	err = crud.deleteHashContext(ctx, map[string]interface{}{"id": 1})
+	if err != nil {
+		t.Errorf("%s delete table testing failed", err.Error())
 	}
 
 	lists = make([]map[string]interface{}, 0)
-	label = []string{"id", "x", "y"}
-	ret = crud.topicsHash(&lists, label)
-	if ret != nil {
-		t.Errorf("%s select table testing failed", ret.Error())
+	label = map[string]interface{}{"id":[]interface{}{"id",""}, "x":[]interface{}{"x",""}, "y":[]interface{}{"y",""}}
+	err = crud.topicsHashContext(ctx, &lists, label)
+	if err != nil {
+		t.Errorf("%s select table testing failed", err.Error())
 	}
 	if len(lists) != 1 {
 		t.Errorf("%d records returned from edit", len(lists))
@@ -110,18 +113,15 @@ func TestCrudDb(t *testing.T) {
 	}
 
 	hash = map[string]interface{}{"id":"2", "x":"a", "y":"b"}
-	ret = crud.insertHash(hash)
-	if ret.Error() == "" {
-		t.Errorf("%s wanted", ret.Error())
+	err = crud.insertHashContext(ctx, hash)
+	if err.Error() == "" {
+		t.Errorf("%s wanted", err.Error())
 	}
 
 	hash1 = map[string]interface{}{"y": "zz"}
-	ret = crud.updateHash(hash1, []interface{}{3})
-	if ret != nil {
-		t.Errorf("%s wanted", ret.Error())
-	}
-	if crud.Affected != 0 {
-		t.Errorf("%d wanted", crud.Affected)
+	err = crud.updateHashContext(ctx, hash1, []interface{}{3})
+	if err != nil {
+		t.Errorf("%s wanted", err.Error())
 	}
 	db.Close()
 }

@@ -1,10 +1,9 @@
 package godbi
 
 import (
-	// "github.com/golang/glog"
-	"errors"
+	"fmt"
+	"context"
 	"database/sql"
-	"math/rand"
 	"strings"
 )
 
@@ -16,48 +15,62 @@ type DBI struct {
 	*sql.DB
 	// LastID: the last auto id inserted, if the database provides
 	LastID int64
-	// Affected: the number of rows affected
-	Affected int64
 }
 
-// execSQL excutes a query like 'Exec', and refreshes the LastID and Affected
-// If the execution fails, it returns error; otherwise nil.
+// TxSQLContext is the same as DoSQL, but use transaction
 //
-func (self *DBI) execSQL(query string, args ...interface{}) error {
-	//glog.Infof("godbi SQL statement: %s", query)
-	//glog.Infof("godbi input data: %v", args)
+func (self *DBI) TxSQLContext(ctx context.Context, query string, args ...interface{}) error {
+	tx, err := self.DB.Begin()
+	if err != nil {
+		return err
+	}
+	//defer tx.Rollback()
 
-	res, err := self.DB.Exec(query, args...)
+	sth, err := tx.PrepareContext(ctx, query)
 	if err != nil {
+		return err
+	}
+	defer sth.Close()
+
+	res, err := sth.ExecContext(ctx, args...)
+	if err != nil {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			return fmt.Errorf("original error %v. can't rollback %v", err, rollbackErr)
+		} else {
+			return err
+		}
+	}
+
+	// commit the trasaction
+	if err := tx.Commit(); err != nil {
 		return err
 	}
 
-	LastID, err := res.LastInsertId()
+	lastID, err := res.LastInsertId()
 	if err != nil {
 		return err
 	}
-	self.LastID = LastID
-	affected, err := res.RowsAffected()
-	if err != nil {
-		return err
-	}
-	self.Affected = affected
+	self.LastID = lastID
 
 	return nil
 }
 
-// DoSQL is the same as SQL's Exec, except for using a prepared statement,
-// which is safe for concurrent use by multiple goroutines.
+// DoSQL executes a SQL using a prepared statement,
 //
 func (self *DBI) DoSQL(query string, args ...interface{}) error {
-	//glog.Infof("godbi SQL statement: %s", query)
-	//glog.Infof("godbi input data: %v", args)
+	return self.DoSQLContext(context.Background(), query, args...)
+}
 
-	sth, err := self.DB.Prepare(query)
+// DoSQLContext executes a SQL using a prepared statement,
+//
+func (self *DBI) DoSQLContext(ctx context.Context, query string, args ...interface{}) error {
+	sth, err := self.DB.PrepareContext(ctx, query)
 	if err != nil {
 		return err
 	}
-	res, err := sth.Exec(args...)
+	defer sth.Close()
+
+	res, err := sth.ExecContext(ctx, args...)
 	if err != nil {
 		return err
 	}
@@ -67,46 +80,39 @@ func (self *DBI) DoSQL(query string, args ...interface{}) error {
 		return err
 	}
 	self.LastID = lastID
-	affected, err := res.RowsAffected()
-	if err != nil {
-		return err
-	}
-	self.Affected = affected
 
-	sth.Close()
 	return nil
 }
 
-// DoSQLs inserts multiple rows at once.
-// Each row is represented as slice and the rows are slices of slice
+// DoSQLs executes multiple rows at once,
+// which should be expressed as a slice of slice.
 //
 func (self *DBI) DoSQLs(query string, args ...[]interface{}) error {
-	//glog.Infof("godbi SQL statement: %s", query)
-	//glog.Infof("godbi input data: %v", args)
+	return self.DoSQLsContext(context.Background(), query, args...)
+}
 
+// DoSQLsContext executes multiple rows at once,
+// which should be expressed as a slice of slice.
+//
+func (self *DBI) DoSQLsContext(ctx context.Context, query string, args ...[]interface{}) error {
 	n := len(args)
 	if n == 0 {
-		return self.DoSQL(query)
+		return self.DoSQLContext(ctx, query)
 	} else if n == 1 {
-		return self.DoSQL(query, args[0]...)
+		return self.DoSQLContext(ctx, query, args[0]...)
 	}
 
-	sth, err := self.DB.Prepare(query)
+	sth, err := self.DB.PrepareContext(ctx, query)
 	if err != nil {
 		return err
 	}
 
 	var res sql.Result
 	for _, once := range args {
-		res, err = sth.Exec(once...)
+		res, err = sth.ExecContext(ctx, once...)
 		if err != nil {
 			return err
 		}
-		affected, err := res.RowsAffected()
-		if err != nil {
-			return err
-		}
-		self.Affected += affected
 	}
 	lastID, err := res.LastInsertId()
 	if err != nil {
@@ -118,133 +124,109 @@ func (self *DBI) DoSQLs(query string, args ...[]interface{}) error {
 	return nil
 }
 
-// querySQL selects data as slice of map.
+// Select searches data as slice of map in 'lists'.
 // Rows' data types are determined dynamically by the generic handle.
-// 'lists' which is a reference to slice of map receives the queried data.
 //
-func (self *DBI) querySQL(lists *[]map[string]interface{}, query string, args ...interface{}) error {
-	return self.querySQLTypeLabel(lists, nil, nil, query, args...)
+func (self *DBI) Select(lists *[]map[string]interface{}, query string, args ...interface{}) error {
+	return self.SelectContext(context.Background(), lists, query, args...)
 }
 
-// querySQLType selects data as slice of map.
-// Rows' data types are pre-defined in 'types'.
-// 'lists' which is a reference to slice of maps receives the queried data.
+// SelectContext searches data as slice of map in 'lists'.
+// Rows' data types are determined dynamically by the generic handle.
 //
-func (self *DBI) querySQLType(lists *[]map[string]interface{}, typeLabels []string, query string, args ...interface{}) error {
-	return self.querySQLTypeLabel(lists, typeLabels, nil, query, args...)
+func (self *DBI) SelectContext(ctx context.Context, lists *[]map[string]interface{}, query string, args ...interface{}) error {
+	return self.SelectSQLContext(ctx, lists, nil, query, args...)
 }
 
-// querySQLLabel selects data as slice of map.
-// Rows' data types are determined dynamically by the generic handle
-// and column names are replaced by 'selectLabels'.
-// 'lists' which is a reference to slice of map receives the queried data.
-//
-func (self *DBI) querySQLLabel(lists *[]map[string]interface{}, selectLabels []string, query string, args ...interface{}) error {
-	return self.querySQLTypeLabel(lists, nil, selectLabels, query, args...)
-}
-
-// querySQLTypeLabel selects data as slice of map.
-// Rows' data types are pre-defined in 'typeLabels'
-// and column names are replaced by 'selectLabels'.
-// 'lists' which is a reference to slice of map received the queried data.
-//
-func (self *DBI) querySQLTypeLabel(lists *[]map[string]interface{}, typeLabels []string, selectLabels []string, query string, args ...interface{}) error {
-	//glog.Infof("godbi SQL statement: %s", query)
-	//glog.Infof("godbi select columns: %v", selectLabels)
-	//glog.Infof("godbi column types: %v", typeLabels)
-	//glog.Infof("godbi input data: %v", args)
-
-	rows, err := self.DB.Query(query, args...)
-	if err != nil {
-		return err
+func getLabels(labels []interface{}) ([]string, []string) {
+	if labels==nil || len(labels)==0 {
+		return nil, nil
 	}
-	defer rows.Close()
 
-	return self.pickup(rows, lists, typeLabels, selectLabels, query)
+	selectLabels := make([]string, 0)
+	typeLabels   := make([]string, 0)
+	for _, vs := range labels {
+		switch v := vs.(type) {
+		case []interface{}:
+			selectLabels = append(selectLabels, v[0].(string))
+			if len(v)>1 {
+				typeLabels = append(typeLabels, v[1].(string))
+			} else {
+				typeLabels = append(typeLabels, "")
+			}
+		default:
+			selectLabels = append(selectLabels, v.(string))
+			typeLabels   = append(typeLabels, "")
+		}
+	}
+
+	return selectLabels, typeLabels
 }
 
-// SelectSQL selects data as slice of map.
-// Rows' data types are determined dynamically by the generic handle.
-// 'lists' which is a reference to slice of map receives the queried data.
+// SelectSQL searches data as slice of map in 'lists'.
+// Map's keys and data types are pre-defined in 'labels' as 
+// slice of interfaces:
+// 1) when interface is a string, it is key and its
+//    data type is determined dynamically by the generic handler.
+// 2) when interface is a slice, the first element is the key
+//    and the second the data type express as "int64", "int", "string" etc.
 //
-func (self *DBI) SelectSQL(lists *[]map[string]interface{}, query string, args ...interface{}) error {
-	return self.SelectSQLTypeLabel(lists, nil, nil, query, args...)
+func (self *DBI) SelectSQL(lists *[]map[string]interface{}, labels []interface{}, query string, args ...interface{}) error {
+	return self.SelectSQLContext(context.Background(), lists, labels, query, args...)
 }
 
-// SelectSQLType selects data as slice of map.
-// Rows' data types are pre-defined in 'typeLabels'.
-// 'lists' which is a reference to slice of maps receives the queried data.
+// SelectSQLContext searches data as slice of map in 'lists'.
+// Map's keys and data types are pre-defined in 'labels' as 
+// slice of interfaces:
+// 1) when interface is a string, it is key and its
+//    data type is determined dynamically by the generic handler.
+// 2) when interface is a slice, the first element is the key
+//    and the second the data type express as "int64", "int", "string" etc.
 //
-func (self *DBI) SelectSQLType(lists *[]map[string]interface{}, typeLabels []string, query string, args ...interface{}) error {
-	return self.SelectSQLTypeLabel(lists, typeLabels, nil, query, args...)
-}
-
-// SelectSQLLabel selects data as slice of map.
-// Rows' data types are determined dynamically by the generic handle.
-// and column names are replaced by 'selectLabels'.
-// 'lists' which is a reference to slice of map received the queried data.
-//
-func (self *DBI) SelectSQLLabel(lists *[]map[string]interface{}, selectLabels []string, query string, args ...interface{}) error {
-	return self.SelectSQLTypeLabel(lists, nil, selectLabels, query, args...)
-}
-
-// SelectSQLTypeLabel selects data as slice of map.
-// Rows' data types are pre-defined in 'typeLabels'
-// and column names are replaced by 'selectLabels'.
-// 'lists' which is a reference to slice of map received the queried data.
-//
-func (self *DBI) SelectSQLTypeLabel(lists *[]map[string]interface{}, typeLabels []string, selectLabels []string, query string, args ...interface{}) error {
-	//glog.Infof("godbi SQL statement: %s", query)
-	//glog.Infof("godbi select columns: %v", selectLabels)
-	//glog.Infof("godbi column types: %v", typeLabels)
-	//glog.Infof("godbi input data: %v", args)
+func (self *DBI) SelectSQLContext(ctx context.Context, lists *[]map[string]interface{}, labels []interface{}, query string, args ...interface{}) error {
 	//log.Printf("godbi SQL statement: %s", query)
-	//log.Printf("godbi select columns: %v", selectLabels)
-	//log.Printf("godbi column types: %v", typeLabels)
+	//log.Printf("godbi select columns: %#v", labels)
 	//log.Printf("godbi input data: %v", args)
 
-	sth, err := self.DB.Prepare(query)
+	sth, err := self.DB.PrepareContext(ctx, query)
 	if err != nil {
 		return err
 	}
 	defer sth.Close()
-	rows, err := sth.Query(args...)
+
+	rows, err := sth.QueryContext(ctx, args...)
 	if err != nil {
 		return err
 	}
 	defer rows.Close()
 
-	return self.pickup(rows, lists, typeLabels, selectLabels, query)
+	return self.pickup(rows, lists, labels, query)
 }
 
-func (self *DBI) pickup(rows *sql.Rows, lists *[]map[string]interface{}, typeLabels []string, selectLabels []string, query string) error {
+func (self *DBI) pickup(rows *sql.Rows, lists *[]map[string]interface{}, labels []interface{}, query string) error {
+	selectLabels, typeLabels := getLabels(labels)
+
 	var err error
 	if selectLabels == nil {
 		if selectLabels, err = rows.Columns(); err != nil {
 			return err
 		}
+		typeLabels = make([]string, len(selectLabels))
 	}
 
-	isType := false
-	if typeLabels != nil {
-		isType = true
-	}
 	names := make([]interface{}, len(selectLabels))
 	x := make([]interface{}, len(selectLabels))
 	for i := range selectLabels {
-		if isType {
-			switch typeLabels[i] {
-			case "int", "int8", "int16", "int32", "uint", "uint8", "uint16", "uint32", "int64":
-				x[i] = new(sql.NullInt64)
-			case "float32", "float64":
-				x[i] = new(sql.NullFloat64)
-			case "bool":
-				x[i] = new(sql.NullBool)
-			case "string":
-				x[i] = new(sql.NullString)
-			default:
-			}
-		} else {
+		switch typeLabels[i] {
+		case "int", "int8", "int16", "int32", "uint", "uint8", "uint16", "uint32", "int64":
+			x[i] = new(sql.NullInt64)
+		case "float32", "float64":
+			x[i] = new(sql.NullFloat64)
+		case "bool":
+			x[i] = new(sql.NullBool)
+		case "string":
+			x[i] = new(sql.NullString)
+		default:
 			x[i] = &names[i]
 		}
 	}
@@ -255,77 +237,75 @@ func (self *DBI) pickup(rows *sql.Rows, lists *[]map[string]interface{}, typeLab
 		}
 		res := make(map[string]interface{})
 		for j, v := range selectLabels {
-			if isType {
-				switch typeLabels[j] {
-				case "int":
-					x := x[j].(*sql.NullInt64)
-					if x.Valid {
-						res[v] = int(x.Int64)
-					}
-				case "int8":
-					x := x[j].(*sql.NullInt64)
-					if x.Valid {
-						res[v] = int8(x.Int64)
-					}
-				case "int16":
-					x := x[j].(*sql.NullInt64)
-					if x.Valid {
-						res[v] = int16(x.Int64)
-					}
-				case "int32":
-					x := x[j].(*sql.NullInt64)
-					if x.Valid {
-						res[v] = int32(x.Int64)
-					}
-				case "uint":
-					x := x[j].(*sql.NullInt64)
-					if x.Valid {
-						res[v] = uint(x.Int64)
-					}
-				case "uint8":
-					x := x[j].(*sql.NullInt64)
-					if x.Valid {
-						res[v] = uint8(x.Int64)
-					}
-				case "uint16":
-					x := x[j].(*sql.NullInt64)
-					if x.Valid {
-						res[v] = uint16(x.Int64)
-					}
-				case "uint32":
-					x := x[j].(*sql.NullInt64)
-					if x.Valid {
-						res[v] = uint32(x.Int64)
-					}
-				case "int64":
-					x := x[j].(*sql.NullInt64)
-					if x.Valid {
-						res[v] = x.Int64
-					}
-				case "float32":
-					x := x[j].(*sql.NullFloat64)
-					if x.Valid {
-						res[v] = float32(x.Float64)
-					}
-				case "float64":
-					x := x[j].(*sql.NullFloat64)
-					if x.Valid {
-						res[v] = x.Float64
-					}
-				case "bool":
-					x := x[j].(*sql.NullBool)
-					if x.Valid {
-						res[v] = x.Bool
-					}
-				case "string":
-					x := x[j].(*sql.NullString)
-					if x.Valid {
-						res[v] = strings.TrimSpace(x.String)
-					}
-				default:
+			switch typeLabels[j] {
+			case "int":
+				x := x[j].(*sql.NullInt64)
+				if x.Valid {
+					res[v] = int(x.Int64)
 				}
-			} else {
+			case "int8":
+				x := x[j].(*sql.NullInt64)
+				if x.Valid {
+					res[v] = int8(x.Int64)
+				}
+			case "int16":
+				x := x[j].(*sql.NullInt64)
+				if x.Valid {
+					res[v] = int16(x.Int64)
+				}
+			case "int32":
+				x := x[j].(*sql.NullInt64)
+				if x.Valid {
+					res[v] = int32(x.Int64)
+				}
+			case "uint":
+				x := x[j].(*sql.NullInt64)
+				if x.Valid {
+					res[v] = uint(x.Int64)
+				}
+			case "uint8":
+				x := x[j].(*sql.NullInt64)
+				if x.Valid {
+					res[v] = uint8(x.Int64)
+				}
+			case "uint16":
+				x := x[j].(*sql.NullInt64)
+				if x.Valid {
+					res[v] = uint16(x.Int64)
+				}
+			case "uint32":
+				x := x[j].(*sql.NullInt64)
+				if x.Valid {
+					res[v] = uint32(x.Int64)
+				}
+			case "int64":
+				x := x[j].(*sql.NullInt64)
+				if x.Valid {
+					res[v] = x.Int64
+				}
+			case "float32":
+				x := x[j].(*sql.NullFloat64)
+				if x.Valid {
+					res[v] = float32(x.Float64)
+				}
+			case "float64":
+				x := x[j].(*sql.NullFloat64)
+				if x.Valid {
+					res[v] = x.Float64
+				}
+			case "bool":
+				x := x[j].(*sql.NullBool)
+				if x.Valid {
+					res[v] = x.Bool
+				}
+			case "string":
+				x := x[j].(*sql.NullString)
+				if x.Valid {
+					res[v] = strings.TrimSpace(x.String)
+				}
+			default:
 				name := names[j]
+				res[v] = name
 				if name != nil {
 					switch val := name.(type) {
 					case []uint8:
@@ -333,7 +313,6 @@ func (self *DBI) pickup(rows *sql.Rows, lists *[]map[string]interface{}, typeLab
 					case string:
 						res[v] = strings.TrimSpace(val)
 					default:
-						res[v] = name
 					}
 				}
 			}
@@ -346,12 +325,17 @@ func (self *DBI) pickup(rows *sql.Rows, lists *[]map[string]interface{}, typeLab
 	return nil
 }
 
-// GetSQLLabel returns single row into 'res',
-// using column names defined in 'selectLabels'
+// GetSQL returns single row in 'res'.
 //
-func (self *DBI) GetSQLLabel(res map[string]interface{}, query string, selectLabels []string, args ...interface{}) error {
+func (self *DBI) GetSQL(res map[string]interface{}, query string, labels []interface{}, args ...interface{}) error {
+	return self.GetSQLContext(context.Background(), res, query, labels, args...)
+}
+
+// GetSQLContext returns single row in 'res'.
+//
+func (self *DBI) GetSQLContext(ctx context.Context, res map[string]interface{}, query string, labels []interface{}, args ...interface{}) error {
 	lists := make([]map[string]interface{}, 0)
-	if err := self.SelectSQLLabel(&lists, selectLabels, query, args...); err != nil {
+	if err := self.SelectSQLContext(ctx, &lists, labels, query, args...); err != nil {
 		return err
 	}
 	if len(lists) >= 1 {
@@ -364,153 +348,90 @@ func (self *DBI) GetSQLLabel(res map[string]interface{}, query string, selectLab
 	return nil
 }
 
-// GetSQLLabel returns single row into 'res',
-// using column names dynamically defined by the generic handle.
-//
-func (self *DBI) GetSQL(res map[string]interface{}, query string, args ...interface{}) error {
-	lists := make([]map[string]interface{}, 0)
-	if err := self.SelectSQL(&lists, query, args...); err != nil {
-		return err
-	}
-	if len(lists) >= 1 {
-		for k, v := range lists[0] {
-			if v != nil {
-				res[k] = v
-			}
-		}
-	}
-	return nil
-}
-
-/*
-// GetArgs returns one row as url.Values into 'res', as in web application.
-//
-func (self *DBI) GetArgs(res url.Values, query string, args ...interface{}) error {
-	lists := make([]map[string]interface{}, 0)
-	if err := self.SelectSQL(&lists, query, args...); err != nil {
-		return err
-	}
-	if len(lists) >= 1 {
-		for k, v := range lists[0] {
-			if v != nil {
-				res.Set(k, interface2String(v))
-			}
-		}
-	}
-	return nil
-}
-*/
-
-// DoProc runs the stored procedure 'procName' and
-// outputs the OUT data as map with keys in 'names'.
-//
-func (self *DBI) DoProc(res map[string]interface{}, names []string, procName string, args ...interface{}) error {
-	n := len(args)
+func sp(procName string, names []string, n int) (string, string) {
 	strQ := strings.Join(strings.Split(strings.Repeat("?", n), ""), ",")
 	str := "CALL " + procName + "(" + strQ
 	strN := "@" + strings.Join(names, ",@")
 	if names != nil {
 		str += ", " + strN
 	}
-	str += ")"
+	return str + ")", "SELECT " + strN
+}
 
-	if err := self.DoSQL(str, args...); err != nil {
+func toInterface(names []string) []interface{} {
+	x := make([]interface{}, len(names))
+	for i, name := range names {
+		x[i] = name
+	}
+	return x
+}
+
+// DoProc runs the stored procedure 'procName' and outputs
+// the OUT data as map whose keys are in 'names'.
+//
+func (self *DBI) DoProc(res map[string]interface{}, names []string, procName string, args ...interface{}) error {
+	return self.DoProcContext(context.Background(), res, names, procName, args...)
+}
+
+// DoProcContext runs the stored procedure 'procName' and outputs
+// the OUT data as map whose keys are in 'names'.
+//
+func (self *DBI) DoProcContext(ctx context.Context, res map[string]interface{}, names []string, procName string, args ...interface{}) error {
+	str, strN := sp(procName, names, len(args))
+	if err := self.DoSQLContext(ctx, str, args...); err != nil {
 		return err
 	}
-	return self.GetSQLLabel(res, "SELECT "+strN, names)
+	return self.GetSQLContext(ctx, res, strN, toInterface(names))
+}
+
+// TxProcContext runs the stored procedure 'procName' in transaction
+// and outputs the OUT data as map whose keys are in 'names'.
+//
+func (self *DBI) TxProcContext(ctx context.Context, res map[string]interface{}, names []string, procName string, args ...interface{}) error {
+	str, strN := sp(procName, names, len(args))
+	if err := self.TxSQLContext(ctx, str, args...); err != nil {
+		return err
+	}
+	return self.GetSQLContext(ctx, res, strN, toInterface(names))
 }
 
 // SelectProc runs the stored procedure 'procName'.
-// The queried result, 'lists', is received as slice of map.
+// The result, 'lists', is received as slice of map whose key
+// names and data types are defined in 'labels'.
 //
-func (self *DBI) SelectProc(lists *[]map[string]interface{}, procName string, args ...interface{}) error {
-	return self.SelectDoProcLabel(lists, nil, nil, procName, nil, args...)
+func (self *DBI) SelectProc(lists *[]map[string]interface{}, procName string, labels []interface{}, args ...interface{}) error {
+	return self.SelectProcContext(context.Background(), lists, procName, labels, args...)
 }
 
-/*
-// SelectProcLabel runs the stored procedure 'procName' using input parameters 'args'.
-// The query result, 'lists', is received as a slice of map.
-// The keys of the maps are renamed according to 'selectLabels'.
+// SelectProcContext runs the stored procedure 'procName'.
+// The result, 'lists', is received as slice of map whose key
+// names and data types are defined in 'labels'.
 //
-func (self *DBI) SelectProcLabel(lists *[]map[string]interface{}, procName string, selectLabels []string, args ...interface{}) error {
-	return self.SelectDoProcLabel(lists, nil, nil, procName, selectLabels, args...)
+func (self *DBI) SelectProcContext(ctx context.Context, lists *[]map[string]interface{}, procName string, labels []interface{}, args ...interface{}) error {
+	return self.SelectDoProcContext(ctx, lists, nil, nil, procName, labels, args...)
 }
-*/
 
 // SelectDoProc runs the stored procedure 'procName'.
-// The queried result, 'lists', is received as slice of map.
-// The OUT data, 'hash', is received as map with keys in 'names'.
+// The result, 'lists', is received as slice of map whose key names and data
+// types are defined in 'labels'. The OUT data, 'hash', is received as map
+// whose keys are in 'names'.
 //
-func (self *DBI) SelectDoProc(lists *[]map[string]interface{}, hash map[string]interface{}, names []string, procName string, args ...interface{}) error {
-	return self.SelectDoProcLabel(lists, hash, names, procName, nil, args...)
+func (self *DBI) SelectDoProc(lists *[]map[string]interface{}, hash map[string]interface{}, names []string, procName string, labels []interface{}, args ...interface{}) error {
+	return self.SelectDoProcContext(context.Background(), lists, hash, names, procName, labels, args...)
 }
 
-// SelectDoProcLabel runs the stored procedure 'procName'.
-// The queried result, 'lists', is received as slice of map
-// with map keys defined in 'selectLabels'.
-// The OUT data, 'hash', is returned as map with keys in 'names'.
+// SelectDoProcContext runs the stored procedure 'procName'.
+// The result, 'lists', is received as slice of map whose key names and data
+// types are defined in 'labels'. The OUT data, 'hash', is received as map
+// whose keys are in 'names'.
 //
-func (self *DBI) SelectDoProcLabel(lists *[]map[string]interface{}, hash map[string]interface{}, names []string, procName string, selectLabels []string, args ...interface{}) error {
-	n := len(args)
-	strQ := strings.Join(strings.Split(strings.Repeat("?", n), ""), ",")
-	str := "CALL " + procName + "(" + strQ
-	strN := "@" + strings.Join(names, ",@")
-	if names != nil {
-		str += ", " + strN
-	}
-	str += ")"
-
-	if err := self.SelectSQLLabel(lists, selectLabels, str, args...); err != nil {
+func (self *DBI) SelectDoProcContext(ctx context.Context, lists *[]map[string]interface{}, hash map[string]interface{}, names []string, procName string, labels []interface{}, args ...interface{}) error {
+	str, strN := sp(procName, names, len(args))
+	if err := self.SelectSQLContext(ctx, lists, labels, str, args...); err != nil {
 		return err
 	}
 	if hash == nil {
 		return nil
 	}
-	return self.GetSQLLabel(hash, "SELECT "+strN, names)
-}
-
-// existing checks if table has val in field
-func (self *DBI) existing(table string, field string, val interface{}) error {
-	id := 0
-	return self.DB.QueryRow("SELECT "+field+" FROM "+table+" WHERE "+field+"=?", val).Scan(&id)
-}
-
-// randomID create field's int value that does not exists in the table
-func (self *DBI) randomID(table string, field string, m ...interface{}) (interface{}, error) {
-	min := int64(0)
-	max := int64(4294967295)
-	trials := 10
-	if m != nil {
-		switch m[0].(type) {
-		case int64:
-			min = m[0].(int64)
-			max = m[1].(int64)
-		case uint32:
-			min = int64(m[0].(uint32))
-			max = int64(m[1].(uint32))
-		default:
-			min = int64(m[0].(int))
-			max = int64(m[1].(int))
-		}
-		if len(m)==3 {
-			trials = m[2].(int)
-		}
-	}
-
-	for i := 0; i < trials; i++ {
-		val := min + int64(rand.Float64()*float64(max-min))
-		if err := self.existing(table, field, val); err != nil {
-			continue
-		}
-		switch m[0].(type) {
-		case int64:
-			return val, nil
-		case uint32:
-			return uint32(val), nil
-		default:
-			return int(val), nil
-		}
-	}
-
-	return nil, errors.New("failed to make a unique ID")
+	return self.GetSQLContext(ctx, hash, strN, toInterface(names))
 }

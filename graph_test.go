@@ -1,14 +1,17 @@
 package godbi
 
 import (
+	"context"
 	"testing"
 )
 
-func TestGraph(t *testing.T) {
+func TestGraphContext(t *testing.T) {
 	db, err := getdb()
 	if err != nil {
 		panic(err)
 	}
+
+	ctx := context.Background()
 
 	model, err := NewModel("m2.json")
 	if err != nil {
@@ -16,33 +19,27 @@ func TestGraph(t *testing.T) {
 	}
 	model.DB = db
 
-	err = model.execSQL(`drop table if exists atesting`)
-	if err != nil {
-		panic(err)
-	}
-	err = model.execSQL(`CREATE TABLE atesting (id int auto_increment not null primary key, x varchar(8), y varchar(8), z varchar(8))`)
-	if err != nil {
-		panic(err)
-	}
+	db.Exec(`drop table if exists atesting`)
+	db.Exec(`CREATE TABLE atesting (id int auto_increment not null primary key, x varchar(8), y varchar(8), z varchar(8))`)
 
 	hash := map[string]interface{}{"x": "a1234567", "y": "b1234567"}
 	model.SetDB(db)
 	model.SetArgs(hash)
-	err = model.Insupd()
+	err = model.InsupdContext(ctx)
 	if err != nil {
 		panic(err)
 	}
 
 	hash = map[string]interface{}{"x": "c1234567", "y": "d1234567", "z": "e1234"}
 	model.SetArgs(hash)
-	err = model.Insupd()
+	err = model.InsupdContext(ctx)
 	if err != nil {
 		panic(err)
 	}
 
 	hash = map[string]interface{}{"x": "e1234567", "y": "f1234567", "z": "e1234"}
 	model.SetArgs(hash)
-	err = model.Insupd()
+	err = model.InsupdContext(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -52,39 +49,33 @@ func TestGraph(t *testing.T) {
 		panic(err)
 	}
 	supp.DB = db
-	err = supp.execSQL(`drop table if exists testing`)
-	if err != nil {
-		panic(err)
-	}
-	err = supp.execSQL(`CREATE TABLE testing (tid int auto_increment not null primary key, child varchar(8), id int)`)
-	if err != nil {
-		panic(err)
-	}
+	db.Exec(`drop table if exists testing`)
+	db.Exec(`CREATE TABLE testing (tid int auto_increment not null primary key, child varchar(8), id int)`)
 
 	hash = map[string]interface{}{"id": "1", "child": "john"}
 	supp.SetArgs(hash)
-	err = supp.Insert()
+	err = supp.InsertContext(ctx)
 	if err != nil {
 		panic(err)
 	}
 
 	hash = map[string]interface{}{"id": "1", "child": "sam"}
 	supp.SetArgs(hash)
-	err = supp.Insert()
+	err = supp.InsertContext(ctx)
 	if err != nil {
 		panic(err)
 	}
 
 	hash = map[string]interface{}{"id": "2", "child": "mary"}
 	supp.SetArgs(hash)
-	err = supp.Insert()
+	err = supp.InsertContext(ctx)
 	if err != nil {
 		panic(err)
 	}
 
 	hash = map[string]interface{}{"id": "3", "child": "kkk"}
 	supp.SetArgs(hash)
-	err = supp.Insert()
+	err = supp.InsertContext(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -97,7 +88,7 @@ func TestGraph(t *testing.T) {
 	graph := NewGraph(db, map[string]Navigate{"s": model, "testing": st})
 
 	METHODS := map[string]string{"LIST":"topics", "GET":"edit", "POST":"insert", "PUT":"update", "PATCH":"insupd", "DELETE":"delete"}
-	lists, err := graph.Run("s", METHODS["LIST"])
+	lists, err := graph.RunContext(ctx, "s", METHODS["LIST"])
 	if err != nil {
 		panic(err)
 	}
@@ -112,7 +103,7 @@ func TestGraph(t *testing.T) {
 		t.Errorf("%#v", relate)
 	}
 
-	lists, err = graph.Run("s", METHODS["LIST"], nil, nil, map[string]interface{}{"fields":[]string{"child","tid"}})
+	lists, err = graph.RunContext(ctx, "s", METHODS["LIST"], nil, nil, map[string]interface{}{"fields":[]string{"child","tid"}})
 	if err != nil {
 		panic(err)
 	}

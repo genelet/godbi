@@ -2,18 +2,21 @@ package godbi
 
 import (
 	"testing"
+	"context"
 	"os"
     "database/sql"
 	_ "github.com/go-sql-driver/mysql"
 )
 
-func TestPage(t *testing.T) {
+func TestPageContext(t *testing.T) {
 	dbUser := os.Getenv("DBUSER")
 	dbPass := os.Getenv("DBPASS")
 	dbName := os.Getenv("DBNAME")
 	db, err := sql.Open("mysql", dbUser + ":" + dbPass + "@/" + dbName)
 	if err != nil { panic(err) }
 	defer db.Close()
+
+	ctx := context.Background()
 
 	db.Exec(`drop table if exists m_a`)
 	db.Exec(`CREATE TABLE m_a (id int auto_increment not null primary key,
@@ -34,27 +37,27 @@ func TestPage(t *testing.T) {
     // the 1st web requests is assumed to create id=1 to the m_a and m_b tables:
     //
     args := map[string]interface{}{"x":"a1234567","y":"b1234567","z":"temp", "child":"john"}
-	if lists, err = graph.Run("ta", METHODS["PATCH"], args); err != nil { panic(err) }
+	if lists, err = graph.RunContext(ctx, "ta", METHODS["PATCH"], args); err != nil { panic(err) }
 
     // the 2nd request just updates, becaues [x,y] is defined to the unique in ta.
     // but create a new record to tb for id=1, since insupd triggers insert in tb
     // 
     args = map[string]interface{}{"x":"a1234567","y":"b1234567","z":"zzzzz", "child":"sam"}
-	if lists, err = graph.Run("ta", METHODS["PATCH"], args); err != nil { panic(err) }
+	if lists, err = graph.RunContext(ctx, "ta", METHODS["PATCH"], args); err != nil { panic(err) }
 
 	// the 3rd request creates id=2
     //
     args = map[string]interface{}{"x":"c1234567","y":"d1234567","z":"e1234","child":"mary"}
-	if lists, err = graph.Run("ta", METHODS["POST"], args); err != nil { panic(err) }
+	if lists, err = graph.RunContext(ctx, "ta", METHODS["POST"], args); err != nil { panic(err) }
 
 	// the 4th request creates id=3
     //
     args = map[string]interface{}{"x":"e1234567","y":"f1234567","z":"e1234","child":"marcus"}
-	if lists, err = graph.Run("ta", METHODS["POST"], args); err != nil { panic(err) }
+	if lists, err = graph.RunContext(ctx, "ta", METHODS["POST"], args); err != nil { panic(err) }
 
 	// GET all
     args = map[string]interface{}{}
-	lists, err = graph.Run("ta", METHODS["LIST"], args)
+	lists, err = graph.RunContext(ctx, "ta", METHODS["LIST"], args)
 	if err != nil { panic(err) }
 	e1 := lists[0]["ta_edit"].([]map[string]interface{})
 	e2 := e1[0]["tb_topics"].([]map[string]interface{})
@@ -65,7 +68,7 @@ func TestPage(t *testing.T) {
 
 	// GET one
     args = map[string]interface{}{"id":1}
-	lists, err = graph.Run("ta", METHODS["GET"], args)
+	lists, err = graph.RunContext(ctx, "ta", METHODS["GET"], args)
 	if err != nil { panic(err) }
 	e2 = lists[0]["tb_topics"].([]map[string]interface{})
 	if e2[0]["child"].(string) != "john" {
@@ -75,12 +78,12 @@ func TestPage(t *testing.T) {
 
 	// DELETE
     extra := map[string]interface{}{"id":1}
-	if lists, err = graph.Run("tb", METHODS["DELETE"], map[string]interface{}{}, extra); err != nil { panic(err) }
-	if lists, err = graph.Run("ta", METHODS["DELETE"], map[string]interface{}{}, extra); err != nil { panic(err) }
+	if lists, err = graph.RunContext(ctx, "tb", METHODS["DELETE"], map[string]interface{}{}, extra); err != nil { panic(err) }
+	if lists, err = graph.RunContext(ctx, "ta", METHODS["DELETE"], map[string]interface{}{}, extra); err != nil { panic(err) }
 
 	// GET all
     args = map[string]interface{}{}
-	lists, err = graph.Run("ta", METHODS["LIST"], args)
+	lists, err = graph.RunContext(ctx, "ta", METHODS["LIST"], args)
 	if err != nil { panic(err) }
 	e1 = lists[0]["ta_edit"].([]map[string]interface{})
 	e2 = e1[0]["tb_topics"].([]map[string]interface{})
