@@ -348,7 +348,8 @@ func (self *DBI) GetSQLContext(ctx context.Context, res map[string]interface{}, 
 	return nil
 }
 
-func sp(procName string, names []string, n int) (string, string) {
+func sp(procName string, labels []interface{}, n int) (string, string) {
+	names, _ := getLabels(labels)
 	strQ := strings.Join(strings.Split(strings.Repeat("?", n), ""), ",")
 	str := "CALL " + procName + "(" + strQ
 	strN := "@" + strings.Join(names, ",@")
@@ -358,41 +359,33 @@ func sp(procName string, names []string, n int) (string, string) {
 	return str + ")", "SELECT " + strN
 }
 
-func toInterface(names []string) []interface{} {
-	x := make([]interface{}, len(names))
-	for i, name := range names {
-		x[i] = name
-	}
-	return x
-}
-
 // DoProc runs the stored procedure 'procName' and outputs
 // the OUT data as map whose keys are in 'names'.
 //
-func (self *DBI) DoProc(res map[string]interface{}, names []string, procName string, args ...interface{}) error {
+func (self *DBI) DoProc(res map[string]interface{}, names []interface{}, procName string, args ...interface{}) error {
 	return self.DoProcContext(context.Background(), res, names, procName, args...)
 }
 
 // DoProcContext runs the stored procedure 'procName' and outputs
 // the OUT data as map whose keys are in 'names'.
 //
-func (self *DBI) DoProcContext(ctx context.Context, res map[string]interface{}, names []string, procName string, args ...interface{}) error {
+func (self *DBI) DoProcContext(ctx context.Context, res map[string]interface{}, names []interface{}, procName string, args ...interface{}) error {
 	str, strN := sp(procName, names, len(args))
 	if err := self.DoSQLContext(ctx, str, args...); err != nil {
 		return err
 	}
-	return self.GetSQLContext(ctx, res, strN, toInterface(names))
+	return self.GetSQLContext(ctx, res, strN, names)
 }
 
 // TxProcContext runs the stored procedure 'procName' in transaction
 // and outputs the OUT data as map whose keys are in 'names'.
 //
-func (self *DBI) TxProcContext(ctx context.Context, res map[string]interface{}, names []string, procName string, args ...interface{}) error {
+func (self *DBI) TxProcContext(ctx context.Context, res map[string]interface{}, names []interface{}, procName string, args ...interface{}) error {
 	str, strN := sp(procName, names, len(args))
 	if err := self.TxSQLContext(ctx, str, args...); err != nil {
 		return err
 	}
-	return self.GetSQLContext(ctx, res, strN, toInterface(names))
+	return self.GetSQLContext(ctx, res, strN, names)
 }
 
 // SelectProc runs the stored procedure 'procName'.
@@ -416,7 +409,7 @@ func (self *DBI) SelectProcContext(ctx context.Context, lists *[]map[string]inte
 // types are defined in 'labels'. The OUT data, 'hash', is received as map
 // whose keys are in 'names'.
 //
-func (self *DBI) SelectDoProc(lists *[]map[string]interface{}, hash map[string]interface{}, names []string, procName string, labels []interface{}, args ...interface{}) error {
+func (self *DBI) SelectDoProc(lists *[]map[string]interface{}, hash map[string]interface{}, names []interface{}, procName string, labels []interface{}, args ...interface{}) error {
 	return self.SelectDoProcContext(context.Background(), lists, hash, names, procName, labels, args...)
 }
 
@@ -425,7 +418,7 @@ func (self *DBI) SelectDoProc(lists *[]map[string]interface{}, hash map[string]i
 // types are defined in 'labels'. The OUT data, 'hash', is received as map
 // whose keys are in 'names'.
 //
-func (self *DBI) SelectDoProcContext(ctx context.Context, lists *[]map[string]interface{}, hash map[string]interface{}, names []string, procName string, labels []interface{}, args ...interface{}) error {
+func (self *DBI) SelectDoProcContext(ctx context.Context, lists *[]map[string]interface{}, hash map[string]interface{}, names []interface{}, procName string, labels []interface{}, args ...interface{}) error {
 	str, strN := sp(procName, names, len(args))
 	if err := self.SelectSQLContext(ctx, lists, labels, str, args...); err != nil {
 		return err
@@ -433,5 +426,5 @@ func (self *DBI) SelectDoProcContext(ctx context.Context, lists *[]map[string]in
 	if hash == nil {
 		return nil
 	}
-	return self.GetSQLContext(ctx, hash, strN, toInterface(names))
+	return self.GetSQLContext(ctx, hash, strN, names)
 }
