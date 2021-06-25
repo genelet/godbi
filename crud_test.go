@@ -42,7 +42,7 @@ func TestCrudDbContext(t *testing.T) {
 	}
 
 	lists := make([]map[string]interface{}, 0)
-	label := map[string]interface{}{"x":[]interface{}{"x",""}, "y":[]interface{}{"y",""}}
+	label := map[string][2]string{"x":[2]string{"x",""}, "y":[2]string{"y",""}}
 	err = crud.editHashContext(ctx, &lists, label, []interface{}{id})
 	if err != nil {
 		t.Errorf("%s select table testing failed", err.Error())
@@ -93,7 +93,7 @@ func TestCrudDbContext(t *testing.T) {
 	}
 
 	lists = make([]map[string]interface{}, 0)
-	label = map[string]interface{}{"id":[]interface{}{"id",""}, "x":[]interface{}{"x",""}, "y":[]interface{}{"y",""}}
+	label = map[string][2]string{"id":[2]string{"id",""}, "x":[2]string{"x",""}, "y":[2]string{"y",""}}
 	err = crud.topicsHashContext(ctx, &lists, label)
 	if err != nil {
 		t.Errorf("%s select table testing failed", err.Error())

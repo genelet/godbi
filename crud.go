@@ -132,7 +132,7 @@ func (self *Model) deleteHashContext(ctx context.Context, extra ...map[string]in
 	return self.DoSQLContext(ctx, sql, values...)
 }
 
-func (self *Model) editHashContext(ctx context.Context, lists *[]map[string]interface{}, editPars map[string]interface{}, ids []interface{}, extra ...map[string]interface{}) error {
+func (self *Model) editHashContext(ctx context.Context, lists *[]map[string]interface{}, editPars map[string][2]string, ids []interface{}, extra ...map[string]interface{}) error {
 	sql, labels := selectType(editPars)
 	sql = "SELECT " + sql + "\nFROM " + self.CurrentTable
 	where, extraValues := self.singleCondition(ids, extra...)
@@ -143,11 +143,11 @@ func (self *Model) editHashContext(ctx context.Context, lists *[]map[string]inte
 	return self.SelectSQLContext(ctx, lists, labels, sql, extraValues...)
 }
 
-func (self *Model) topicsHashContext(ctx context.Context, lists *[]map[string]interface{}, selectPars map[string]interface{}, extra ...map[string]interface{}) error {
+func (self *Model) topicsHashContext(ctx context.Context, lists *[]map[string]interface{}, selectPars map[string][2]string, extra ...map[string]interface{}) error {
 	return self.topicsHashOrderContext(ctx, lists, selectPars, "", extra...)
 }
 
-func (self *Model) topicsHashOrderContext(ctx context.Context, lists *[]map[string]interface{}, selectPars map[string]interface{}, order string, extra ...map[string]interface{}) error {
+func (self *Model) topicsHashOrderContext(ctx context.Context, lists *[]map[string]interface{}, selectPars map[string][2]string, order string, extra ...map[string]interface{}) error {
 	sql, labels := selectType(selectPars)
 	var table []string
 	if hasValue(self.CurrentTables) {

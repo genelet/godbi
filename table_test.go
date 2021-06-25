@@ -19,13 +19,13 @@ func TestTable1(t *testing.T) {
 	if err != nil { t.Fatal(err) }
 
 	x := table.editHashPars
-	e := x["x"].([]interface{})
-	if e[0].(string) != "x" {
+	e := x["x"]
+	if e[0] != "x" {
 		t.Errorf("%#v", x)
 	}
 	y := table.topicsHashPars
-	id:= y["id"].([]interface{})
-	if id[0].(string)!="id" || id[1].(string)!="int" {
+	id:= y["id"]
+	if id[0]!="id" || id[1]!="int" {
 		t.Errorf("%#v", y)
 	}
 }
@@ -44,13 +44,13 @@ func TestTable2(t *testing.T) {
 	table, err := newTable([]byte(str))
 	if err != nil { t.Fatal(err) }
 	x := table.editHashPars
-	x1 := x["x1"].([]interface{})
-	if x1[0].(string) != "x" {
+	x1 := x["x1"]
+	if x1[0] != "x" {
 		t.Errorf("%#v", x)
 	}
 	y := table.topicsHashPars
-	id:= y["id1"].([]interface{})
-	if id[0].(string)!="id" || id[1].(string)!="int" {
+	id:= y["id1"]
+	if id[0]!="id" || id[1]!="int" {
 		t.Errorf("%#v", x)
 	}
 }
@@ -82,11 +82,11 @@ func TestCrudStr(t *testing.T) {
 	if sql != "firstname" {
 		t.Errorf("%s wanted", sql)
 	}
-	f := labels[0].([]interface{})
-	if f[0].(string) != "firstname" {
+	f := labels[0].([2]string)
+	if f[0] != "firstname" {
 		t.Errorf("%s wanted", labels)
 	}
-	if f[1].(string) != "" {
+	if f[1] != "" {
 		t.Errorf("%v wanted", labels)
 	}
 
@@ -95,21 +95,21 @@ func TestCrudStr(t *testing.T) {
 	if !(strings.Contains(sql, "firstname") && strings.Contains(sql, "lastname") && strings.Contains(sql, "id")) {
 		t.Errorf("%s wanted", sql)
 	}
-	f = labels[0].([]interface{})
-	if !(f[0].(string) == "firstname" || f[0].(string) == "id" || f[0].(string) == "lastname") {
+	ff := labels[0].([2]string)
+	if !(ff[0] == "firstname" || ff[0] == "id" || ff[0] == "lastname") {
 		t.Errorf("%s wanted", labels)
 	}
-	if f[1].(string) != "" {
+	if ff[1] != "" {
 		t.Errorf("%v wanted", labels)
 	}
 
-	selectHash := map[string]interface{}{"firstname": []interface{}{"First", "string"}, "lastname": []interface{}{"Last", "string"}, "id": []interface{}{"ID", "int"}}
+	selectHash := map[string][2]string{"firstname": [2]string{"First", "string"}, "lastname": [2]string{"Last", "string"}, "id": [2]string{"ID", "int"}}
 	sql, labels = selectType(selectHash)
 	if !strings.Contains(sql, "firstname") {
 		t.Errorf("%s wanted", sql)
 	}
-	f = labels[0].([]interface{})
-	str := f[0].(string)
+	fff := labels[0].([2]string)
+	str := fff[0]
 	if !(str=="First" || str=="Last" || str=="ID")  {
 		t.Errorf("%v wanted", labels)
 	}

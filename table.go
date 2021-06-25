@@ -110,8 +110,8 @@ type Table struct {
 	// TopicsHash: a map between SQL columns and output keys
 	TopicsHash map[string]interface{} `json:"topics_hash,omitempty"`
 
-	editHashPars map[string]interface{}
-	topicsHashPars map[string]interface{}
+	editHashPars map[string][2]string
+	topicsHashPars map[string][2]string
 
 	// TotalForce controls how the total number of rows be calculated for Topics
 	// <-1	use ABS(TotalForce) as the total count
@@ -132,9 +132,9 @@ type Table struct {
 	Sortby      string `json:"sortby,omitempty"`
 }
 
-func generalHashPars(TopicsHash map[string]interface{}, TopicsPars []interface{}, fields []string) map[string]interface{} {
-	s1 := make(map[string]interface{})
-	s2 := make(map[string]interface{})
+func generalHashPars(TopicsHash map[string]interface{}, TopicsPars []interface{}, fields []string) map[string][2]string {
+	s1 := make(map[string][2]string)
+	s2 := make(map[string][2]string)
 
 	if hasValue(TopicsHash) {
 		for k, vs := range TopicsHash {
@@ -143,9 +143,9 @@ func generalHashPars(TopicsHash map[string]interface{}, TopicsPars []interface{}
 			}
 			switch v := vs.(type) {
 			case []interface{}:
-				s2[k] = v
+				s2[k] = [2]string{v[0].(string), v[1].(string)}
 			default:
-				s1[k] = []interface{}{v.(string), ""}
+				s1[k] = [2]string{v.(string), ""}
 			}
 		}
 		if len(s2) > 0 {
@@ -161,13 +161,13 @@ func generalHashPars(TopicsHash map[string]interface{}, TopicsPars []interface{}
 				continue
 			}
 			name := v[0].(string)
-			s2[name] = []interface{}{name, v[1].(string)}
+			s2[name] = [2]string{name, v[1].(string)}
 		default:
 			if fields != nil && !grep(fields, v.(string)) {
 				continue
 			}
 			name := v.(string)
-			s1[name] = []interface{}{name, ""}
+			s1[name] = [2]string{name, ""}
 		}
 	}
 	if len(s2) > 0 {
@@ -176,12 +176,12 @@ func generalHashPars(TopicsHash map[string]interface{}, TopicsPars []interface{}
 	return s1
 }
 
-func filterPars(selectPars map[string]interface{}, fields []string) map[string]interface{} {
+func filterPars(selectPars map[string][2]string, fields []string) map[string][2]string {
 	if fields == nil || selectPars == nil {
 		return nil
 	}
 
-	labels := make(map[string]interface{})
+	labels := make(map[string][2]string)
 	for key, val := range selectPars {
 		if grep(fields, key) {
 			labels[key] = val
@@ -227,7 +227,7 @@ func newTable(content []byte) (*Table, error) {
 // selectType returns variables' SELECT sql string and labels as []interface{}
 // which can be used in SelectSQL
 //
-func selectType(selectPars map[string]interface{}) (string, []interface{}) {
+func selectType(selectPars map[string][2]string) (string, []interface{}) {
 	if selectPars == nil {
 		return "", nil
 	}
@@ -300,11 +300,11 @@ func selectCondition(extra map[string]interface{}, table ...string) (string, []i
 	return sql, values
 }
 
-func (self *Table) SetTopicsPars(newPars map[string]interface{}) {
+func (self *Table) SetTopicsPars(newPars map[string][2]string) {
 	self.topicsHashPars = newPars
 }
 
-func (self *Table) SetEditPars(newPars map[string]interface{}) {
+func (self *Table) SetEditPars(newPars map[string][2]string) {
 	self.editHashPars = newPars
 }
 

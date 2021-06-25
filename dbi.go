@@ -147,15 +147,15 @@ func getLabels(labels []interface{}) ([]string, []string) {
 	typeLabels   := make([]string, 0)
 	for _, vs := range labels {
 		switch v := vs.(type) {
-		case []interface{}:
-			selectLabels = append(selectLabels, v[0].(string))
+		case [2]string:
+			selectLabels = append(selectLabels, v[0])
 			if len(v)>1 {
-				typeLabels = append(typeLabels, v[1].(string))
+				typeLabels = append(typeLabels, v[1])
 			} else {
 				typeLabels = append(typeLabels, "")
 			}
 		default:
-			selectLabels = append(selectLabels, v.(string))
+			selectLabels = append(selectLabels, vs.(string))
 			typeLabels   = append(typeLabels, "")
 		}
 	}
