@@ -362,14 +362,14 @@ func sp(procName string, labels []interface{}, n int) (string, string) {
 // DoProc runs the stored procedure 'procName' and outputs
 // the OUT data as map whose keys are in 'names'.
 //
-func (self *DBI) DoProc(res map[string]interface{}, names []interface{}, procName string, args ...interface{}) error {
-	return self.DoProcContext(context.Background(), res, names, procName, args...)
+func (self *DBI) DoProc(res map[string]interface{}, procName string, names []interface{}, args ...interface{}) error {
+	return self.DoProcContext(context.Background(), res, procName, names, args...)
 }
 
 // DoProcContext runs the stored procedure 'procName' and outputs
 // the OUT data as map whose keys are in 'names'.
 //
-func (self *DBI) DoProcContext(ctx context.Context, res map[string]interface{}, names []interface{}, procName string, args ...interface{}) error {
+func (self *DBI) DoProcContext(ctx context.Context, res map[string]interface{}, procName string, names []interface{}, args ...interface{}) error {
 	str, strN := sp(procName, names, len(args))
 	if err := self.DoSQLContext(ctx, str, args...); err != nil {
 		return err
@@ -380,7 +380,7 @@ func (self *DBI) DoProcContext(ctx context.Context, res map[string]interface{}, 
 // TxProcContext runs the stored procedure 'procName' in transaction
 // and outputs the OUT data as map whose keys are in 'names'.
 //
-func (self *DBI) TxProcContext(ctx context.Context, res map[string]interface{}, names []interface{}, procName string, args ...interface{}) error {
+func (self *DBI) TxProcContext(ctx context.Context, res map[string]interface{}, procName string, names []interface{}, args ...interface{}) error {
 	str, strN := sp(procName, names, len(args))
 	if err := self.TxSQLContext(ctx, str, args...); err != nil {
 		return err
