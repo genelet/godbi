@@ -198,30 +198,32 @@ func newTable(content []byte) (*Table, error) {
 
 	parsed.topicsHashPars = generalHashPars(parsed.TopicsHash, parsed.TopicsPars, nil)
 	parsed.editHashPars   = generalHashPars(parsed.EditHash, parsed.EditPars, nil)
-
-	if parsed.Sortby == "" {
-		parsed.Sortby = "sortby"
-	}
-	if parsed.Sortreverse == "" {
-		parsed.Sortreverse = "sortreverse"
-	}
-	if parsed.Pageno == "" {
-		parsed.Pageno = "pageno"
-	}
-	if parsed.Totalno == "" {
-		parsed.Totalno = "totalno"
-	}
-	if parsed.Rowcount == "" {
-		parsed.Rowcount = "rowcount"
-	}
-	if parsed.Maxpageno == "" {
-		parsed.Maxpageno = "maxpage"
-	}
-	if parsed.Fields == "" {
-		parsed.Fields = "fields"
-	}
-
+	parsed.DefaultSelectNames()
 	return parsed, nil
+}
+
+func (self *Table) DefaultSelectNames() {
+	if self.Sortby == "" {
+		self.Sortby = "sortby"
+	}
+	if self.Sortreverse == "" {
+		self.Sortreverse = "sortreverse"
+	}
+	if self.Pageno == "" {
+		self.Pageno = "pageno"
+	}
+	if self.Totalno == "" {
+		self.Totalno = "totalno"
+	}
+	if self.Rowcount == "" {
+		self.Rowcount = "rowcount"
+	}
+	if self.Maxpageno == "" {
+		self.Maxpageno = "maxpage"
+	}
+	if self.Fields == "" {
+		self.Fields = "fields"
+	}
 }
 
 // selectType returns variables' SELECT sql string and labels as []interface{}

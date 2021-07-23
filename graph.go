@@ -54,7 +54,7 @@ func (self *Graph) Run(model, action string, extra ...map[string]interface{}) ([
 func (self *Graph) RunContext(ctx context.Context, model, action string, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
 	modelObj, ok := self.Models[model]
 	if !ok {
-		return nil, errors.New("model not found in schema models")
+		return nil, errors.New(model + " not found in schema models")
 	}
 
 	var args map[string]interface{}
