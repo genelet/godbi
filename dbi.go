@@ -351,7 +351,7 @@ func (self *DBI) GetSQLContext(ctx context.Context, res map[string]interface{}, 
 func sp(procName string, labels []interface{}, n int) (string, string) {
 	names, _ := getLabels(labels)
 	strQ := strings.Join(strings.Split(strings.Repeat("?", n), ""), ",")
-	str := "CALL " + procName + "(" + strQ
+	str  := procName + "(" + strQ
 	strN := "@" + strings.Join(names, ",@")
 	if names != nil {
 		str += ", " + strN
