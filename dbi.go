@@ -404,6 +404,23 @@ func (self *DBI) SelectProcContext(ctx context.Context, lists *[]map[string]inte
 	return self.SelectDoProcContext(ctx, lists, nil, nil, procName, labels, args...)
 }
 
+// GetProcContext returns single row from stored procedure into 'res'.
+//
+func (self *DBI) GetProcContext(ctx context.Context, res map[string]interface{}, procName string, labels []interface{}, args ...interface{}) error {
+    lists := make([]map[string]interface{}, 0)
+    if err := self.SelectProcContext(ctx, &lists, procName, labels, args...); err != nil {
+        return err
+    }
+    if len(lists) >= 1 {
+        for k, v := range lists[0] {
+            if v != nil {
+                res[k] = v
+            }
+        }
+    }
+    return nil
+}
+
 // SelectDoProc runs the stored procedure 'procName'.
 // The result, 'lists', is received as slice of map whose key names and data
 // types are defined in 'labels'. The OUT data, 'hash', is received as map

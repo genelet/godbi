@@ -19,7 +19,7 @@ func TestContextProcedure(t *testing.T) {
 	dbi.Exec(`create table letters(x varchar(1))`)
     dbi.Exec(`create procedure proc_w_resultset() begin insert into letters values('m'); insert into letters values('n'); select x from letters; select 1; select 2; insert into letters values('a'); end`)
 
-	sql := `proc_w_resultset`
+	sql := `call proc_w_resultset`
 	lists := make([]map[string]interface{},0)
 	err = dbi.SelectProcContext(ctx, &lists, sql, nil)
 	if err != nil {
@@ -34,7 +34,7 @@ func TestContextProcedure(t *testing.T) {
 
 	dbi.Exec(`create procedure proc_w(IN x0 varchar(1),OUT y0 int) begin delete from letters; insert into letters values('m'); insert into letters values('n'); insert into letters values('p'); select x from letters where x=x0; insert into letters values('a'); set y0=100; end`)
 
-	sql = `proc_w`
+	sql = `call proc_w`
 	hash := make(map[string]interface{})
 	lists = make([]map[string]interface{},0)
 	err = dbi.SelectDoProcContext(ctx, &lists, hash, []interface{}{"y0"}, sql, nil, "m")
