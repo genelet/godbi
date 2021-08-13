@@ -17,7 +17,13 @@ type DBI struct {
 	LastID int64
 }
 
-// TxSQLContext is the same as DoSQL, but use transaction
+// TxSQL is the same as DoSQL, but use transaction
+//
+func (self *DBI) TxSQL(query string, args ...interface{}) error {
+	return self.TxSQLContext(context.Background(), query, args...)
+}
+
+// TxSQLContext is the same as DoSQLContext, but use transaction
 //
 func (self *DBI) TxSQLContext(ctx context.Context, query string, args ...interface{}) error {
 	tx, err := self.DB.Begin()
@@ -135,7 +141,7 @@ func (self *DBI) Select(lists *[]map[string]interface{}, query string, args ...i
 // Rows' data types are determined dynamically by the generic handle.
 //
 func (self *DBI) SelectContext(ctx context.Context, lists *[]map[string]interface{}, query string, args ...interface{}) error {
-	return self.SelectSQLContext(ctx, lists, nil, query, args...)
+	return self.SelectSQLContext(ctx, lists, query, nil, args...)
 }
 
 func getLabels(labels []interface{}) ([]string, []string) {
@@ -171,8 +177,8 @@ func getLabels(labels []interface{}) ([]string, []string) {
 // 2) when interface is a slice, the first element is the key
 //    and the second the data type express as "int64", "int", "string" etc.
 //
-func (self *DBI) SelectSQL(lists *[]map[string]interface{}, labels []interface{}, query string, args ...interface{}) error {
-	return self.SelectSQLContext(context.Background(), lists, labels, query, args...)
+func (self *DBI) SelectSQL(lists *[]map[string]interface{}, query string, labels []interface{}, args ...interface{}) error {
+	return self.SelectSQLContext(context.Background(), lists, query, labels, args...)
 }
 
 // SelectSQLContext searches data as slice of map in 'lists'.
@@ -183,7 +189,7 @@ func (self *DBI) SelectSQL(lists *[]map[string]interface{}, labels []interface{}
 // 2) when interface is a slice, the first element is the key
 //    and the second the data type express as "int64", "int", "string" etc.
 //
-func (self *DBI) SelectSQLContext(ctx context.Context, lists *[]map[string]interface{}, labels []interface{}, query string, args ...interface{}) error {
+func (self *DBI) SelectSQLContext(ctx context.Context, lists *[]map[string]interface{}, query string, labels []interface{}, args ...interface{}) error {
 	//log.Printf("godbi SQL statement: %s", query)
 	//log.Printf("godbi select columns: %#v", labels)
 	//log.Printf("godbi input data: %v", args)
@@ -335,7 +341,7 @@ func (self *DBI) GetSQL(res map[string]interface{}, query string, labels []inter
 //
 func (self *DBI) GetSQLContext(ctx context.Context, res map[string]interface{}, query string, labels []interface{}, args ...interface{}) error {
 	lists := make([]map[string]interface{}, 0)
-	if err := self.SelectSQLContext(ctx, &lists, labels, query, args...); err != nil {
+	if err := self.SelectSQLContext(ctx, &lists, query, labels, args...); err != nil {
 		return err
 	}
 	if len(lists) >= 1 {
@@ -437,7 +443,7 @@ func (self *DBI) SelectDoProc(lists *[]map[string]interface{}, hash map[string]i
 //
 func (self *DBI) SelectDoProcContext(ctx context.Context, lists *[]map[string]interface{}, hash map[string]interface{}, names []interface{}, procName string, labels []interface{}, args ...interface{}) error {
 	str, strN := sp(procName, names, len(args))
-	if err := self.SelectSQLContext(ctx, lists, labels, str, args...); err != nil {
+	if err := self.SelectSQLContext(ctx, lists, str, labels, args...); err != nil {
 		return err
 	}
 	if hash == nil {

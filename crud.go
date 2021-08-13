@@ -140,7 +140,7 @@ func (self *Model) editHashContext(ctx context.Context, lists *[]map[string]inte
 		sql += "\nWHERE " + where
 	}
 
-	return self.SelectSQLContext(ctx, lists, labels, sql, extraValues...)
+	return self.SelectSQLContext(ctx, lists, sql, labels, extraValues...)
 }
 
 func (self *Model) topicsHashContext(ctx context.Context, lists *[]map[string]interface{}, selectPars map[string][2]string, extra ...map[string]interface{}) error {
@@ -165,13 +165,13 @@ func (self *Model) topicsHashOrderContext(ctx context.Context, lists *[]map[stri
 		if order != "" {
 			sql += "\n" + order
 		}
-		return self.SelectSQLContext(ctx, lists, labels, sql, values...)
+		return self.SelectSQLContext(ctx, lists, sql, labels, values...)
 	}
 
 	if order != "" {
 		sql += "\n" + order
 	}
-	return self.SelectSQLContext(ctx, lists, labels, sql)
+	return self.SelectSQLContext(ctx, lists, sql, labels)
 }
 
 func (self *Model) totalHashContext(ctx context.Context, v interface{}, extra ...map[string]interface{}) error {
