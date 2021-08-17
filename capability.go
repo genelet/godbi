@@ -1,12 +1,22 @@
 package godbi
 
 import (
+	"context"
+	"database/sql"
 	"fmt"
 	"strings"
 )
 
+// Action is interface to implement Capability
+//
+type Action interface {
+	Fulfill(string, []string, string, []string)
+	RunContext(context.Context, *sql.DB, map[string]interface{}, ...map[string]interface{}) ([]map[string]interface{}, error)
+	GetNextpages() []*Page
+}
+
 type Capability struct {
-	Component
+	Table
 	Name       string   `json:"name" hcl:",label"`
 	Must       []string `json:"must,omitempty" hcl:"must,optional"`
 	Nextpages  []*Page  `json:"nextpages,omitempty" hcl:"nextpage,block"`
@@ -17,6 +27,10 @@ func (self *Capability) Fulfill(t string, pks []string, auto string, fks []strin
 	self.Pks          = pks
 	self.IDAuto       = auto
 	self.Fks          = fks
+}
+
+func (self *Capability) GetNextpages() []*Page {
+	return self.Nextpages
 }
 
 func (self *Capability) CheckNull(ARGS map[string]interface{}) error {

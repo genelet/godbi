@@ -1,92 +1,210 @@
 package godbi
 
 import (
-	"encoding/json"
+	"context"
+	"database/sql"
+	"fmt"
 	"regexp"
 	"strings"
 )
 
 type Table struct {
-	CurrentTable  string   `json:"table" hcl:"table"`
-	CurrentKeys   []string `json:"pks,omitempty" hcl:"pks,optional"`
-	CurrentIDAuto string   `json:"id_auto,omitempty" hcl:"id_auto,optional"`
-	Fks           []string `json:"fks,omitempty" hcl:"fks,optional"`
+	CurrentTable  string      `json:"table" hcl:"table"`
+	Pks     []string          `json:"pks,omitempty" hcl:"pks,optional"`
+	IDAuto  string            `json:"id_auto,omitempty" hcl:"id_auto,optional"`
+	Fks     []string          `json:"fks,omitempty" hcl:"fks,optional"`
 }
 
-func filterPars(selectPars map[string][2]string, fields []string) map[string][2]string {
-	if fields == nil || selectPars == nil {
-		return nil
-	}
+func (self *Table) insertHashContext(ctx context.Context, db *sql.DB, args map[string]interface{}) (int64, error) {
+    fields := make([]string, 0)
+    values := make([]interface{}, 0)
+    for k, v := range args {
+        if v != nil {
+            fields = append(fields, k)
+            values = append(values, v)
+        }
+    }
+    sql := "INSERT INTO " + self.CurrentTable + " (" + strings.Join(fields, ", ") + ") VALUES (" + strings.Join(strings.Split(strings.Repeat("?", len(fields)), ""), ",") + ")"
+	dbi := &DBI{DB:db}
+    err := dbi.DoSQLContext(ctx, sql, values...)
+	if err != nil { return 0, err }
+	return dbi.LastID, nil
+}
 
-	labels := make(map[string][2]string)
-	for key, val := range selectPars {
-		if grep(fields, key) {
-			labels[key] = val
+func (self *Table) updateHashNullsContext(ctx context.Context, db *sql.DB, args map[string]interface{}, ids []interface{}, empties []string, extra ...map[string]interface{}) error {
+	if empties == nil {
+		empties = make([]string, 0)
+	}
+	for _, k := range self.Pks {
+		if _, ok := args[k]; !ok {
+			return fmt.Errorf("PK can't be NULL")
 		}
 	}
-	return labels
+
+	fields := make([]string, 0)
+	field0 := make([]string, 0)
+	values := make([]interface{}, 0)
+	for k, v := range args {
+		fields = append(fields, k)
+		field0 = append(field0, k+"=?")
+		values = append(values, v)
+	}
+
+	sql := "UPDATE " + self.CurrentTable + " SET " + strings.Join(field0, ", ")
+	for _, v := range empties {
+		if _, ok := args[v]; ok {
+			continue
+		}
+		sql += ", " + v + "=NULL"
+	}
+
+	where, extraValues := self.singleCondition(ids, "", extra...)
+    if where != "" {
+        sql += "\nWHERE " + where
+		for _, v := range extraValues {
+			values = append(values, v)
+		}
+	}
+
+	dbi := &DBI{DB:db}
+	return dbi.DoSQLContext(ctx, sql, values...)
 }
 
-func newTable(content []byte) (*Table, error) {
-	var parsed *Table
-	if err := json.Unmarshal(content, &parsed); err != nil {
-		return nil, err
-	}
+func (self *Table) insupdTableContext(ctx context.Context, db *sql.DB, args map[string]interface{}, uniques []string) (int64, error) {
+	changed := int64(0)
+    s := "SELECT " + strings.Join(self.Pks, ", ") + " FROM " + self.CurrentTable + "\nWHERE "
+    v := make([]interface{}, 0)
+    for i, val := range uniques {
+        if i > 0 {
+            s += " AND "
+        }
+        s += val + "=?"
+        if x, ok := args[val]; ok {
+			v = append(v, x)
+		} else {
+            return changed, fmt.Errorf("unique key's value not found")
+        }
+    }
 
-	parsed.topicsHashPars = generalHashPars(parsed.TopicsHash, parsed.TopicsPars, nil)
-	parsed.editHashPars   = generalHashPars(parsed.EditHash, parsed.EditPars, nil)
-	parsed.DefaultSelectNames()
-	return parsed, nil
+    lists := make([]map[string]interface{}, 0)
+	dbi := &DBI{DB:db}
+    err := dbi.SelectContext(ctx, &lists, s, v...)
+	if err != nil {
+        return changed, err
+    }
+    if len(lists) > 1 {
+        return changed, fmt.Errorf("multiple records found")
+    }
+
+    if len(lists) == 1 {
+		ids := make([]interface{}, 0)
+		for _, k := range self.Pks {
+			ids = append(ids, k)
+		}
+        err = self.updateHashNullsContext(ctx, db, args, ids, nil)
+    } else {
+		changed, err = self.insertHashContext(ctx, db, args)
+    }
+
+    return changed, err
 }
 
-func (self *Table) DefaultSelectNames() {
-	if self.Sortby == "" {
-		self.Sortby = "sortby"
-	}
-	if self.Sortreverse == "" {
-		self.Sortreverse = "sortreverse"
-	}
-	if self.Pageno == "" {
-		self.Pageno = "pageno"
-	}
-	if self.Totalno == "" {
-		self.Totalno = "totalno"
-	}
-	if self.Rowcount == "" {
-		self.Rowcount = "rowcount"
-	}
-	if self.Maxpageno == "" {
-		self.Maxpageno = "maxpage"
-	}
-	if self.Fields == "" {
-		self.Fields = "fields"
-	}
+func (self *Table) totalHashContext(ctx context.Context, db *sql.DB, v interface{}, extra ...map[string]interface{}) error {
+    str := "SELECT COUNT(*) FROM " + self.CurrentTable
+
+    if hasValue(extra) {
+        where, values := selectCondition(extra[0], "")
+        if where != "" {
+            str += "\nWHERE " + where
+        }
+        return db.QueryRowContext(ctx, str, values...).Scan(v)
+    }
+
+    return db.QueryRowContext(ctx, str).Scan(v)
 }
 
-// selectType returns variables' SELECT sql string and labels as []interface{}
-// which can be used in SelectSQL
-//
-func selectType(selectPars map[string][2]string) (string, []interface{}) {
-	if selectPars == nil {
-		return "", nil
-	}
-
-	keys   := make([]string, 0)
-	labels := make([]interface{}, 0)
-	for key, val := range selectPars {
-		keys = append(keys, key)
-		labels = append(labels, val)
-	}
-	return strings.Join(keys, ", "), labels
+func (self *Table) getIdVal(ARGS map[string]interface{}, extra ...map[string]interface{}) []interface{} {
+    if hasValue(extra) {
+        return properValues(self.Pks, ARGS, extra[0])
+    }
+    return properValues(self.Pks, ARGS, nil)
 }
 
-// selectCondition returns the WHERE constraint
-// 1) if key has single value, it means a simple EQUAL constraint
-// 2) if key has array values, it mean an IN constrain
-// 3) if key is "_gsql", it means a raw SQL statement.
-// 4) it is the AND condition between keys.
-//
-func selectCondition(extra map[string]interface{}, table ...string) (string, []interface{}) {
+func (self *Table) singleCondition(ids []interface{}, table string, extra ...map[string]interface{}) (string, []interface{}) {
+	keys := self.Pks
+	sql := ""
+	extraValues := make([]interface{}, 0)
+
+	for i, item := range keys {
+		val := ids[i]
+		if i == 0 {
+			sql = "("
+		} else {
+			sql += " AND "
+		}
+		switch idValues := val.(type) {
+		case []interface{}:
+			n := len(idValues)
+			sql += item + " IN (" + strings.Join(strings.Split(strings.Repeat("?", n), ""), ",") + ")"
+			for _, v := range idValues {
+				extraValues = append(extraValues, v)
+			}
+		default:
+			sql += item + " =?"
+			extraValues = append(extraValues, val)
+		}
+	}
+	sql += ")"
+
+	if hasValue(extra) {
+		s, arr := selectCondition(extra[0], table)
+		sql += " AND " + s
+		for _, v := range arr {
+			extraValues = append(extraValues, v)
+		}
+	}
+
+	return sql, extraValues
+}
+
+func properValue(v string, ARGS, extra map[string]interface{}) interface{} {
+    if !hasValue(extra) {
+        return ARGS[v]
+    }
+    if val, ok := extra[v]; ok {
+        return val
+    }
+    return ARGS[v]
+}
+
+func properValues(vs []string, ARGS, extra map[string]interface{}) []interface{} {
+    outs := make([]interface{}, len(vs))
+    if !hasValue(extra) {
+        for i, v := range vs {
+            outs[i] = ARGS[v]
+        }
+        return outs
+    }
+    for i, v := range vs {
+        if val, ok := extra[v]; ok {
+            outs[i] = val
+        } else {
+            outs[i] = ARGS[v]
+        }
+    }
+    return outs
+}
+
+func properValuesHash(vs []string, ARGS, extra map[string]interface{}) map[string]interface{} {
+    values := properValues(vs, ARGS, extra)
+    hash := make(map[string]interface{})
+    for i, v := range vs {
+        hash[v] = values[i]
+    }
+    return hash
+}
+
+func selectCondition(extra map[string]interface{}, table string) (string, []interface{}) {
 	sql := ""
 	values := make([]interface{}, 0)
 	i := 0
@@ -97,10 +215,10 @@ func selectCondition(extra map[string]interface{}, table ...string) (string, []i
 		i++
 		sql += "("
 
-		if hasValue(table) {
+		if table != "" {
 			match, err := regexp.MatchString("\\.", field)
 			if err == nil && !match {
-				field = table[0] + "." + field
+				field = table + "." + field
 			}
 		}
 		switch value := valueInterface.(type) {
@@ -137,55 +255,4 @@ func selectCondition(extra map[string]interface{}, table ...string) (string, []i
 	}
 
 	return sql, values
-}
-
-func (self *Table) SetTopicsPars(newPars map[string][2]string) {
-	self.topicsHashPars = newPars
-}
-
-func (self *Table) SetEditPars(newPars map[string][2]string) {
-	self.editHashPars = newPars
-}
-
-// singleCondition returns WHERE constrains in existence of ids.
-// If PK is a single column, ids should be a slice of targeted PK values
-// To select a single PK equaling to 1234, just use ids = []int{1234}
-// if PK has multiple columns, i.e. CurrentKeys exists, ids should be a slice of value arrays.
-//
-func (self *Table) singleCondition(ids []interface{}, extra ...map[string]interface{}) (string, []interface{}) {
-	sql := ""
-	extraValues := make([]interface{}, 0)
-
-	if vs := self.CurrentKeys; hasValue(vs) {
-		for i, item := range vs {
-			val := ids[i]
-			if i == 0 {
-				sql = "("
-			} else {
-				sql += " AND "
-			}
-			switch idValues := val.(type) {
-			case []interface{}:
-				n := len(idValues)
-				sql += item + " IN (" + strings.Join(strings.Split(strings.Repeat("?", n), ""), ",") + ")"
-				for _, v := range idValues {
-					extraValues = append(extraValues, v)
-				}
-			default:
-				sql += item + " =?"
-				extraValues = append(extraValues, val)
-			}
-		}
-		sql += ")"
-	}
-
-	if hasValue(extra) && hasValue(extra[0]) {
-		s, arr := selectCondition(extra[0])
-		sql += " AND " + s
-		for _, v := range arr {
-			extraValues = append(extraValues, v)
-		}
-	}
-
-	return sql, extraValues
 }

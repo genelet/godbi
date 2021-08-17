@@ -12,19 +12,35 @@ import (
 type Topics struct {
 	Edit
 	TotalForce  int    `json:"total_force,omitempty" hcl:"total_force,optional"`
-	Maxpageno   string `json:"maxpageno,omitempty" hcl:"maxpageno,optional"`
-    Totalno     string `json:"totalno,omitempty" hcl:"totalno,optional"`
-    Rowcount    string `json:"rawcount,omitempty" hcl:"rawcount,optional"`
-    Pageno      string `json:"pageno,omitempty" hcl:"pageno,optional"`
-    Sortreverse string `json:"sortreverse,omitempty" hcl:"sortreverse,optional"`
-    Sortby      string `json:"sortby,omitempty" hcl:"sortby,optional"`
+	MAXPAGENO   string `json:"maxpageno,omitempty" hcl:"maxpageno,optional"`
+    TOTALNO     string `json:"totalno,omitempty" hcl:"totalno,optional"`
+    ROWCOUNT    string `json:"rawcount,omitempty" hcl:"rawcount,optional"`
+    PAGENO      string `json:"pageno,omitempty" hcl:"pageno,optional"`
+    SORTBY      string `json:"sortby,omitempty" hcl:"sortby,optional"`
+    SORTREVERSE string `json:"sortreverse,omitempty" hcl:"sortreverse,optional"`
+}
+
+func (self *Topics) defaultNames() []string {
+	if self.FIELDS=="" { self.FIELDS = "fields" }
+	if self.SORTBY=="" { self.SORTBY = "sortby" }
+	if self.SORTREVERSE=="" { self.SORTREVERSE = "sortreverse" }
+	if self.ROWCOUNT=="" { self.ROWCOUNT = "rowcount" }
+	if self.PAGENO=="" { self.PAGENO = "pageno" }
+	if self.TOTALNO=="" { self.TOTALNO = "totalno" }
+	if self.MAXPAGENO=="" { self.MAXPAGENO = "maxpageno" }
+	return []string{self.FIELDS, self.SORTBY, self.SORTREVERSE, self.ROWCOUNT, self.PAGENO, self.TOTALNO, self.MAXPAGENO}
 }
 
 // orderString outputs the ORDER BY string using information in args
 func (self *Topics) orderString(ARGS map[string]interface{}) string {
+	nameSortby := self.SORTBY
+	nameSortreverse := self.SORTREVERSE
+	nameRowcount := self.ROWCOUNT
+	namePageno := self.PAGENO
+
     column := ""
-    if ARGS[self.Sortby] != nil {
-        column = ARGS[self.Sortby].(string)
+    if ARGS[nameSortby] != nil {
+        column = ARGS[nameSortby].(string)
     } else if hasValue(self.Joins) {
         table := self.Joins[0]
         if table.Sortby != "" {
@@ -42,10 +58,10 @@ func (self *Topics) orderString(ARGS map[string]interface{}) string {
     }
 
     order := "ORDER BY " + column
-    if _, ok := ARGS[self.Sortreverse]; ok {
+    if _, ok := ARGS[nameSortreverse]; ok {
         order += " DESC"
     }
-    if rowInterface, ok := ARGS[self.Rowcount]; ok {
+    if rowInterface, ok := ARGS[nameRowcount]; ok {
         rowcount := 0
         switch v := rowInterface.(type) {
         case int:
@@ -55,7 +71,7 @@ func (self *Topics) orderString(ARGS map[string]interface{}) string {
         default:
         }
         pageno := 1
-        if pnInterface, ok := ARGS[self.Pageno]; ok {
+        if pnInterface, ok := ARGS[namePageno]; ok {
             switch v := pnInterface.(type) {
             case int:
                 pageno = v
@@ -64,7 +80,7 @@ func (self *Topics) orderString(ARGS map[string]interface{}) string {
             default:
             }
         } else {
-            ARGS[self.Pageno] = 1
+            ARGS[namePageno] = 1
 		}
         order += " LIMIT " + strconv.Itoa(rowcount) + " OFFSET " + strconv.Itoa((pageno-1)*rowcount)
     }
@@ -77,20 +93,25 @@ func (self *Topics) orderString(ARGS map[string]interface{}) string {
 }
 
 func (self *Topics) pagination(ctx context.Context, db *sql.DB, ARGS map[string]interface{}, extra ...map[string]interface{}) error {
+	nameTotalno := self.TOTALNO
+	nameRowcount := self.ROWCOUNT
+	namePageno := self.PAGENO
+	nameMaxpageno := self.MAXPAGENO
+
 	totalForce := self.TotalForce // 0 means no total calculation
-	if totalForce == 0 || ARGS[self.Rowcount] == nil || ARGS[self.Pageno] != nil {
+	if totalForce == 0 || ARGS[nameRowcount] == nil || ARGS[namePageno] != nil {
 		return nil
 	}
 
 	nt := 0
 	if totalForce < -1 { // take the absolute as the total number
 		nt = int(math.Abs(float64(totalForce)))
-	} else if totalForce == -1 || ARGS[self.Totalno] == nil { // optional
+	} else if totalForce == -1 || ARGS[nameTotalno] == nil { // optional
 		if err := self.totalHashContext(ctx, db, &nt, extra...); err != nil {
 			return err
 		}
 	} else {
-		switch v := ARGS[self.Totalno].(type) {
+		switch v := ARGS[nameTotalno].(type) {
 		case int:
 			nt = v
 		case string:
@@ -101,9 +122,9 @@ func (self *Topics) pagination(ctx context.Context, db *sql.DB, ARGS map[string]
 		}
 	}
 
-	ARGS[self.Totalno] = nt
+	ARGS[nameTotalno] = nt
 	nr := 0
-	switch v := ARGS[self.Rowcount].(type) {
+	switch v := ARGS[nameRowcount].(type) {
 	case int:
 		nr = v
 	case string:
@@ -112,7 +133,7 @@ func (self *Topics) pagination(ctx context.Context, db *sql.DB, ARGS map[string]
 		nr = int(nr64)
 	default:
 	}
-	ARGS[self.Maxpageno] = (nt-1)/nr + 1
+	ARGS[nameMaxpageno] = (nt-1)/nr + 1
 	return nil
 }
 
@@ -121,7 +142,8 @@ func (self *Topics) Run(db *sql.DB, ARGS map[string]interface{}, extra ...map[st
 }
 
 func (self *Topics) RunContext(ctx context.Context, db *sql.DB, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
-	sql, labels, table := self.filterPars()
+	self.defaultNames()
+	sql, labels, table := self.filterPars(ARGS)
 	err := self.pagination(ctx, db, ARGS, extra...)
 	if err != nil { return nil, err }
 	order := self.orderString(ARGS)

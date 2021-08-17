@@ -10,16 +10,26 @@ type Edit struct {
 	Capability
 	Joins    []*Join             `json:"joins,omitempty" hcl:"join,block"`
 	Rename   map[string][]string `json:"rename" hcl:"rename"`
-	Fields   []string            `json:"fields,omitempty" hcl:"fields"`
+	FIELDS   string              `json:"fields,omitempty" hcl:"fields"`
 }
 
-func (self *Edit) filterPars() (string, []interface{}, string) {
+func (self *Edit) defaultNames() []string {
+    if self.FIELDS=="" { self.FIELDS = "fields" }
+    return []string{self.FIELDS}
+}
+
+func (self *Edit) filterPars(ARGS map[string]interface{}) (string, []interface{}, string) {
+	var fields []string
+	if v, ok := ARGS[self.FIELDS]; ok {
+		fields = v.([]string)
+	}
+
     shorts := make(map[string][2]string)
 	for k, v := range self.Rename {
-		if self.Fields == nil {
+		if fields == nil {
 			shorts[k] = [2]string{v[0], v[1]}
 		} else {
-			if grep(self.Fields, k) {
+			if grep(fields, k) {
 				shorts[k] = [2]string{v[0], v[1]}
 			}
 		}
@@ -42,7 +52,8 @@ func (self *Edit) Run(db *sql.DB, ARGS map[string]interface{}, extra ...map[stri
 }
 
 func (self *Edit) RunContext(ctx context.Context, db *sql.DB, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
-	sql, labels, table := self.filterPars()
+	self.defaultNames()
+	sql, labels, table := self.filterPars(ARGS)
 
     ids := self.getIdVal(ARGS, extra...)
     if !hasValue(ids) {

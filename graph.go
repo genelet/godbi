@@ -6,22 +6,6 @@ import (
 	"errors"
 )
 
-// Navigate is interface to implement Model
-//
-type Navigate interface {
-	// NonePass: keys in restriction extra which should not be passed to the nextpage but assign to this args only
-	NonePass() []string
-
-	// SetArgs: set new input
-	SetArgs(map[string]interface{})
-
-	// SetDB: set SQL handle
-	SetDB(*sql.DB)
-
-	// RunAction runs action by name with optional restrictions
-	RunActionContext(context.Context, string, ...map[string]interface{}) ([]map[string]interface{}, map[string]interface{}, []*Page, error)
-}
-
 // Graph describes all models and actions in a database schema
 //
 type Graph struct {
@@ -40,8 +24,8 @@ func NewGraph(db *sql.DB, s map[string]Navigate) *Graph {
 // The first extra is the input data, shared by all sub actions.
 // The rest are specific data for each action starting with the current one.
 //
-func (self *Graph) Run(model, action string, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
-	return self.RunContext(context.Background(), model, action, extra...)
+func (self *Graph) Run(model, action string, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
+	return self.RunContext(context.Background(), model, action, ARGS, extra...)
 }
 
 // RunContext runs action by model and action string names.
@@ -51,34 +35,36 @@ func (self *Graph) Run(model, action string, extra ...map[string]interface{}) ([
 // The first extra is the input data, shared by all sub actions.
 // The rest are specific data for each action starting with the current one.
 //
-func (self *Graph) RunContext(ctx context.Context, model, action string, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
+func (self *Graph) RunContext(ctx context.Context, model, action string, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
 	modelObj, ok := self.Models[model]
 	if !ok {
-		return nil, errors.New(model + " not found in schema models")
+		return nil, fmt.Errorf("%s not found in graph", model)
 	}
 
-	var args map[string]interface{}
-	if hasValue(extra) {
-		args = extra[0]
-		extra = extra[1:] // shift immediately to make sure ARGS not in extra
-		nones := modelObj.NonePass() // move none passed pars to ARGS
-		if hasValue(extra) && hasValue(extra[0]) {
-			for _, item := range nones {
-				if fs, ok := extra[0][item]; ok {
-					args[item] = fs
-					delete(extra[0], item)
-				}
+	nones := modelObj.NonePass(action)
+	// nones input should be moved from extra to ARGS
+	if nones != nil && hasValue(extra) && hasValue(extra[0]) {
+		for _, item := range nones {
+			if fs, ok := extra[0][item]; ok {
+				ARGS[item] = fs
+				delete(extra[0], item)
 			}
 		}
 	}
 
-	modelObj.SetDB(self.DB)
-	modelObj.SetArgs(args)
-	lists, modelArgs, nextpages, err := modelObj.RunActionContext(ctx, action, extra...)
-	modelObj.SetArgs(nil)
-	modelObj.SetDB(nil)
+	lists, nextpages, err := modelObj.RunActionContext(ctx, self.DB, action, ARGS, extra...)
 	if err != nil {
 		return nil, err
+	}
+
+	// nones input should not be passed to the next page
+	// in the next page, these parameters are assigned from extra
+	if nones != nil {
+		for _, item := range nones {
+			if _, ok := ARGS[item]; ok {
+				delete(ARGS, item)
+			}
+		}
 	}
 
 	if !hasValue(lists) || nextpages == nil {
@@ -103,13 +89,11 @@ func (self *Graph) RunContext(ctx context.Context, model, action string, extra .
 			if !ok {
 				continue
 			}
-			//newExtras := []map[string]interface{}{newExtra0}
-			newExtras := []map[string]interface{}{modelArgs, newExtra0}
+			newExtras := []map[string]interface{}{newExtra0}
 			if hasValue(extra) {
 				newExtras = append(newExtras, extra[:1]...)
 			}
-			// run: page.Model, page.Action, modelArgs, newExtras...
-			newLists, err := self.RunContext(ctx, page.Model, page.Action, newExtras...)
+			newLists, err := self.RunContext(ctx, page.Model, page.Action, ARGS, newExtras...)
 			if err != nil {
 				return nil, err
 			}

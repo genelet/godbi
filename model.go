@@ -4,16 +4,19 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 )
 
-type Action interface {
-	Fulfill(string, []string, string, []string)
-	RunContext(context.Context, *sql.DB, map[string]interface{}, ...map[string]interface{}) ([]map[string]interface{}, error)
+// Navigate is interface to implement Model
+//
+type Navigate interface {
+	NonePass(string) []string
+	RunActionContext(context.Context, *sql.DB, string, map[string]interface{}, ...map[string]interface{}) ([]map[string]interface{}, []*Page, error)
 }
 
 type Model struct {
-	Component
+	Table
 	Actions map[string]interface{} `json:"actions,omitempty" hcl:"actions,optional"`
 }
 
@@ -49,4 +52,38 @@ func NewModelJsonFile(fn string, custom ...map[string]Action) (*Model, error) {
 	}
 	model.Actions = trans
 	return model, nil
+}
+
+func (self *Model) RunContext(ctx context.Context, db *sql.DB, action string, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
+	if self.Actions == nil { return nil, nil, fmt.Errorf("no action assigned") }
+	obi, ok := self.Actions[action]
+	if !ok { return nil, nil, fmt.Errorf("action %s not found", action) }
+	var tran Action
+	switch action {
+	case "insert": tran = obi.(*Insert)
+	case "update": tran = obi.(*Update)
+	case "insupd": tran = obi.(*Insupd)
+	case "edit":   tran = obi.(*Edit)
+	case "topics": tran = obi.(*Topics)
+	case "delete": tran = obi.(*Delete)
+	default:
+	}
+	lists, err := tran.RunContext(ctx, db, ARGS, extra...)
+	if err != nil { return nil, nil, err }
+	return lists, tran.GetNextpages(), nil
+}
+
+func (self *Model) NonePass(action string) []string {
+	switch action {
+	case "edit":
+		if obi, ok := self.Actions["edit"]; ok {
+			return obi.(*Edit).defaultNames()
+		}
+	case "topics":
+		if obi, ok := self.Actions["topics"]; ok {
+			return obi.(*Topics).defaultNames()
+		}
+	default:
+	}
+	return nil
 }
