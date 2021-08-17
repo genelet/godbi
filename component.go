@@ -3,58 +3,16 @@ package godbi
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"regexp"
 	"strings"
 )
 
-type Action interface {
-	Fulfill(string, []string, string, []string)
-	RunContext(context.Context, *sql.DB, map[string]interface{}, ...map[string]interface{}) ([]map[string]interface{}, error)
-}
-
 type Component struct {
-	CurrentTable  string            `json:"table" hcl:"table"`
-	Pks           []string          `json:"pks,omitempty" hcl:"pks,optional"`
-	IDAuto        string    `json:"id_auto,omitempty" hcl:"id_auto,optional"`
-	Fks           []string          `json:"fks,omitempty" hcl:"fks,optional"`
-	Actions       map[string]Action `json:"fks,omitempty" hcl:"fks,optional"`
-}
-
-func NewComponentJsonFile(fn string, custom ...map[string]Action) (*Component, error) {
-	dat, err := ioutil.ReadFile(fn)
-	if err != nil { return nil, err }
-	comp := new(Component)
-	err = json.Unmarshal(dat, &comp)
-	if err != nil { return nil, err }
-	trans := make(map[string]Action)
-	for name, action := range comp.Actions {
-		jsonString, err := json.Marshal(action)
-		if err != nil { return nil, err }
-		var tran Action
-		switch name {
-		case "insert": tran = new(Insert)
-		case "update": tran = new(Update)
-		case "insupd": tran = new(Insupd)
-		case "edit":   tran = new(Edit)
-		case "topics": tran = new(Topics)
-		case "delete": tran = new(Delete)
-		default:
-			if custom != nil {
-				if caction, ok := custom[0][name]; ok {
-					tran = caction
-				}
-			}
-		}
-		err = json.Unmarshal(jsonString, &tran)
-		if err != nil { return nil, err }
-		tran.Fulfill(comp.CurrentTable, comp.Pks, comp.IDAuto, comp.Fks)
-		trans[name] = tran
-	}
-	comp.Actions = trans
-	return comp, nil
+	CurrentTable  string      `json:"table" hcl:"table"`
+	Pks     []string          `json:"pks,omitempty" hcl:"pks,optional"`
+	IDAuto  string            `json:"id_auto,omitempty" hcl:"id_auto,optional"`
+	Fks     []string          `json:"fks,omitempty" hcl:"fks,optional"`
 }
 
 func (self *Component) insertHashContext(ctx context.Context, db *sql.DB, args map[string]interface{}) (int64, error) {
