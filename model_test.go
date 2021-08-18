@@ -10,6 +10,16 @@ func TestModel(t *testing.T) {
 	t.Errorf("%#v", model)
 	for k, v := range model.Actions {
 		t.Errorf("%s=>%#v", k, v)
+		switch k {
+		case "topics":
+			topics := v.(*Topics)
+			if topics.Nextpages != nil {
+				for _, page := range topics.Nextpages {
+					t.Errorf("%#v", page)
+				}
+			}
+		default:
+		}
 	}
 /*
 	if comp.CurrentIDAuto != "sid" || comp.Fks[1] != "cid" {

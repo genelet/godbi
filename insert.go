@@ -7,7 +7,7 @@ import (
 )
 
 type Insert struct {
-	Capability
+	Action
 	Columns    []string      `json:"columns,omitempty" hcl:"columns,optional"`
 }
 

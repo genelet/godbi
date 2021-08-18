@@ -7,7 +7,7 @@ import (
 )
 
 type Delete struct {
-	Capability
+	Action
 }
 
 func (self *Delete) Run(db *sql.DB, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error) {

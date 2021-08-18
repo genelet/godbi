@@ -79,8 +79,8 @@ func (self *Graph) RunContext(ctx context.Context, model, action string, ARGS ma
 		if hasValue(extra) {
 			extra0 = extra[0]
 		}
-		if page.Extra != nil { // use name Extra instead of Manual
-			for k, v := range page.Extra {
+		if page.Manual != nil {
+			for k, v := range page.Manual {
 				extra0[k] = v
 			}
 		}

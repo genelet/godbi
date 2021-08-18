@@ -8,7 +8,7 @@ import (
 	"io/ioutil"
 )
 
-// Navigate is interface to implement Model
+// Model is to implement Navigate interface
 //
 type Navigate interface {
 	NonePass(string) []string
@@ -20,7 +20,7 @@ type Model struct {
 	Actions map[string]interface{} `json:"actions,omitempty" hcl:"actions,optional"`
 }
 
-func NewModelJsonFile(fn string, custom ...map[string]Action) (*Model, error) {
+func NewModelJsonFile(fn string, custom ...map[string]Capability) (*Model, error) {
 	dat, err := ioutil.ReadFile(fn)
 	if err != nil { return nil, err }
 	model := new(Model)
@@ -30,7 +30,7 @@ func NewModelJsonFile(fn string, custom ...map[string]Action) (*Model, error) {
 	for name, action := range model.Actions {
 		jsonString, err := json.Marshal(action)
 		if err != nil { return nil, err }
-		var tran Action
+		var tran Capability
 		switch name {
 		case "insert": tran = new(Insert)
 		case "update": tran = new(Update)
@@ -58,7 +58,7 @@ func (self *Model) RunContext(ctx context.Context, db *sql.DB, action string, AR
 	if self.Actions == nil { return nil, nil, fmt.Errorf("no action assigned") }
 	obi, ok := self.Actions[action]
 	if !ok { return nil, nil, fmt.Errorf("action %s not found", action) }
-	var tran Action
+	var tran Capability
 	switch action {
 	case "insert": tran = obi.(*Insert)
 	case "update": tran = obi.(*Update)
@@ -68,6 +68,8 @@ func (self *Model) RunContext(ctx context.Context, db *sql.DB, action string, AR
 	case "delete": tran = obi.(*Delete)
 	default:
 	}
+	err := tran.CheckNull(ARGS)
+	if err != nil { return nil, nil, err }
 	lists, err := tran.RunContext(ctx, db, ARGS, extra...)
 	if err != nil { return nil, nil, err }
 	return lists, tran.GetNextpages(), nil

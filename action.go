@@ -7,33 +7,35 @@ import (
 	"strings"
 )
 
-// Action is interface to implement Capability
+// Action is to implement Capability interface
 //
-type Action interface {
+type Capability interface {
 	Fulfill(string, []string, string, []string)
 	RunContext(context.Context, *sql.DB, map[string]interface{}, ...map[string]interface{}) ([]map[string]interface{}, error)
 	GetNextpages() []*Page
+	CheckNull(map[string]interface{}) error
 }
 
-type Capability struct {
+type Action struct {
 	Table
 	Name       string   `json:"name" hcl:",label"`
 	Must       []string `json:"must,omitempty" hcl:"must,optional"`
 	Nextpages  []*Page  `json:"nextpages,omitempty" hcl:"nextpage,block"`
+	Appendix   interface{} `json:"appendix,omitempty" hcl:"appendix,block"`
 }
 
-func (self *Capability) Fulfill(t string, pks []string, auto string, fks []string) {
+func (self *Action) Fulfill(t string, pks []string, auto string, fks []string) {
 	self.CurrentTable = t
 	self.Pks          = pks
 	self.IDAuto       = auto
 	self.Fks          = fks
 }
 
-func (self *Capability) GetNextpages() []*Page {
+func (self *Action) GetNextpages() []*Page {
 	return self.Nextpages
 }
 
-func (self *Capability) CheckNull(ARGS map[string]interface{}) error {
+func (self *Action) CheckNull(ARGS map[string]interface{}) error {
 	if self.Must == nil { return nil }
 	for _, item := range self.Must {
 		if _, ok := ARGS[item]; !ok {

@@ -1,8 +1,5 @@
 package godbi
 
-import (
-)
-
 // Page type describes next page's structure
 // Model: the name of the model
 // Action: the method name on the model
@@ -11,7 +8,7 @@ import (
 type Page struct {
 	Model      string            `json:"model" hcl:"model,label"`
 	Action     string            `json:"action" hcl:"action,label"`
-	Extra      map[string]string `json:"extra,omitempty" hcl:"extra,optional"`
+	Manual     map[string]string `json:"manual,omitempty" hcl:"manual,optional"`
 	RelateItem map[string]string `json:"relate_item,omitempty" hcl:"relate_item"`
 }
 

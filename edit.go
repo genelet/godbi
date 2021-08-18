@@ -7,7 +7,7 @@ import (
 )
 
 type Edit struct {
-	Capability
+	Action
 	Joins    []*Join             `json:"joins,omitempty" hcl:"join,block"`
 	Rename   map[string][]string `json:"rename" hcl:"rename"`
 	FIELDS   string              `json:"fields,omitempty" hcl:"fields"`

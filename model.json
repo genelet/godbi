@@ -1,1 +1,42 @@
-{"fks":["","adv_id","","adv_id","campaign_id_md5"],"table":"adv_campaign","pks":["campaign_id"],"id_auto":"campaign_id","actions":{"topics":{"name":"topics","columns":["adv_id","campaign_name","foreign_id","total_balance_id","daily_balance_id","qa_campaign","fl_site","cpm_fc","cpm_length","cpm_throttle","cpc_fc","cpc_length","page_cap","channel_order","access_order","active","created","campaign_id"],"select":{"rename":{"access_order":["access_order","CHAR"],"active":["active","CHAR"],"adv_id":["adv_id","INT"],"campaign_id":["campaign_id","INT"],"campaign_name":["campaign_name","VARCHAR"],"channel_order":["channel_order","CHAR"],"cpc_fc":["cpc_fc","SMALLINT"],"cpc_length":["cpc_length","INT"],"cpm_fc":["cpm_fc","SMALLINT"],"cpm_length":["cpm_length","INT"],"cpm_throttle":["cpm_throttle","INT"],"created":["created","DATETIME"],"daily_balance_id":["daily_balance_id","INT"],"fl_site":["fl_site","INT"],"foreign_id":["foreign_id","VARCHAR"],"page_cap":["page_cap","TINYINT"],"qa_campaign":["qa_campaign","INT"],"total_balance_id":["total_balance_id","INT"]}},"total_force":1},"edit":{"name":"edit","must":["campaign_id"],"columns":["adv_id","campaign_name","foreign_id","total_balance_id","daily_balance_id","qa_campaign","fl_site","cpm_fc","cpm_length","cpm_throttle","cpc_fc","cpc_length","page_cap","channel_order","access_order","active","created","campaign_id"],"select":{"rename":{"access_order":["access_order","CHAR"],"active":["active","CHAR"],"adv_id":["adv_id","INT"],"campaign_id":["campaign_id","INT"],"campaign_name":["campaign_name","VARCHAR"],"channel_order":["channel_order","CHAR"],"cpc_fc":["cpc_fc","SMALLINT"],"cpc_length":["cpc_length","INT"],"cpm_fc":["cpm_fc","SMALLINT"],"cpm_length":["cpm_length","INT"],"cpm_throttle":["cpm_throttle","INT"],"created":["created","DATETIME"],"daily_balance_id":["daily_balance_id","INT"],"fl_site":["fl_site","INT"],"foreign_id":["foreign_id","VARCHAR"],"page_cap":["page_cap","TINYINT"],"qa_campaign":["qa_campaign","INT"],"total_balance_id":["total_balance_id","INT"]}}},"insert":{"name":"insert","must":["adv_id","campaign_name"],"columns":["adv_id","campaign_name","foreign_id","total_balance_id","daily_balance_id","qa_campaign","fl_site","cpm_fc","cpm_length","cpm_throttle","cpc_fc","cpc_length","page_cap","channel_order","access_order","active","created"]},"update":{"name":"update","columns":["adv_id","campaign_name","foreign_id","total_balance_id","daily_balance_id","qa_campaign","fl_site","cpm_fc","cpm_length","cpm_throttle","cpc_fc","cpc_length","page_cap","channel_order","access_order","active","created","campaign_id"],"empties":["foreign_id","total_balance_id","daily_balance_id","qa_campaign","fl_site","cpm_fc","cpm_length","cpm_throttle","cpc_fc","cpc_length","page_cap","channel_order","access_order","active","created"]},"insupd":{"name":"insupd","must":["adv_id","campaign_name"],"columns":["adv_id","campaign_name","foreign_id","total_balance_id","daily_balance_id","qa_campaign","fl_site","cpm_fc","cpm_length","cpm_throttle","cpc_fc","cpc_length","page_cap","channel_order","access_order","active","created"],"uniques":["campaign_id"]},"delete":{"name":"delete","must":["campaign_id"]}}}
+{
+	"fks":["","adv_id","","adv_id","campaign_id_md5"],
+	"table":"adv_campaign",
+	"pks":["campaign_id"],
+	"id_auto":"campaign_id",
+	"actions":{
+		"topics":{
+			"name":"topics",
+			"nextpages": [
+				{"model":"adv_campaign", "action":"edit", "relate_item":{"campaign_id":"campaign_id"}},
+				{"model":"adv_item", "action":"topics", "manual":{"name":"john"}, "relate_item":{"campaign_id":"campaign_id"}}
+			],
+			"rename":{"adv_id":["adv_id","INT"],"campaign_id":["campaign_id","INT"],"campaign_name":["campaign_name","VARCHAR"]},
+			"total_force":1
+		},
+		"edit":{
+			"name":"edit",
+			"must":["campaign_id"],
+			"rename":{"adv_id":["adv_id","INT"],"campaign_id":["campaign_id","INT"],"campaign_name":["campaign_name","VARCHAR"]}
+		},
+		"insert":{
+			"name":"insert",
+			"must":["adv_id","campaign_name"],
+			"columns":["adv_id","campaign_name"]
+		},
+		"update":{
+			"name":"update",
+			"columns":["adv_id","campaign_name","campaign_id"],
+			"empties":["created"]
+		},
+		"insupd":{
+			"name":"insupd",
+			"must":["adv_id","campaign_name"],
+			"columns":["adv_id","campaign_name"],
+			"uniques":["adv_id","campaign_id"]
+		},
+		"delete":{
+			"name":"delete",
+			"must":["campaign_id"]
+		}
+	}
+}
