@@ -58,21 +58,8 @@ func (self *Model) RunContext(ctx context.Context, db *sql.DB, action string, AR
 	if self.Actions == nil { return nil, nil, fmt.Errorf("no action assigned") }
 	obi, ok := self.Actions[action]
 	if !ok { return nil, nil, fmt.Errorf("action %s not found", action) }
-	var tran Capability
-	switch action {
-	case "insert": tran = obi.(*Insert)
-	case "update": tran = obi.(*Update)
-	case "insupd": tran = obi.(*Insupd)
-	case "edit":   tran = obi.(*Edit)
-	case "topics": tran = obi.(*Topics)
-	case "delete": tran = obi.(*Delete)
-	default:
-	}
-	err := tran.CheckNull(ARGS)
-	if err != nil { return nil, nil, err }
-	lists, err := tran.RunContext(ctx, db, ARGS, extra...)
-	if err != nil { return nil, nil, err }
-	return lists, tran.GetNextpages(), nil
+
+	return obi.(Capability).RunContext(ctx, db, ARGS, extra...)
 }
 
 func (self *Model) NonePass(action string) []string {

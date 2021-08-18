@@ -137,15 +137,18 @@ func (self *Topics) pagination(ctx context.Context, db *sql.DB, ARGS map[string]
 	return nil
 }
 
-func (self *Topics) Run(db *sql.DB, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
+func (self *Topics) Run(db *sql.DB, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
 	return self.RunContext(context.Background(), db, ARGS, extra...)
 }
 
-func (self *Topics) RunContext(ctx context.Context, db *sql.DB, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
+func (self *Topics) RunContext(ctx context.Context, db *sql.DB, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
+	err := self.CheckNull(ARGS)
+    if err != nil { return nil, nil, err }
+
 	self.defaultNames()
 	sql, labels, table := self.filterPars(ARGS)
-	err := self.pagination(ctx, db, ARGS, extra...)
-	if err != nil { return nil, err }
+	err = self.pagination(ctx, db, ARGS, extra...)
+	if err != nil { return nil, nil, err }
 	order := self.orderString(ARGS)
 
 	dbi := &DBI{DB:db}
@@ -159,8 +162,8 @@ func (self *Topics) RunContext(ctx context.Context, db *sql.DB, ARGS map[string]
             sql += "\n" + order
         }
 		err = dbi.SelectSQLContext(ctx, &lists, sql, labels, values...)
-		if err != nil { return nil, err }
-		return lists, nil
+		if err != nil { return nil, nil, err }
+		return lists, self.Nextpages, nil
     }
 
     if order != "" {
@@ -168,6 +171,6 @@ func (self *Topics) RunContext(ctx context.Context, db *sql.DB, ARGS map[string]
     }
 
     err = dbi.SelectSQLContext(ctx, &lists, sql, labels)
-	if err != nil { return nil, err }
-	return lists, nil
+	if err != nil { return nil, nil, err }
+	return lists, self.Nextpages, nil
 }

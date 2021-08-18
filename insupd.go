@@ -11,13 +11,16 @@ type Insupd struct {
 	Uniques    []string      `json:"uniques,omitempty" hcl:"uniques,optional"`
 }
 
-func (self *Insupd) Run(db *sql.DB, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
+func (self *Insupd) Run(db *sql.DB, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
     return self.RunContext(context.Background(), db, ARGS, extra...)
 }
 
-func (self *Insupd) RunContext(ctx context.Context, db *sql.DB, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
+func (self *Insupd) RunContext(ctx context.Context, db *sql.DB, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
+	err := self.CheckNull(ARGS)
+    if err != nil { return nil, nil, err }
+
     if self.Uniques == nil {
-        return nil, fmt.Errorf("unique key not found")
+        return nil, nil, fmt.Errorf("unique key not found")
     }
 
     fieldValues := getFv(self.Columns, ARGS, nil)
@@ -29,17 +32,17 @@ func (self *Insupd) RunContext(ctx context.Context, db *sql.DB, ARGS map[string]
         }
     }
     if fieldValues == nil || len(fieldValues) == 0 {
-        return nil, fmt.Errorf("input not found")
+        return nil, nil, fmt.Errorf("input not found")
     }
 
     changed, err := self.insupdTableContext(ctx, db, fieldValues, self.Uniques)
 	if err != nil {
-        return nil, err
+        return nil, nil, err
     }
 
     if self.IDAuto != "" {
         fieldValues[self.IDAuto] = changed
     }
 
-    return fromFv(fieldValues), nil
+    return fromFv(fieldValues), self.Nextpages, nil
 }

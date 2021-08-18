@@ -11,9 +11,7 @@ import (
 //
 type Capability interface {
 	Fulfill(string, []string, string, []string)
-	RunContext(context.Context, *sql.DB, map[string]interface{}, ...map[string]interface{}) ([]map[string]interface{}, error)
-	GetNextpages() []*Page
-	CheckNull(map[string]interface{}) error
+	RunContext(context.Context, *sql.DB, map[string]interface{}, ...map[string]interface{}) ([]map[string]interface{}, []*Page, error)
 }
 
 type Action struct {
@@ -29,10 +27,6 @@ func (self *Action) Fulfill(t string, pks []string, auto string, fks []string) {
 	self.Pks          = pks
 	self.IDAuto       = auto
 	self.Fks          = fks
-}
-
-func (self *Action) GetNextpages() []*Page {
-	return self.Nextpages
 }
 
 func (self *Action) CheckNull(ARGS map[string]interface{}) error {

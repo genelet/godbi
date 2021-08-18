@@ -47,17 +47,20 @@ func (self *Edit) filterPars(ARGS map[string]interface{}) (string, []interface{}
 	return sql, labels, table
 }
 
-func (self *Edit) Run(db *sql.DB, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
+func (self *Edit) Run(db *sql.DB, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
 	return self.RunContext(context.Background(), db, ARGS, extra...)
 }
 
-func (self *Edit) RunContext(ctx context.Context, db *sql.DB, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
+func (self *Edit) RunContext(ctx context.Context, db *sql.DB, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
+	err := self.CheckNull(ARGS)
+    if err != nil { return nil, nil, err }
+
 	self.defaultNames()
 	sql, labels, table := self.filterPars(ARGS)
 
     ids := self.getIdVal(ARGS, extra...)
     if !hasValue(ids) {
-        return nil, fmt.Errorf("pk value not provided")
+        return nil, nil, fmt.Errorf("pk value not provided")
     }
 
     where, extraValues := self.singleCondition(ids, table, extra...)
@@ -67,7 +70,7 @@ func (self *Edit) RunContext(ctx context.Context, db *sql.DB, ARGS map[string]in
 
 	lists := make([]map[string]interface{}, 0)
 	dbi := &DBI{DB:db}
-    err := dbi.SelectSQLContext(ctx, &lists, sql, labels, extraValues...)
-	if err != nil { return nil, err }
-	return lists, nil
+    err = dbi.SelectSQLContext(ctx, &lists, sql, labels, extraValues...)
+	if err != nil { return nil, nil, err }
+	return lists, self.Nextpages, nil
 }
