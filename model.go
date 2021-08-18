@@ -23,29 +23,33 @@ type Model struct {
 func NewModelJsonFile(fn string, custom ...map[string]Capability) (*Model, error) {
 	dat, err := ioutil.ReadFile(fn)
 	if err != nil { return nil, err }
+	return NewModelJson(dat, custom...)
+}
+
+func NewModelJson(dat []byte, custom ...map[string]Capability) (*Model, error) {
 	model := new(Model)
-	err = json.Unmarshal(dat, &model)
+	err := json.Unmarshal(dat, model)
 	if err != nil { return nil, err }
 	trans := make(map[string]interface{})
 	for name, action := range model.Actions {
 		jsonString, err := json.Marshal(action)
 		if err != nil { return nil, err }
 		var tran Capability
-		switch name {
-		case "insert": tran = new(Insert)
-		case "update": tran = new(Update)
-		case "insupd": tran = new(Insupd)
-		case "edit":   tran = new(Edit)
-		case "topics": tran = new(Topics)
-		case "delete": tran = new(Delete)
-		default:
-			if custom != nil {
-				if caction, ok := custom[0][name]; ok {
-					tran = caction
-				}
+		if custom != nil && len(custom) > 0 && custom[0][name] != nil {
+			tran = custom[0][name]
+		} else {
+			switch name {
+			case "insert": tran = new(Insert)
+			case "update": tran = new(Update)
+			case "insupd": tran = new(Insupd)
+			case "edit":   tran = new(Edit)
+			case "topics": tran = new(Topics)
+			case "delete": tran = new(Delete)
+			default:
+				return nil, fmt.Errorf("action %s not defined", name)
 			}
 		}
-		err = json.Unmarshal(jsonString, &tran)
+		err = json.Unmarshal(jsonString, tran)
 		if err != nil { return nil, err }
 		tran.Fulfill(model.CurrentTable, model.Pks, model.IDAuto, model.Fks)
 		trans[name] = tran

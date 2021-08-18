@@ -4,7 +4,7 @@ package godbi
 // Model: the name of the model
 // Action: the method name on the model
 // Manual: constraint conditions manually assigned
-// RelateItem: current page's column versus next page's column. The value is forced as constraint.
+// RelateItem: current page's column versus next page's column, as constraints.
 type Page struct {
 	Model      string            `json:"model" hcl:"model,label"`
 	Action     string            `json:"action" hcl:"action,label"`

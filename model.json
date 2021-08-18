@@ -5,7 +5,6 @@
 	"id_auto":"campaign_id",
 	"actions":{
 		"topics":{
-			"name":"topics",
 			"nextpages": [
 				{"model":"adv_campaign", "action":"edit", "relate_item":{"campaign_id":"campaign_id"}},
 				{"model":"adv_item", "action":"topics", "manual":{"name":"john"}, "relate_item":{"campaign_id":"campaign_id"}}
@@ -14,28 +13,31 @@
 			"total_force":1
 		},
 		"edit":{
-			"name":"edit",
 			"must":["campaign_id"],
 			"rename":{"adv_id":["adv_id","INT"],"campaign_id":["campaign_id","INT"],"campaign_name":["campaign_name","VARCHAR"]}
 		},
 		"insert":{
-			"name":"insert",
 			"must":["adv_id","campaign_name"],
 			"columns":["adv_id","campaign_name"]
 		},
 		"update":{
-			"name":"update",
 			"columns":["adv_id","campaign_name","campaign_id"],
 			"empties":["created"]
 		},
 		"insupd":{
-			"name":"insupd",
 			"must":["adv_id","campaign_name"],
 			"columns":["adv_id","campaign_name"],
 			"uniques":["adv_id","campaign_id"]
 		},
+		"sql":{
+			"must":["bravo"],
+			"columns":["fistname", "lastname", "nick"],
+			"statement":"SELECT x, y, z FROM a WHERE b=?",
+			"nextpages": [
+				{"model":"adv_creative", "action":"topics", "manual":{"name":"john"}, "relate_item":{"nick":"nickname"}}
+			]
+		},
 		"delete":{
-			"name":"delete",
 			"must":["campaign_id"]
 		}
 	}

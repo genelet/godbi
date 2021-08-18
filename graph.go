@@ -3,7 +3,7 @@ package godbi
 import (
 	"context"
 	"database/sql"
-	"errors"
+	"fmt"
 )
 
 // Graph describes all models and actions in a database schema
