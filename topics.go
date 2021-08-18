@@ -137,12 +137,12 @@ func (self *Topics) pagination(ctx context.Context, db *sql.DB, ARGS map[string]
 	return nil
 }
 
-func (self *Topics) Run(db *sql.DB, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
-	return self.RunContext(context.Background(), db, ARGS, extra...)
+func (self *Topics) RunAction(db *sql.DB, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
+	return self.RunActionContext(context.Background(), db, ARGS, extra...)
 }
 
-func (self *Topics) RunContext(ctx context.Context, db *sql.DB, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
-	err := self.CheckNull(ARGS)
+func (self *Topics) RunActionContext(ctx context.Context, db *sql.DB, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
+	err := self.checkNull(ARGS)
     if err != nil { return nil, nil, err }
 
 	self.defaultNames()

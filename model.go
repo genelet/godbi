@@ -12,7 +12,7 @@ import (
 //
 type Navigate interface {
 	NonePass(string) []string
-	RunActionContext(context.Context, *sql.DB, string, map[string]interface{}, ...map[string]interface{}) ([]map[string]interface{}, []*Page, error)
+	RunModelContext(context.Context, *sql.DB, string, map[string]interface{}, ...map[string]interface{}) ([]map[string]interface{}, []*Page, error)
 }
 
 type Model struct {
@@ -51,19 +51,23 @@ func NewModelJson(dat []byte, custom ...map[string]Capability) (*Model, error) {
 		}
 		err = json.Unmarshal(jsonString, tran)
 		if err != nil { return nil, err }
-		tran.Fulfill(model.CurrentTable, model.Pks, model.IDAuto, model.Fks)
+		tran.fulfill(model.CurrentTable, model.Pks, model.IDAuto, model.Fks)
 		trans[name] = tran
 	}
 	model.Actions = trans
 	return model, nil
 }
 
-func (self *Model) RunContext(ctx context.Context, db *sql.DB, action string, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
+func (self *Model) RunModel(db *sql.DB, action string, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
+	return self.RunModelContext(context.Background(), db, action, ARGS, extra...)
+}
+
+func (self *Model) RunModelContext(ctx context.Context, db *sql.DB, action string, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
 	if self.Actions == nil { return nil, nil, fmt.Errorf("no action assigned") }
 	obi, ok := self.Actions[action]
 	if !ok { return nil, nil, fmt.Errorf("action %s not found", action) }
 
-	return obi.(Capability).RunContext(ctx, db, ARGS, extra...)
+	return obi.(Capability).RunActionContext(ctx, db, ARGS, extra...)
 }
 
 func (self *Model) NonePass(action string) []string {

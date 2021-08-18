@@ -47,12 +47,12 @@ func (self *Edit) filterPars(ARGS map[string]interface{}) (string, []interface{}
 	return sql, labels, table
 }
 
-func (self *Edit) Run(db *sql.DB, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
-	return self.RunContext(context.Background(), db, ARGS, extra...)
+func (self *Edit) RunAction(db *sql.DB, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
+	return self.RunActionContext(context.Background(), db, ARGS, extra...)
 }
 
-func (self *Edit) RunContext(ctx context.Context, db *sql.DB, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
-	err := self.CheckNull(ARGS)
+func (self *Edit) RunActionContext(ctx context.Context, db *sql.DB, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
+	err := self.checkNull(ARGS)
     if err != nil { return nil, nil, err }
 
 	self.defaultNames()

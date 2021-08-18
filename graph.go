@@ -52,7 +52,7 @@ func (self *Graph) RunContext(ctx context.Context, model, action string, ARGS ma
 		}
 	}
 
-	lists, nextpages, err := modelObj.RunActionContext(ctx, self.DB, action, ARGS, extra...)
+	lists, nextpages, err := modelObj.RunModelContext(ctx, self.DB, action, ARGS, extra...)
 	if err != nil {
 		return nil, err
 	}

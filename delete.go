@@ -10,12 +10,12 @@ type Delete struct {
 	Action
 }
 
-func (self *Delete) Run(db *sql.DB, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
-    return self.RunContext(context.Background(), db, ARGS, extra...)
+func (self *Delete) RunAction(db *sql.DB, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
+    return self.RunActionContext(context.Background(), db, ARGS, extra...)
 }
 
-func (self *Delete) RunContext(ctx context.Context, db *sql.DB, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
-	err := self.CheckNull(ARGS)
+func (self *Delete) RunActionContext(ctx context.Context, db *sql.DB, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
+	err := self.checkNull(ARGS)
     if err != nil { return nil, nil, err }
 
     sql := "DELETE FROM " + self.CurrentTable

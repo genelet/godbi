@@ -10,26 +10,27 @@ import (
 // Action is to implement Capability interface
 //
 type Capability interface {
-	Fulfill(string, []string, string, []string)
-	RunContext(context.Context, *sql.DB, map[string]interface{}, ...map[string]interface{}) ([]map[string]interface{}, []*Page, error)
+	// fulfill, which is implemented here, is used for model.go only.
+	// so it is private enough
+	fulfill(string, []string, string, []string)
+	RunActionContext(context.Context, *sql.DB, map[string]interface{}, ...map[string]interface{}) ([]map[string]interface{}, []*Page, error)
 }
 
 type Action struct {
 	Table
-//	Name       string   `json:"name" hcl:",label"`
-	Must       []string `json:"must,omitempty" hcl:"must,optional"`
-	Nextpages  []*Page  `json:"nextpages,omitempty" hcl:"nextpage,block"`
-	Appendix   interface{} `json:"appendix,omitempty" hcl:"appendix,block"`
+	Must      []string    `json:"must,omitempty" hcl:"must,optional"`
+	Nextpages []*Page     `json:"nextpages,omitempty" hcl:"nextpage,block"`
+	Appendix  interface{} `json:"appendix,omitempty" hcl:"appendix,block"`
 }
 
-func (self *Action) Fulfill(t string, pks []string, auto string, fks []string) {
+func (self *Action) fulfill(t string, pks []string, auto string, fks []string) {
 	self.CurrentTable = t
 	self.Pks          = pks
 	self.IDAuto       = auto
 	self.Fks          = fks
 }
 
-func (self *Action) CheckNull(ARGS map[string]interface{}) error {
+func (self *Action) checkNull(ARGS map[string]interface{}) error {
 	if self.Must == nil { return nil }
 	for _, item := range self.Must {
 		if _, ok := ARGS[item]; !ok {

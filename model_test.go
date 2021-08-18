@@ -13,7 +13,7 @@ type SQL struct {
 	Statement string   `json:"statement"`
 }
 
-func (self *SQL) RunContext(ctx context.Context, db *sql.DB, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
+func (self *SQL) RunActionContext(ctx context.Context, db *sql.DB, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
 	v, ok := ARGS[self.Must[0]]
 	if !ok { return nil, nil, fmt.Errorf("missing %s in input", self.Must[0]) }
 	lists := make([]map[string]interface{}, 0)
