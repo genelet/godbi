@@ -36,7 +36,7 @@ func (self *Table) updateHashNullsContext(ctx context.Context, db *sql.DB, args 
 		empties = make([]string, 0)
 	}
 	for _, k := range self.Pks {
-		if _, ok := args[k]; !ok {
+		if grep(empties, k) {
 			return fmt.Errorf("PK can't be NULL")
 		}
 	}
@@ -99,7 +99,7 @@ func (self *Table) insupdTableContext(ctx context.Context, db *sql.DB, args map[
     if len(lists) == 1 {
 		ids := make([]interface{}, 0)
 		for _, k := range self.Pks {
-			ids = append(ids, k)
+			ids = append(ids, lists[0][k])
 		}
         err = self.updateHashNullsContext(ctx, db, args, ids, nil)
     } else {

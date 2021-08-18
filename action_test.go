@@ -2,126 +2,140 @@ package godbi
 
 import (
 	"testing"
-	"context"
+	"encoding/json"
 )
 
-func TestCrudDbContext(t *testing.T) {
+func TestAction(t *testing.T) {
 	db, err := getdb()
-	if err != nil {
-		panic(err)
-	}
-	crud := new(Model)
-	crud.DB = db
-	crud.CurrentTable = "atesting"
-	crud.CurrentKey = "id"
+	if err != nil { panic(err) }
+	defer db.Close()
 
-	ctx := context.Background()
+	db.Exec(`drop table if exists m_a`)
+	db.Exec(`CREATE TABLE m_a (id int auto_increment not null primary key,
+        x varchar(8), y varchar(8), z varchar(8))`)
 
-	db.Exec(`drop table if exists atesting`)
-	db.Exec(`drop table if exists testing`)
-	err = crud.DoSQLContext(ctx, `CREATE TABLE atesting (id int auto_increment, x varchar(255), y varchar(255), primary key (id))`)
-	if err != nil {
-		t.Errorf("create table atesting failed %#v", err)
-	}
-	hash := map[string]interface{}{"x":"a", "y":"b"}
-	err = crud.insertHashContext(ctx, hash)
-	if crud.LastID != 1 {
-		t.Errorf("%d wanted", crud.LastID)
-	}
-	hash["x"] = "c"
-	hash["y"] = "d"
-	err = crud.insertHashContext(ctx, hash)
-	id := crud.LastID
-	if id != 2 {
-		t.Errorf("%d wanted", id)
-	}
-	hash1 := map[string]interface{}{"y":"z"}
-	err = crud.updateHashContext(ctx, hash1, []interface{}{id})
-	if err != nil {
-		t.Errorf("%s update table testing failed", err.Error())
+	insTable := `{
+    "table":"m_a",
+    "pks":["id"],
+    "id_auto":"id",
+	"must":["x","y"],
+	"columns":["x","y","z"]
+	}`
+	inuTable := `{
+    "table":"m_a",
+    "pks":["id"],
+    "id_auto":"id",
+	"uniques":["x","y"],
+	"columns":["x","y","z"]
+	}`
+	delTable := `{
+    "table":"m_a",
+    "pks":["id"],
+    "id_auto":"id",
+	"must":["id"]
+	}`
+	topTable := `{
+    "table":"m_a",
+    "pks":["id"],
+    "id_auto":"id",
+	"rename":{
+		"x":["x","string"],
+		"y":["y","string"],
+		"z":["z","string"],
+		"id":["id","int"]}
+	}`
+	ediTable := `{
+    "table":"m_a",
+    "pks":["id"],
+    "id_auto":"id",
+	"rename":{
+		"x":["x","string"],
+		"y":["y","string"],
+		"z":["z","string"],
+		"id":["id","int"]}
+	}`
+	insert := new(Insert)
+	insupd := new(Insupd)
+	topics := new(Topics)
+	edit   := new(Edit)
+	dele   := new(Delete)
+	err = json.Unmarshal([]byte(insTable), insert)
+	if err != nil { t.Fatal(err) }
+	err = json.Unmarshal([]byte(inuTable), insupd)
+	if err != nil { t.Fatal(err) }
+	err = json.Unmarshal([]byte(topTable), topics)
+	if err != nil { t.Fatal(err) }
+	err = json.Unmarshal([]byte(ediTable), edit)
+	if err != nil { t.Fatal(err) }
+	err = json.Unmarshal([]byte(delTable), dele)
+	if err != nil { t.Fatal(err) }
+
+	var lists []map[string]interface{}
+	var pages []*Page
+    // the 1st web requests is assumed to create id=1 to the m_a table
+    //
+    args := map[string]interface{}{"x":"a1234567","y":"b1234567","z":"temp", "child":"john"}
+	lists, pages, err = insert.RunAction(db, args)
+	if err != nil { t.Fatal(err) }
+
+    // the 2nd request just updates, becaues [x,y] is defined to the unique
+    // 
+    args = map[string]interface{}{"x":"a1234567","y":"b1234567","z":"zzzzz", "child":"sam"}
+	lists, pages, err = insupd.RunAction(db, args)
+	if err != nil { t.Fatal(err) }
+
+	// the 3rd request creates id=2
+    //
+    args = map[string]interface{}{"x":"c1234567","y":"d1234567","z":"e1234","child":"mary"}
+	lists, pages, err = insert.RunAction(db, args)
+	if err != nil { t.Fatal(err) }
+
+	// the 4th request creates id=3
+    //
+    args = map[string]interface{}{"x":"e1234567","y":"f1234567","z":"e1234","child":"marcus"}
+	lists, pages, err = insupd.RunAction(db, args)
+	if err != nil { t.Fatal(err) }
+
+	// GET all
+    args = map[string]interface{}{}
+	lists, pages, err = topics.RunAction(db, args)
+	if err != nil { t.Fatal(err) }
+// []map[string]interface {}{map[string]interface {}{"id":1, "x":"a1234567", "y":"b1234567", "z":"zzzzz"}, map[string]interface {}{"id":2, "x":"c1234567", "y":"d1234567", "z":"e1234"}, map[string]interface {}{"id":3, "x":"e1234567", "y":"f1234567", "z":"e1234"}}
+	e1 := lists[0]
+	e2 := lists[2]
+	if len(lists)!=3 ||
+		e1["id"].(int)!=1 ||
+		e1["z"].(string)!="zzzzz" ||
+		e2["y"].(string)!="f1234567" {
+		t.Errorf("%v", lists)
 	}
 
-	lists := make([]map[string]interface{}, 0)
-	label := map[string][2]string{"x":[2]string{"x",""}, "y":[2]string{"y",""}}
-	err = crud.editHashContext(ctx, &lists, label, []interface{}{id})
-	if err != nil {
-		t.Errorf("%s select table testing failed", err.Error())
-	}
-	if len(lists) != 1 {
-		t.Errorf("%d records returned from edit", len(lists))
-	}
-	if lists[0]["x"].(string) != "c" {
-		t.Errorf("%s c wanted", lists[0]["x"].(string))
-	}
-	if lists[0]["y"].(string) != "z" {
-		t.Errorf("%s z wanted", string(lists[0]["y"].(string)))
+	// GET one
+    args = map[string]interface{}{"id":1}
+	lists, pages, err = edit.RunAction(db, args)
+	if err != nil { t.Fatal(err) }
+	e1 = lists[0]
+	if len(lists)!=1 ||
+		e1["id"].(int)!=1 ||
+		e1["z"].(string)!="zzzzz" {
+		t.Errorf("%v", lists)
+		t.Errorf("%v", pages)
 	}
 
-	lists = make([]map[string]interface{}, 0)
-	err = crud.topicsHashContext(ctx, &lists, label)
-	if err != nil {
-		t.Errorf("%s select table testing failed", err.Error())
-	}
+	// DELETE
+    args = map[string]interface{}{"id":1}
+	lists, pages, err = dele.RunAction(db, args)
+	if err != nil { t.Fatal(err) }
+
+	// GET all
+    args = map[string]interface{}{}
+	lists, pages, err = topics.RunAction(db, args)
+	if err != nil { t.Fatal(err) }
 	if len(lists) != 2 {
-		t.Errorf("%d records returned from edit, should be 2", len(lists))
-	}
-	if string(lists[0]["x"].(string)) != "a" {
-		t.Errorf("%s a wanted", string(lists[0]["x"].(string)))
-	}
-	if string(lists[0]["y"].(string)) != "b" {
-		t.Errorf("%s b wanted", string(lists[0]["y"].(string)))
-	}
-	if string(lists[1]["x"].(string)) != "c" {
-		t.Errorf("%s c wanted", string(lists[1]["x"].(string)))
-	}
-	if string(lists[1]["y"].(string)) != "z" {
-		t.Errorf("%s z wanted", string(lists[1]["y"].(string)))
+		t.Errorf("%v", lists)
+		t.Errorf("%v", pages)
 	}
 
-	what := 0
-	err = crud.totalHashContext(ctx, &what)
-	if err != nil {
-		t.Errorf("%s total table testing failed", err.Error())
-	}
-	if what != 2 {
-		t.Errorf("%d total table testing failed", what)
-	}
-
-	err = crud.deleteHashContext(ctx, map[string]interface{}{"id": 1})
-	if err != nil {
-		t.Errorf("%s delete table testing failed", err.Error())
-	}
-
-	lists = make([]map[string]interface{}, 0)
-	label = map[string][2]string{"id":[2]string{"id",""}, "x":[2]string{"x",""}, "y":[2]string{"y",""}}
-	err = crud.topicsHashContext(ctx, &lists, label)
-	if err != nil {
-		t.Errorf("%s select table testing failed", err.Error())
-	}
-	if len(lists) != 1 {
-		t.Errorf("%d records returned from edit", len(lists))
-	}
-	if lists[0]["id"].(int64) != 2 {
-		t.Errorf("%d 2 wanted", lists[0]["x"].(int32))
-		t.Errorf("%v wanted", lists[0]["x"])
-	}
-	if string(lists[0]["x"].(string)) != "c" {
-		t.Errorf("%s c wanted", string(lists[0]["x"].(string)))
-	}
-	if string(lists[0]["y"].(string)) != "z" {
-		t.Errorf("%s z wanted", string(lists[0]["y"].(string)))
-	}
-
-	hash = map[string]interface{}{"id":"2", "x":"a", "y":"b"}
-	err = crud.insertHashContext(ctx, hash)
-	if err.Error() == "" {
-		t.Errorf("%s wanted", err.Error())
-	}
-
-	hash1 = map[string]interface{}{"y": "zz"}
-	err = crud.updateHashContext(ctx, hash1, []interface{}{3})
-	if err != nil {
-		t.Errorf("%s wanted", err.Error())
-	}
-	db.Close()
+	db.Exec(`drop table if exists m_a`)
+	db.Exec(`drop table if exists m_b`)
 }

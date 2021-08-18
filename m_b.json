@@ -1,8 +1,19 @@
 {
-    "current_table": "m_b",
-    "current_key" : "tid",
-	"current_id_auto": "tid",
-    "insert_pars" : ["id","child"],
-    "edit_pars"   : ["tid","child","id"],
-    "topics_pars" : ["tid","child","id"]
+    "table": "m_b",
+    "pks" : ["tid"],
+	"id_auto": "tid",
+	"actions":{
+    	"insert":{
+			"columns": ["id","child"]
+		},
+    	"edit":{
+			"rename": {"tid":["tid","int"], "child":["child","string"], "id":["id","int"]}
+		},
+		"delete":{
+			"must":["tid"]
+		},
+    	"topics":{
+			"rename": {"tid":["tid","int"], "child":["child","string"], "id":["id","int"]}
+		}
+	}
 }

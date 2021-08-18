@@ -26,58 +26,152 @@ func TestModel(t *testing.T) {
 	hash := map[string]Capability{"sql":new(SQL)}
 	model, err := NewModelJsonFile("model.json", hash)
 	if err != nil { t.Fatal(err) }
-	t.Errorf("%#v", model)
 	for k, v := range model.Actions {
-		t.Errorf("%s=>%#v", k, v)
 		switch k {
 		case "topics":
 			topics := v.(*Topics)
 			if topics.Nextpages != nil {
-				for _, page := range topics.Nextpages {
-					t.Errorf("%#v", page)
+				for i, page := range topics.Nextpages {
+					if (i==0 && (page.Model != "adv_campaign")) ||
+						(i==1 && (page.RelateItem["campaign_id"] != "campaign_id")) {
+						t.Errorf("%#v", page)
+					}
 				}
+			}
+		case "update":
+			update := v.(*Update)
+			if update.Columns[1] != "campaign_name" ||
+				update.Empties[0] != "created" {
+				t.Errorf("%#v", update)
+			}
+		case "sql":
+			sql := v.(*SQL)
+			if sql.CurrentTable != "adv_campaign" ||
+				sql.Pks[0] != "campaign_id" ||
+				sql.Fks[4] != "campaign_id_md5" ||
+				sql.Nextpages[0].Action != "topics" ||
+				sql.Statement != "SELECT x, y, z FROM a WHERE b=?" {
+				t.Errorf("%#v", sql)
 			}
 		default:
 		}
 	}
-/*
-	if comp.CurrentIDAuto != "sid" || comp.Fks[1] != "cid" {
-		t.Errorf("%#v", comp)
+}
+
+func TestModelRun(t *testing.T) {
+	db, err := getdb()
+	if err != nil { panic(err) }
+	defer db.Close()
+
+	db.Exec(`drop table if exists m_a`)
+	db.Exec(`CREATE TABLE m_a (id int auto_increment not null primary key,
+        x varchar(8), y varchar(8), z varchar(8))`)
+
+	str := `{
+    "table":"m_a",
+    "pks":["id"],
+    "id_auto":"id",
+	"actions":
+{
+	"insert":{
+		"must":["x","y"],
+		"columns":["x","y","z"]
+	},
+	"insupd":{
+		"uniques":["x","y"],
+		"columns":["x","y","z"]
+	},
+	"delete":{
+		"must":["id"]
+	},
+	"topics":{
+		"rename":{
+		"x":["x","string"],
+		"y":["y","string"],
+		"z":["z","string"],
+		"id":["id","int"]
+		}
+	},
+	"edit":{
+		"rename":{
+		"x":["x","string"],
+		"y":["y","string"],
+		"z":["z","string"],
+		"id":["id","int"]
+		}
 	}
-	del := comp.Capability("delete")
-	if del.Must[0] != "student_id" ||
-		del.Extras[0].Name != "status" ||
-		del.Extras[0].Pars[0] != "normal" {
-		t.Errorf("%#v", del)
+}}`
+	model, err := NewModelJson([]byte(str))
+	if err != nil { t.Fatal(err) }
+
+	var lists []map[string]interface{}
+	var pages []*Page
+    // the 1st web requests is assumed to create id=1 to the m_a table
+    //
+    args := map[string]interface{}{"x":"a1234567","y":"b1234567","z":"temp", "child":"john"}
+	lists, pages, err = model.RunModel(db, "insert", args)
+	if err != nil { t.Fatal(err) }
+
+    // the 2nd request just updates, becaues [x,y] is defined to the unique
+    // 
+    args = map[string]interface{}{"x":"a1234567","y":"b1234567","z":"zzzzz", "child":"sam"}
+	lists, pages, err = model.RunModel(db, "insupd", args)
+	if err != nil { t.Fatal(err) }
+
+	// the 3rd request creates id=2
+    //
+    args = map[string]interface{}{"x":"c1234567","y":"d1234567","z":"e1234","child":"mary"}
+	lists, pages, err = model.RunModel(db, "insert", args)
+	if err != nil { t.Fatal(err) }
+
+	// the 4th request creates id=3
+    //
+    args = map[string]interface{}{"x":"e1234567","y":"f1234567","z":"e1234","child":"marcus"}
+	lists, pages, err = model.RunModel(db, "insupd", args)
+	if err != nil { t.Fatal(err) }
+
+	// GET all
+    args = map[string]interface{}{}
+	lists, pages, err = model.RunModel(db, "topics", args)
+	if err != nil { t.Fatal(err) }
+// []map[string]interface {}{map[string]interface {}{"id":1, "x":"a1234567", "y":"b1234567", "z":"zzzzz"}, map[string]interface {}{"id":2, "x":"c1234567", "y":"d1234567", "z":"e1234"}, map[string]interface {}{"id":3, "x":"e1234567", "y":"f1234567", "z":"e1234"}}
+	e1 := lists[0]
+	e2 := lists[2]
+	if len(lists)!=3 ||
+		e1["id"].(int)!=1 ||
+		e1["z"].(string)!="zzzzz" ||
+		e2["y"].(string)!="f1234567" {
+		t.Errorf("%v", lists)
 	}
 
-	str, err := comp.ToHCL()
+	// GET one
+    args = map[string]interface{}{"id":1}
+	lists, pages, err = model.RunModel(db, "edit", args)
 	if err != nil { t.Fatal(err) }
-	comp1, err := ComponentFromHCL(str)
-	if err != nil { t.Fatal(err) }
-	if comp1.CurrentTable != comp.CurrentTable ||
-		comp1.CurrentKeys[0] != comp.CurrentKeys[0] ||
-		comp1.Fks[2] != comp.Fks[2] {
-		t.Errorf("%#v", comp)
-		t.Errorf("%#v", comp1)
+	e1 = lists[0]
+	if len(lists)!=1 ||
+		e1["id"].(int)!=1 ||
+		e1["z"].(string)!="zzzzz" {
+		t.Errorf("%v", lists)
+		t.Errorf("%v", pages)
 	}
-	if comp1.Capabilities[0].Nextpages[0].RelateItem["key1"] !=
-		comp.Capabilities[0].Nextpages[0].RelateItem["key1"] {
-		t.Errorf("%#v", comp.Capabilities[0].Nextpages[0])
-		t.Errorf("%#v", comp1.Capabilities[0].Nextpages[0])
-	}
+// [map[id:1 tb_topics:[map[child:john id:1 tid:1] map[child:sam id:1 tid:2]] x:a1234567 y:b1234567 z:zzzzz]]
 
-	//bs, err := json.Marshal(comp)
-	bs, err := json.MarshalIndent(comp, "", "  ")
+	// DELETE
+    args = map[string]interface{}{"id":1}
+	lists, pages, err = model.RunModel(db, "delete", args)
 	if err != nil { t.Fatal(err) }
-	// t.Errorf("%s\n", bs)
-	comp2 := new(Component)
-	err = json.Unmarshal(bs, comp2)
+
+	// GET all
+    args = map[string]interface{}{}
+	lists, pages, err = model.RunModel(db, "topics", args)
 	if err != nil { t.Fatal(err) }
-	topics := comp.Capability("topics")
-	rename := topics.Select.Rename
-	if rename["x"][0] != "namex" || rename["x"][1] != "string" {
-		t.Errorf("%#v\n", topics.Select)
+	if len(lists) != 2 {
+		t.Errorf("%v", lists)
+		t.Errorf("%v", pages)
 	}
-*/
+// [map[id:2 ta_edit:[map[id:2 tb_topics:[map[child:mary id:2 tid:3]] x:c1234567 y:d1234567 z:e1234]] x:c1234567 y:d1234567 z:e1234] map[id:3 ta_edit:[map[id:3 tb_topics:[map[child:marcus id:3 tid:4]] x:e1234567 y:f1234567 z:e1234]] x:e1234567 y:f1234567 z:e1234]]
+
+	db.Exec(`drop table if exists m_a`)
+	db.Exec(`drop table if exists m_b`)
 }

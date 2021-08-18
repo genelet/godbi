@@ -16,7 +16,7 @@ func (self *Insupd) RunAction(db *sql.DB, ARGS map[string]interface{}, extra ...
 }
 
 func (self *Insupd) RunActionContext(ctx context.Context, db *sql.DB, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
-	err := self.checkNull(ARGS)
+    err := self.checkNull(ARGS)
     if err != nil { return nil, nil, err }
 
     if self.Uniques == nil {
