@@ -10,7 +10,11 @@ import (
 )
 
 type Topics struct {
-	Edit
+	Action
+	Joins       []*Join             `json:"joins,omitempty" hcl:"join,block"`
+	Rename      map[string][]string `json:"rename" hcl:"rename"`
+	FIELDS      string              `json:"fields,omitempty" hcl:"fields"`
+
 	TotalForce  int    `json:"total_force,omitempty" hcl:"total_force,optional"`
 	MAXPAGENO   string `json:"maxpageno,omitempty" hcl:"maxpageno,optional"`
     TOTALNO     string `json:"totalno,omitempty" hcl:"totalno,optional"`
@@ -146,7 +150,7 @@ func (self *Topics) RunActionContext(ctx context.Context, db *sql.DB, ARGS map[s
     if err != nil { return nil, nil, err }
 
 	self.defaultNames()
-	sql, labels, table := self.filterPars(ARGS)
+	sql, labels, table := self.filterPars(ARGS, self.Rename, self.FIELDS, self.Joins)
 	err = self.pagination(ctx, db, ARGS, extra...)
 	if err != nil { return nil, nil, err }
 	order := self.orderString(ARGS)

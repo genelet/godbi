@@ -18,6 +18,7 @@ func (self *Edit) defaultNames() []string {
     return []string{self.FIELDS}
 }
 
+/*
 func (self *Edit) filterPars(ARGS map[string]interface{}) (string, []interface{}, string) {
 	var fields []string
 	if v, ok := ARGS[self.FIELDS]; ok {
@@ -46,6 +47,7 @@ func (self *Edit) filterPars(ARGS map[string]interface{}) (string, []interface{}
 
 	return sql, labels, table
 }
+*/
 
 func (self *Edit) RunAction(db *sql.DB, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
 	return self.RunActionContext(context.Background(), db, ARGS, extra...)
@@ -56,7 +58,7 @@ func (self *Edit) RunActionContext(ctx context.Context, db *sql.DB, ARGS map[str
     if err != nil { return nil, nil, err }
 
 	self.defaultNames()
-	sql, labels, table := self.filterPars(ARGS)
+	sql, labels, table := self.filterPars(ARGS, self.Rename, self.FIELDS, self.Joins)
 
     ids := self.getIdVal(ARGS, extra...)
     if !hasValue(ids) {

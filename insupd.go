@@ -7,7 +7,8 @@ import (
 )
 
 type Insupd struct {
-	Insert
+	Action
+	Columns    []string      `json:"columns,omitempty" hcl:"columns,optional"`
 	Uniques    []string      `json:"uniques,omitempty" hcl:"uniques,optional"`
 }
 

@@ -23,6 +23,35 @@ type Action struct {
 	Appendix  interface{} `json:"appendix,omitempty" hcl:"appendix,block"`
 }
 
+func (self *Action) filterPars(ARGS map[string]interface{}, rename map[string][]string, fieldsName string, joins []*Join) (string, []interface{}, string) {
+	var fields []string
+	if v, ok := ARGS[fieldsName]; ok {
+		fields = v.([]string)
+	}
+
+    shorts := make(map[string][2]string)
+	for k, v := range rename {
+		if fields == nil {
+			shorts[k] = [2]string{v[0], v[1]}
+		} else {
+			if grep(fields, k) {
+				shorts[k] = [2]string{v[0], v[1]}
+			}
+		}
+	}
+
+	sql, labels := selectType(shorts)
+    var table string
+    if hasValue(joins) {
+        sql = "SELECT " + sql + "\nFROM " + joinString(joins)
+        table = joins[0].getAlias()
+    } else {
+        sql = "SELECT " + sql + "\nFROM " + self.CurrentTable
+    }
+
+	return sql, labels, table
+}
+
 func (self *Action) fulfill(t string, pks []string, auto string, fks []string) {
 	self.CurrentTable = t
 	self.Pks          = pks

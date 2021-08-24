@@ -7,7 +7,8 @@ import (
 )
 
 type Update struct {
-	Insert
+	Action
+	Columns    []string      `json:"columns,omitempty" hcl:"columns,optional"`
 	Empties    []string      `json:"empties,omitempty" hcl:"empties,optional"`
 }
 
