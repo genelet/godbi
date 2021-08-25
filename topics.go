@@ -36,7 +36,7 @@ func (self *Topics) defaultNames() []string {
 }
 
 // orderString outputs the ORDER BY string using information in args
-func (self *Topics) orderString(ARGS map[string]interface{}) string {
+func (self *Topics) orderString(t *Table, ARGS map[string]interface{}) string {
 	nameSortby := self.SORTBY
 	nameSortreverse := self.SORTREVERSE
 	nameRowcount := self.ROWCOUNT
@@ -55,10 +55,10 @@ func (self *Topics) orderString(ARGS map[string]interface{}) string {
                 name = table.Alias
             }
             name += "."
-            column = name + strings.Join(self.Pks, ", "+name)
+            column = name + strings.Join(t.Pks, ", "+name)
         }
     } else {
-        column = strings.Join(self.Pks, ", ")
+        column = strings.Join(t.Pks, ", ")
     }
 
     order := "ORDER BY " + column
@@ -96,7 +96,7 @@ func (self *Topics) orderString(ARGS map[string]interface{}) string {
     return order
 }
 
-func (self *Topics) pagination(ctx context.Context, db *sql.DB, ARGS map[string]interface{}, extra ...map[string]interface{}) error {
+func (self *Topics) pagination(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) error {
 	nameTotalno := self.TOTALNO
 	nameRowcount := self.ROWCOUNT
 	namePageno := self.PAGENO
@@ -111,7 +111,7 @@ func (self *Topics) pagination(ctx context.Context, db *sql.DB, ARGS map[string]
 	if totalForce < -1 { // take the absolute as the total number
 		nt = int(math.Abs(float64(totalForce)))
 	} else if totalForce == -1 || ARGS[nameTotalno] == nil { // optional
-		if err := self.totalHashContext(ctx, db, &nt, extra...); err != nil {
+		if err := t.totalHashContext(ctx, db, &nt, extra...); err != nil {
 			return err
 		}
 	} else {
@@ -141,19 +141,19 @@ func (self *Topics) pagination(ctx context.Context, db *sql.DB, ARGS map[string]
 	return nil
 }
 
-func (self *Topics) RunAction(db *sql.DB, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
-	return self.RunActionContext(context.Background(), db, ARGS, extra...)
+func (self *Topics) RunAction(db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
+	return self.RunActionContext(context.Background(), db, t, ARGS, extra...)
 }
 
-func (self *Topics) RunActionContext(ctx context.Context, db *sql.DB, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
+func (self *Topics) RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
 	err := self.checkNull(ARGS)
     if err != nil { return nil, nil, err }
 
 	self.defaultNames()
-	sql, labels, table := self.filterPars(ARGS, self.Rename, self.FIELDS, self.Joins)
-	err = self.pagination(ctx, db, ARGS, extra...)
+	sql, labels, table := self.filterPars(t.CurrentTable, ARGS, self.Rename, self.FIELDS, self.Joins)
+	err = self.pagination(ctx, db, t, ARGS, extra...)
 	if err != nil { return nil, nil, err }
-	order := self.orderString(ARGS)
+	order := self.orderString(t, ARGS)
 
 	dbi := &DBI{DB:db}
 	lists := make([]map[string]interface{}, 0)

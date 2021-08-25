@@ -12,11 +12,11 @@ type Insupd struct {
 	Uniques    []string      `json:"uniques,omitempty" hcl:"uniques,optional"`
 }
 
-func (self *Insupd) RunAction(db *sql.DB, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
-    return self.RunActionContext(context.Background(), db, ARGS, extra...)
+func (self *Insupd) RunAction(db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
+    return self.RunActionContext(context.Background(), db, t, ARGS, extra...)
 }
 
-func (self *Insupd) RunActionContext(ctx context.Context, db *sql.DB, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
+func (self *Insupd) RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
     err := self.checkNull(ARGS)
     if err != nil { return nil, nil, err }
 
@@ -36,13 +36,13 @@ func (self *Insupd) RunActionContext(ctx context.Context, db *sql.DB, ARGS map[s
         return nil, nil, fmt.Errorf("input not found")
     }
 
-    changed, err := self.insupdTableContext(ctx, db, fieldValues, self.Uniques)
+    changed, err := t.insupdTableContext(ctx, db, fieldValues, self.Uniques)
 	if err != nil {
         return nil, nil, err
     }
 
-    if self.IDAuto != "" {
-        fieldValues[self.IDAuto] = changed
+    if t.IDAuto != "" {
+        fieldValues[t.IDAuto] = changed
     }
 
     return fromFv(fieldValues), self.Nextpages, nil

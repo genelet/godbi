@@ -10,20 +10,16 @@ import (
 // Action is to implement Capability interface
 //
 type Capability interface {
-	// fulfill, which is implemented here, is used for model.go only.
-	// so it is private enough
-	fulfill(string, []string, string, []string)
-	RunActionContext(context.Context, *sql.DB, map[string]interface{}, ...map[string]interface{}) ([]map[string]interface{}, []*Page, error)
+	RunActionContext(context.Context, *sql.DB, *Table, map[string]interface{}, ...map[string]interface{}) ([]map[string]interface{}, []*Page, error)
 }
 
 type Action struct {
-	Table
 	Must      []string    `json:"must,omitempty" hcl:"must,optional"`
 	Nextpages []*Page     `json:"nextpages,omitempty" hcl:"nextpage,block"`
 	Appendix  interface{} `json:"appendix,omitempty" hcl:"appendix,block"`
 }
 
-func (self *Action) filterPars(ARGS map[string]interface{}, rename map[string][]string, fieldsName string, joins []*Join) (string, []interface{}, string) {
+func (self *Action) filterPars(currentTable string, ARGS map[string]interface{}, rename map[string][]string, fieldsName string, joins []*Join) (string, []interface{}, string) {
 	var fields []string
 	if v, ok := ARGS[fieldsName]; ok {
 		fields = v.([]string)
@@ -46,17 +42,10 @@ func (self *Action) filterPars(ARGS map[string]interface{}, rename map[string][]
         sql = "SELECT " + sql + "\nFROM " + joinString(joins)
         table = joins[0].getAlias()
     } else {
-        sql = "SELECT " + sql + "\nFROM " + self.CurrentTable
+        sql = "SELECT " + sql + "\nFROM " + currentTable
     }
 
 	return sql, labels, table
-}
-
-func (self *Action) fulfill(t string, pks []string, auto string, fks []string) {
-	self.CurrentTable = t
-	self.Pks          = pks
-	self.IDAuto       = auto
-	self.Fks          = fks
 }
 
 func (self *Action) checkNull(ARGS map[string]interface{}) error {

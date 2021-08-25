@@ -10,21 +10,21 @@ type Delete struct {
 	Action
 }
 
-func (self *Delete) RunAction(db *sql.DB, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
-    return self.RunActionContext(context.Background(), db, ARGS, extra...)
+func (self *Delete) RunAction(db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
+    return self.RunActionContext(context.Background(), db, t, ARGS, extra...)
 }
 
-func (self *Delete) RunActionContext(ctx context.Context, db *sql.DB, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
+func (self *Delete) RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
 	err := self.checkNull(ARGS)
 	if err != nil { return nil, nil, err }
 
-	ids := self.getIdVal(ARGS, extra...)
+	ids := t.getIdVal(ARGS, extra...)
 	if !hasValue(ids) {
 		return nil, nil, fmt.Errorf("pk value not provided")
 	}
 
-    sql := "DELETE FROM " + self.CurrentTable
-	where, values := self.singleCondition(ids, "", extra...)
+    sql := "DELETE FROM " + t.CurrentTable
+	where, values := t.singleCondition(ids, "", extra...)
 	if where != "" {
         sql += "\nWHERE " + where
     } else {

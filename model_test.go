@@ -13,7 +13,7 @@ type SQL struct {
 	Statement string   `json:"statement"`
 }
 
-func (self *SQL) RunActionContext(ctx context.Context, db *sql.DB, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
+func (self *SQL) RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
 	v, ok := ARGS[self.Must[0]]
 	if !ok { return nil, nil, fmt.Errorf("missing %s in input", self.Must[0]) }
 	lists := make([]map[string]interface{}, 0)
@@ -46,9 +46,9 @@ func TestModel(t *testing.T) {
 			}
 		case "sql":
 			sql := v.(*SQL)
-			if sql.CurrentTable != "adv_campaign" ||
-				sql.Pks[0] != "campaign_id" ||
-				sql.Fks[4] != "campaign_id_md5" ||
+			if model.CurrentTable != "adv_campaign" ||
+				model.Pks[0] != "campaign_id" ||
+				model.Fks[4] != "campaign_id_md5" ||
 				sql.Nextpages[0].Action != "topics" ||
 				sql.Statement != "SELECT x, y, z FROM a WHERE b=?" {
 				t.Errorf("%#v", sql)

@@ -51,7 +51,6 @@ func NewModelJson(dat []byte, custom ...map[string]Capability) (*Model, error) {
 		}
 		err = json.Unmarshal(jsonString, tran)
 		if err != nil { return nil, err }
-		tran.fulfill(model.CurrentTable, model.Pks, model.IDAuto, model.Fks)
 		trans[name] = tran
 	}
 	model.Actions = trans
@@ -67,7 +66,7 @@ func (self *Model) RunModelContext(ctx context.Context, db *sql.DB, action strin
 	obi, ok := self.Actions[action]
 	if !ok { return nil, nil, fmt.Errorf("action %s not found", action) }
 
-	return obi.(Capability).RunActionContext(ctx, db, ARGS, extra...)
+	return obi.(Capability).RunActionContext(ctx, db, &self.Table, ARGS, extra...)
 }
 
 func (self *Model) NonePass(action string) []string {

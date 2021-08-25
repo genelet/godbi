@@ -14,14 +14,14 @@ type Insert struct {
 // Run inserts a row using data passed in ARGS. Any value defined
 // in 'extra' will override that key in ARGS.
 //
-func (self *Insert) RunAction(db *sql.DB, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
-    return self.RunActionContext(context.Background(), db, ARGS, extra...)
+func (self *Insert) RunAction(db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
+    return self.RunActionContext(context.Background(), db, t, ARGS, extra...)
 }
 
 // InsertContext inserts a row using data passed in ARGS. Any value defined
 // in 'extra' will override that key in ARGS.
 //
-func (self *Insert) RunActionContext(ctx context.Context, db *sql.DB, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
+func (self *Insert) RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
 	err := self.checkNull(ARGS)
 	if err != nil { return nil, nil, err }
 
@@ -37,11 +37,11 @@ func (self *Insert) RunActionContext(ctx context.Context, db *sql.DB, ARGS map[s
         return nil, nil, fmt.Errorf("no data to insert")
     }
 
-	autoID, err := self.insertHashContext(ctx, db, fieldValues)
+	autoID, err := t.insertHashContext(ctx, db, fieldValues)
 	if err != nil { return nil, nil, err }
 
-    if self.IDAuto != "" {
-        fieldValues[self.IDAuto] = autoID
+    if t.IDAuto != "" {
+        fieldValues[t.IDAuto] = autoID
     }
 
     return fromFv(fieldValues), self.Nextpages, nil
