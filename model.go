@@ -68,9 +68,9 @@ func (self *Model) RunModel(db *sql.DB, action string, ARGS map[string]interface
 }
 
 func (self *Model) RunModelContext(ctx context.Context, db *sql.DB, action string, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
-	if self.Actions == nil { return nil, nil, fmt.Errorf("no action assigned") }
+	if self.Actions == nil { return nil, nil, fmt.Errorf("actions is nil") }
 	obi, ok := self.Actions[action]
-	if !ok { return nil, nil, fmt.Errorf("action %s not found", action) }
+	if !ok { return nil, nil, fmt.Errorf("action %s has no capability", action) }
 
 	return obi.(Capability).RunActionContext(ctx, db, &self.Table, ARGS, extra...)
 }

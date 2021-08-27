@@ -82,7 +82,7 @@ func (self *Table) insupdTableContext(ctx context.Context, db *sql.DB, args map[
         if x, ok := args[val]; ok {
 			v = append(v, x)
 		} else {
-            return changed, fmt.Errorf("unique key's value not found")
+            return changed, fmt.Errorf("unique key %s not found in input", val)
         }
     }
 

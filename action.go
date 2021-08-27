@@ -52,7 +52,7 @@ func (self *Action) checkNull(ARGS map[string]interface{}) error {
 	if self.Must == nil { return nil }
 	for _, item := range self.Must {
 		if _, ok := ARGS[item]; !ok {
-			return fmt.Errorf("missing %s in input", item)
+			return fmt.Errorf("item %s not found in input", item)
 		}
 	}
 	return nil

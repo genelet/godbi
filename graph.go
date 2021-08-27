@@ -38,7 +38,7 @@ func (self *Graph) Run(model, action string, ARGS map[string]interface{}, extra 
 func (self *Graph) RunContext(ctx context.Context, model, action string, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
 	modelObj, ok := self.Models[model]
 	if !ok {
-		return nil, fmt.Errorf("%s not found in graph", model)
+		return nil, fmt.Errorf("model %s not found in graph", model)
 	}
 
 	nones := modelObj.NonePass(action)

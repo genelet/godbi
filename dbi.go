@@ -41,7 +41,7 @@ func (self *DBI) TxSQLContext(ctx context.Context, query string, args ...interfa
 	res, err := sth.ExecContext(ctx, args...)
 	if err != nil {
 		if rollbackErr := tx.Rollback(); rollbackErr != nil {
-			return fmt.Errorf("original error %v. can't rollback %v", err, rollbackErr)
+			return fmt.Errorf("errror original: %v, rollback: %v", err, rollbackErr)
 		} else {
 			return err
 		}
@@ -190,10 +190,6 @@ func (self *DBI) SelectSQL(lists *[]map[string]interface{}, query string, labels
 //    and the second the data type express as "int64", "int", "string" etc.
 //
 func (self *DBI) SelectSQLContext(ctx context.Context, lists *[]map[string]interface{}, query string, labels []interface{}, args ...interface{}) error {
-	//log.Printf("godbi SQL statement: %s", query)
-	//log.Printf("godbi select columns: %#v", labels)
-	//log.Printf("godbi input data: %v", args)
-
 	sth, err := self.DB.PrepareContext(ctx, query)
 	if err != nil {
 		return err

@@ -1,8 +1,6 @@
 package godbi
 
 import (
-	"fmt"
-	"net/url"
 	"strings"
 )
 
@@ -23,14 +21,6 @@ func hasValue(extra interface{}) bool {
 		if len(v) == 0 {
 			return false
 		}
-	case url.Values:
-		if len(v) == 0 {
-			return false
-		}
-	case []url.Values:
-		if len(v) == 0 {
-			return false
-		}
 	case map[string]string:
 		if len(v) == 0 {
 			return false
@@ -48,22 +38,7 @@ func hasValue(extra interface{}) bool {
 	return true
 }
 
-func interface2String(v interface{}) string {
-	switch u := v.(type) {
-	case []uint8:
-		return string(u)
-	case int8, uint8, int, uint, int32, uint32, int64, uint64:
-		return fmt.Sprintf("%d", u)
-	case float32, float64:
-		return fmt.Sprintf("%f", u)
-	case string:
-		return u
-	default:
-		return v.(string)
-	}
-}
-
-func stripchars(chr, str string) string {
+func stripchars(str, chr string) string {
 	return strings.Map(func(r rune) rune {
 		if strings.IndexRune(chr, r) < 0 {
 			return r
