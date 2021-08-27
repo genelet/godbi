@@ -29,11 +29,17 @@ func NewModelJsonFile(fn string, custom ...map[string]Capability) (*Model, error
 func NewModelJson(dat []byte, custom ...map[string]Capability) (*Model, error) {
 	model := new(Model)
 	err := json.Unmarshal(dat, model)
-	if err != nil { return nil, err }
+	if err == nil {
+		err = model.Assertion(custom...)
+	}
+	return model, err
+}
+
+func (self *Model) Assertion(custom ...map[string]Capability) error {
 	trans := make(map[string]interface{})
-	for name, action := range model.Actions {
+	for name, action := range self.Actions {
 		jsonString, err := json.Marshal(action)
-		if err != nil { return nil, err }
+		if err != nil { return err }
 		var tran Capability
 		if custom != nil && len(custom) > 0 && custom[0][name] != nil {
 			tran = custom[0][name]
@@ -46,15 +52,15 @@ func NewModelJson(dat []byte, custom ...map[string]Capability) (*Model, error) {
 			case "topics": tran = new(Topics)
 			case "delete": tran = new(Delete)
 			default:
-				return nil, fmt.Errorf("action %s not defined", name)
+				return fmt.Errorf("action %s not defined", name)
 			}
 		}
 		err = json.Unmarshal(jsonString, tran)
-		if err != nil { return nil, err }
+		if err != nil { return err }
 		trans[name] = tran
 	}
-	model.Actions = trans
-	return model, nil
+	self.Actions = trans
+	return nil
 }
 
 func (self *Model) RunModel(db *sql.DB, action string, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
