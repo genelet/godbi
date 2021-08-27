@@ -9,7 +9,7 @@ import (
 )
 
 type Table struct {
-	CurrentTable string   `json:"table" hcl:"table"`
+	CurrentTable string   `json:"table,omitempty" hcl:"table,optional"`
 	Pks          []string `json:"pks,omitempty" hcl:"pks,optional"`
 	IDAuto       string   `json:"id_auto,omitempty" hcl:"id_auto,optional"`
 	Fks          []string `json:"fks,omitempty" hcl:"fks,optional"`
