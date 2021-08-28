@@ -379,6 +379,13 @@ func (self *DBI) DoProcContext(ctx context.Context, res map[string]interface{}, 
 	return self.GetSQLContext(ctx, res, strN, names)
 }
 
+// TxProc runs the stored procedure 'procName' in transaction
+// and outputs the OUT data as map whose keys are in 'names'.
+//
+func (self *DBI) TxProc(res map[string]interface{}, procName string, names []interface{}, args ...interface{}) error {
+	return self.TxProcContext(context.Background(), res, procName, names, args...)
+}
+
 // TxProcContext runs the stored procedure 'procName' in transaction
 // and outputs the OUT data as map whose keys are in 'names'.
 //
@@ -404,6 +411,12 @@ func (self *DBI) SelectProc(lists *[]map[string]interface{}, procName string, la
 //
 func (self *DBI) SelectProcContext(ctx context.Context, lists *[]map[string]interface{}, procName string, labels []interface{}, args ...interface{}) error {
 	return self.SelectDoProcContext(ctx, lists, nil, nil, procName, labels, args...)
+}
+
+// GetProc returns single row from stored procedure into 'res'.
+//
+func (self *DBI) GetProc(res map[string]interface{}, procName string, labels []interface{}, args ...interface{}) error {
+	return self.GetProcContext(context.Background(), res, procName, labels, args...)
 }
 
 // GetProcContext returns single row from stored procedure into 'res'.
