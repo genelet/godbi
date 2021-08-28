@@ -21,7 +21,7 @@ func TestContextProcedure(t *testing.T) {
 
 	sql := `call proc_w_resultset`
 	lists := make([]map[string]interface{},0)
-	err = dbi.SelectProcContext(ctx, &lists, sql, nil)
+	err = dbi.selectProcContext(ctx, &lists, sql, nil)
 	if err != nil {
 		t.Errorf("Running select procedure failed %v", err)
 	}
@@ -37,7 +37,7 @@ func TestContextProcedure(t *testing.T) {
 	sql = `call proc_w`
 	hash := make(map[string]interface{})
 	lists = make([]map[string]interface{},0)
-	err = dbi.SelectDoProcContext(ctx, &lists, hash, []interface{}{"y0"}, sql, nil, "m")
+	err = dbi.selectDoProcContext(ctx, &lists, hash, []interface{}{[2]string{"y0","int64"}}, sql, nil, "m")
 	if err != nil {
 		t.Errorf("Running select do procedure failed %v", err)
 	}
