@@ -5,11 +5,11 @@ _godbi_ adds a set of high-level functions to the generic SQL handle in GO. Chec
 
 There are three levels of usages:
 
-- _Basic_: operating on raw SQL statements including stored procedures.
-- _Model_: fulfilling CRUD actions as *Model* in MVC pattern on a table.
+- _Basic_: operating on raw SQL statements and receive data as *[]map[string]interface{}*
+- _Model_: fulfilling CRUD actions on a table.
 - _Schema_: fulfilling RESTful and GraphQL actions on multiple tables.
 
-_godbi_ is an ideal replacement of ORM. It runs SQL, CRUD, RESTful and GraphQL tasks gracefully and very efficiently.
+_godbi_ runs CRUD and RESTful tasks easily and gracefully.
 The package is fully tested in MySQL and PostgreSQL.
 
 <br /><br />
@@ -24,12 +24,10 @@ The package is fully tested in MySQL and PostgreSQL.
 The names of arguments passed in functions or methods in this package are defined as follows, if not specifically explained:
 Name | Type | IN/OUT | Where | Meaning
 ---- | ---- | ------ | ----- | -------
-*args* | `...interface{}` | IN | `DBI` | single-valued interface slice, possibly empty
-*args* | `url.Values` | IN | `Model` | via SetArgs() to set input data
-*args* | `url.Values` | IN | `Schema` | input data passing to Run()
-*extra* | `url.Values` | IN | `Model`,`Schema` | WHERE constraints; single value - EQUAL,  multi value - IN
-*lists* | `[]map[string]interface{}` | OUT | all | output as slice of rows; each row is a map.
-*res* | `map[string]interface{}` | OUT | `DBI` | output for one row
+*args* | `...interface{}` | IN | `DBI` | slice of values, possibly empty
+*ARGS* | `map[string]interface{}` | IN | `Model`,`Graph` | input data
+*extra* | `...map[string]interface{}` | IN | `Model`,`Schema` | for WHERE constraints, possibly empty
+*lists* | `[]map[string]interface{}` | OUT | all | data received as a slice of maps.
 
 <br /><br />
 
@@ -43,9 +41,8 @@ The `DBI` type simply embeds the standard SQL handle.
 package godbi
 
 type DBI struct {
-    *sql.DB          // Note this is the pointer to the handle
+    *sql.DB          
     LastID    int64  // saves the last inserted id
-    Affected  int64  // saves the affected rows
 }
 
 ```
@@ -58,7 +55,7 @@ dbi := &DBI{DB: the_standard_sql_handle}
 
 #### 1.1.2) Example
 
-In this example, we create a MySQL handle using credentials in the environment; then create a new table _letters_ with 3 rows. We query the data using `SelectSQL` and put the result into `lists` as slice of maps.
+In this example, we create a MySQL handle using credentials in the environment; then create a new table _letters_ with 3 rows. We query the data using `SelectSQL` and put the result into `lists`.
 
 <details>
     <summary>Click for Sample 1</summary>
@@ -87,23 +84,22 @@ func main() {
 
     // create a new table and insert some data using ExecSQL
     //
-    _, err = dbi.Exec(`DROP TABLE IF EXISTS letters`)
+    _, err = db.Exec(`DROP TABLE IF EXISTS letters`)
     if err != nil { panic(err) }
-    _, err = dbi.Exec(`CREATE TABLE letters (
+    _, err = db.Exec(`CREATE TABLE letters (
         id int auto_increment primary key,
         x varchar(1))`)
     if err != nil { panic(err) }
-    _, err = dbi.Exec(`insert into letters (x) values ('m')`)
+    _, err = db.Exec(`insert into letters (x) values ('m')`)
     if err != nil { panic(err) }
-    _, err = dbi.Exec(`insert into letters (x) values ('n')`)
+    _, err = db.Exec(`insert into letters (x) values ('n')`)
     if err != nil { panic(err) }
-    _, err = dbi.Exec(`insert into letters (x) values ('p')`)
+    _, err = db.Exec(`insert into letters (x) values ('p')`)
     if err != nil { panic(err) }
 
     // select all data from the table
-    lists := make([]map[string]interface{},0)
-    sql := "SELECT id, x FROM letters"
-    err = dbi.SelectSQL(&lists, sql)
+    lists := make([]map[string]interface{}, 0)
+    err = dbi.SelectSQL(&lists, "SELECT id, x FROM letters")
     if err != nil { panic(err) }
 
     log.Printf("%v", lists)
@@ -130,9 +126,9 @@ Running this example will result in something like
 func (*DBI) DoSQL  (query string, args ...interface{}) error
 ```
 
-Similar to SQL's `Exec`, `DoSQL` executes *Do*-type (e.g. _INSERT_ or _UPDATE_) queries. It runs a prepared statement and may be safe for concurrent use by multiple goroutines.
+The same as DB's `Exec`, except it saves the possible last id and returns error only. 
 
-For all functions in this package, the returned value is always `error` which should be checked to assert if the execution is successful.
+Note that most of the functions in this package return error, which should be checked to assert the execution status.
 
 <br /><br />
 
@@ -141,10 +137,10 @@ For all functions in this package, the returned value is always `error` which sh
 #### 1.3.1)  `SelectSQL`
 
 ```go
-func (*DBI) SelectSQL(lists *[]map[string]interface{}, query string, args ...interface{}) error
+func (*DBI) Select(lists *[]map[string]interface{}, query string, args ...interface{}) error
 ```
 
-Run the *SELECT*-type query and put the result into `lists`, a slice of column name-value maps. The data types of the column are determined dynamically by the generic SQL handle.
+Run the *SELECT*-type query and save the result in `lists`. The data types of the column are determined dynamically by the generic SQL handle.
 
 <details>
     <summary>Click for example</summary>
@@ -152,7 +148,7 @@ Run the *SELECT*-type query and put the result into `lists`, a slice of column n
 
 ```go
 lists := make([]map[string]interface{})
-err = dbi.DoSQL(&lists,
+err = dbi.Select(&lists,
     `SELECT ts, id, name, len, flag, fv FROM mytable WHERE id=?`, 1234)
 ```
 
@@ -166,30 +162,17 @@ will select all rows with *id=1234*.
 </p>
 </details>
 
-`SelectSQL` runs a prepared statement.
 
-#### 1.3.2) `SelectSQLType`
-
-```go
-func (*DBI) SelectSQLType(lists *[]map[string]interface{}, typeLabels []string, query string, args ...interface{}) error
-```
-
-They differ from the above `SelectSQL` by specifying the data types. While the generic handle could correctly figure out them in most cases, it occasionally fails because there is no exact matching between SQL types and GOLANG types.
-
-The following example assigns _string_, _int_, _string_, _int8_, _bool_ and _float32_ to the corresponding columns:
+#### 1.3.2) `SelectSQL`
 
 ```go
-err = dbi.SelectSQLType(&lists, []string{"string", "int", "string", "int8", "bool", "float32},
-    `SELECT ts, id, name, len, flag, fv FROM mytable WHERE id=?`, 1234)
+func (*DBI) SelectSQL(lists *[]map[string]interface{}, labels []interface{}, query string, args ...interface{}) error
 ```
 
-#### 1.3.3) `SelectSQLLabel`
+It differs from the above `Select` by specifying map's key names, and optionally their data types, in `labels`, depending if interface is `string` or `[2]string`.
 
-```go
-func (*DBI) SelectSQLLabel(lists *[]map[string]interface{}, selectLabels []string, query string, args ...interface{}) error
-```
-
-They differ from the above `SelectSQL` by renaming the default column names to `selectLabels`.
+The following example assigns key names TS, id, Name, Length, Flag and fv, and
+data types _string_, _int_, _string_, _int8_, _bool_ and _float32_ to the corresponding columns:
 
 <details>
     <summary>Click for example</summary>
@@ -197,151 +180,42 @@ They differ from the above `SelectSQL` by renaming the default column names to `
 
 ```go
 lists := make([]map[string]interface{})
-err = dbi.querySQLLabel(&lists, []string{"time stamp", "record ID", "recorder name", "length", "flag", "values"},
-    `SELECT ts, id, name, len, flag, fv FROM mytable WHERE id=?`, 1234)
+err = dbi.querySQLLabel(&lists, 
+    `SELECT ts, id, name, len, flag, fv FROM mytable WHERE id=?`,
+	[]interface{}{[2]string{"TS","string"], [2]string{"id","int"], [2]string{"Name","string"], [2]string{"Length","int8"], [2]string{"Flag","bool"], [2]string{"fv","float32"]},
+    1234)
 ```
-
-The result has the renamed keys:
 
 ```json
-    {"time stamp":"2019-12-15 01:01:01", "record ID":1234, "recorder name":"company", "length":30, "flag":true, "values":789.123},
+    {"TS":"2019-12-15 01:01:01", "id":1234, "Name":"company", "Length":30, "Flag":true, "fv":789.123},
 ```
 
 </p>
 </details>
 
-#### 1.3.4) `SelectSQlTypeLabel`
-
-```go
-func (*DBI) SelectSQLTypeLabel(lists *[]map[string]interface{}, typeLabels []string, selectLabels []string, query string, args ...interface{}) error
-```
-
-These functions re-assign both data types and column names in the queries.
 
 <br /><br />
 
-### 1.4  Query Single Row
+### 1.4  _GetSQL_ Single Row
 
-In some cases we know there is only one row from a query.
+If only one row will be returned from a query, this function returns the data as a map.
 
-#### 1.4.1) `GetSQLLable`
-
-```go
-func (*DBI) GetSQLLabel(res map[string]interface{}, query string, selectLabels []string, args ...interface{}) error
-```
-
-which is similar to `SelectSQLLabel` but has only single output to `res`.
-
-#### 1.4.2) `GetArgs`
 
 ```go
-func (*DBI) GetArgs(res url.Values, query string, args ...interface{}) error
+func (*DBI) GetSQL(res map[string]interface{}, query string, labels []interface{}, args ...interface{}) error
 ```
-
-which is similar to `SelectSQL` but has only single output to `res` which uses type [url.Values](https://golang.org/pkg/net/url/). This function will be used mainly in web applications, where HTTP request data are expressed in `url.Values`.
-
-<br /><br />
-
-### 1.5  Stored Procedure
-
-_godbi_ runs stored procedures easily as well.
-
-#### 1.5.1) `DoProc`
-
-```go
-func (*DBI) DoProc(res map[string]interface{}, names []string, proc_name string, args ...interface{}) error
-```
-
-It runs a stored procedure `proc_name` with IN data in `args`. The OUT data will be placed in `res` using `names` as its keys. Note that the OUT variables should have been defined separately in `proc_name`.
-
-If the procedure has no OUT to receive, just assign `names` to be `nil`.
-
-#### 1.5.2) `SelectDoProc`
-
-```go
-func (*DBI) SelectDoProc(lists *[]map[string]interface{}, res map[string]interface{}, names []string, proc_name string, args ...interface{}) error
-```
-
-Similar to `DoProc` but it receives _SELECT_-type query data into `lists`, providing `proc_name` contains such a query.
-
-<details>
-    <summary>Click for full example</summary>
-    <p>
-
-```go
-package main
-
-import (
-    "os"
-    "log"
-    "database/sql"
-    "github.com/genelet/godbi"
-    _ "github.com/go-sql-driver/mysql"
-)
-
-func main() {
-    dbUser := os.Getenv("DBUSER")
-    dbPass := os.Getenv("DBPASS")
-    dbName := os.Getenv("DBNAME")
-    db, err := sql.Open("mysql", dbUser + ":" + dbPass + "@/" + dbName)
-    if err != nil { panic(err) }
-    defer db.Close()
-
-    dbi := &godbi.DBI{DB:db}
-
-    dbi.Exec(`drop procedure if exists proc_w2`)
-    dbi.Exec(`drop table if exists letters`)
-    _, err = dbi.Exec(`create table letters(id int auto_increment primary key, x varchar(1))`)
-    if err != nil { panic(err) }
-
-    _, err = dbi.Exec(`create procedure proc_w2(IN x0 varchar(1),OUT y0 int)
-        begin
-        delete from letters;
-        insert into letters (x) values('m');
-        insert into letters (x) values('n');
-        insert into letters (x) values('p');
-        insert into letters (x) values('m');
-        select id, x from letters where x=x0;
-        insert into letters (x) values('a');
-        set y0=100;
-        end`)
-    if err != nil { panic(err) }
-
-    sql := `proc_w2`
-    hash := make(map[string]interface{})
-    lists := make([]map[string]interface{},0)
-    err = dbi.SelectDoProc(&lists, hash, []string{"amount"}, sql, "m")
-    if err != nil { panic(err) }
-
-    log.Printf("lists is: %v", lists)
-    log.Printf("OUT is: %v", hash)
-
-    dbi.Exec(`drop table if exists letters`)
-
-    os.Exit(0)
-}
-```
-
-Running the program will result in:
-
-```bash
- lists is: [map[id:1 x:m] map[id:4 x:m]]
- OUT is: map[amount:100]
-```
-
-</p>
-</details>
 
 <br /><br />
 
 ## Chapter 2. MODEL USAGE
 
-*godbi* allows us to construct *model* as in the MVC Pattern in web applications, and to build RESTful API easily. The CRUD verbs on table are defined to be:
-C | R | U | D
----- | ---- | ---- | ----
-create a new row | read all rows, or read one row | update a row | delete a row
+In this type of usage, we define any customized `action` using interface `Capability`
+and run it against `table`. The following CRUD actions are pre-defined:
+C | R | U | D | P
+---- | ---- | ---- | ---- | ----
+create a new row | read all rows, or read one row | update a row | delete a row | insert or update
 
-The RESTful web actions are associated with the CRUD verbs as follows:
+They correspond to the REST web methods as follows:
 
 <details>
     <summary>Click for RESTful vs CRUD</summary>
@@ -353,7 +227,7 @@ GET         | webHandler | R All | Topics
 GET         | webHandler/ID | R One | Edit
 POST        | webHandler | C | Insert
 PUT         | webHandler | U | Update
-PATCH       | webHandler | NA | Insupd
+PATCH       | webHandler | P | Insupd
 DELETE      | webHandler | D | Delete
 
 </p>
@@ -363,156 +237,52 @@ DELETE      | webHandler | D | Delete
 
 ### 2.1  Type *Table*
 
-*godbi* uses JSON to express the CRUD fields and logic. There should be one, and
-only one, JSON (file or string) assigned to each database table. The JSON is designed only once. In case of any change in the business logic, we can modify it, which is much cleaner and easier to do than changing program code, as in ORM.
-
-Here is the `Table` type:
+`Table` describes simple table properties.
 
 ```go
-    CurrentTable   string             `json:"current_table,omitempty"`   // the current table name
-    CurrentTables  []*Join            `json:"current_tables,omitempty"`  // optional, use multi table JOINs in Read All
-    CurrentKey     string             `json:"current_key,omitempty"`     // the single primary key of the table
-    CurrentKeys    []string           `json:"current_keys,omitempty"`    // optional, if the PK has multiple columns
-    CurrentIDAuto  string             `json:"current_id_auto,omitempty"` // this table has an auto id
-    InsertPars     []string           `json:"insert_pars,omitempty"`     // columns to insert in C
-    UpdatePars     []string           `json:"update_pars,omitempty"`     // columns to update in U
-    InsupdPars     []string           `json:"insupd_pars,omitempty"`     // unique columns in PATCH
-    EditPars       []interface{}      `json:"edit_pars,omitempty"`       // columns to query in R (one)
-    EditHash   map[string]interface{} `json:"edit_hash,omitempty"`       // R(a) with specific types and labels
-    TopicsPars     []interface{}      `json:"topics_pars,omitempty"`     // columns to query in R (all)
-    TopicsHash map[string]interface{} `json:"topics_hash,omitempty"`     // R(a) with specific types and labels
-    TotalForce     int                `json:"total_force,omitempty"`     // if to calculate total counts in R(a)
-
-    Nextpages      map[string][]*Page `json:"nextpages,omitempty"`       // to call other models' verbs
-
-    // The following fields are just variable names to pass in a web request,
-    // default to themselves. e.g. "empties" for "Empties", "maxpageno" for Maxpageno etc.
-    Empties        string             `json:"empties,omitempty"`         // columns are updated to NULL if no input
-    Fields         string             `json:"fields,omitempty"`          // use this smaller set of columns in R
-    // the following fields are for pagination.
-    Maxpageno      string             `json:"maxpageno,omitempty"`       // total page no.
-    Totalno        string             `json:"totalno,omitempty"`         // total item no.
-    Rowcount       string             `json:"rowcount,omitempty"`        // counts per page
-    Pageno         string             `json:"pageno,omitempty"`          // current page no.
-    Sortreverse    string             `json:"sortreverse,omitempty"`     // if reverse sorting
-    Sortby         string             `json:"sortby,omitempty"`          // sorting column
+type Table struct {
+    CurrentTable   string    `json:"current_table,omitempty"`   // the current table name
+    Pks            []string  `json:"pks,omitempty"`    // optional, the PK 
+    IDAuto         string    `json:"id_auto,omitempty"` // this table has an auto id
+	Fks            []string  `json:"fks,omitempty"`    // optional, the PK
 }
 ```
 
-And here is explanation of the fields:
+### 2.2  Type *Action*
 
-<details>
-    <summary>Click to Show Fields in Model</summary>
-    <p>
-
-Field in Model | JSON variable | Database Table
--------------- | ------------- | --------------
-CurrentTable | current_table | the current table name
-CurrentTables | current_tables | optional, use multiple table JOINs in Read All
-CurrentKey | current_key | the single primary key of the table
-CurrentKeys | current_keys | optional, if the primary key has multiple columns  
-CurrentIDAuto  | current_id_auto | this table has an auto id
-InsertPars     | insert_pars | columns to insert in C
-UpdatePars     | update_pars | columns to update in U
-InsupdPars     | insupd_pars | unique columns in PATCH
-EditPars       | edit_pars | columns to query in R (one)
-TopicsPars     | topics_pars | columns to query in R (all)
-TotalForce     | total_force | if to calculate total counts in R (all)
-
-</p>
-</details>
-
-#### 2.1.1) *Read* with specific types and/or names
-
-While in most cases we *Read* by simple column slice, i.e. *EditPars* & *TopicsPars*,
-occasionally we need specific names and types in output. Here is what *godbi* will do
-in case of existence of *EditHash* or/and *TopicsHash*.
-
-<details>
-    <summary>Click to show <em>EditPars</em>, <em>EditHash</em>, <em>TopicsPars</em> and <em>TopicsHash</em></summary>
-    <p>
-
-interface | variable | column names
---------- | -------- | ------------
- *[]string{name}* | EditPars, TopicsPars | just a list of column names
- *[][2]string{name, type}* | EditPars, TopicsPars | column names and their data types
- *map[string]string{name: label}* | EditHash, TopicsHash | rename the column names by labels
- *map[string][2]string{name: label, type}* | EditHash, TopicsHash | rename and use the specific types
-
-</p>
-</details>
-
-#### 2.1.2) Read all with multiple joined tables
-
-If `CurrentTables` of type `[]*Join` exists in `Table`. The _R_ verb will use a SQL statement
-from multi relational tables.
+`Action` defines an action on the table.
 
 ```go
-type Join struct { 
-    Name string   `json:"name"`             // name of the table
-    Alias string  `json:"alias,omitempty"`  // optional alias of the table
-    Type string   `json:"type,omitempty"`   // INNER or LEFT, how the table is joined
-    Using string  `json:"using,omitempty"`  // optional, joining by USING table name
-    On string     `json:"on,omitempty"`     // optional, joining by ON condition
-    Sortby string `json:"sortby,omitempty"` // optional column to sort, only applied to the first table
+type Action struct {
+    Must      []string    `json:"must,omitempty"
+    Nextpages []*Page     `json:"nextpages,omitempty"
+    Appendix  interface{} `json:"appendix,omitempty"
+}
+```
+Every action should implement function `RunActionContext` using the `Capability` interface:
+```go
+type Capability interface {
+    RunActionContext(context.Context, *sql.DB, *Table, map[string]interface{}, ...map[string]interface{}) ([]map[string]interface{}, []*Page, error)
 }
 ```
 
-The first element in *CurrentTables* is the current table and the rest for INNER JOIN or LEFT JOIN tables.
+#### 2.2.1) *Insert* 
 
-<details>
-    <summary>Click for Table example</summary>
-    <p>
-
-```json
-[
-    {"name":"user_project", "alias":"j"},
-    {"name":"user_component", "alias":"c", "type":"INNER", "using":"projectid"},
-    {"name":"user_table", "alias":"t", "type":"LEFT", "on":"c.tableid=t.tableid"}
-]
-```
-is equivalent to
-
-```sql
-user_project j
-INNER JOIN user_component c USING (projectid)
-LEFT JOIN user_table t ON (c.tableid=t.tableid)
+```go
+type Insert struct {
+    Action
+    Columns    []string      `json:"columns,omitempty" hcl:"columns,optional"`
+}
 ```
 
-</p>
-</details>
+This action inserts one row into the table. The row data is expressed as `map[string]interface{}`.
 
-#### 2.1.3) Pagination
+#### 2.2.2) *Update* 
 
-We have define a few variable names whose values can be passed in input data, to make *Read All* in pagination.
+### 2.3  *Nextpages* for Follow-up Actions
 
-First, use `TotalForce` to define how to calculate the total row count.
-
-<details>
-    <summary>Click for meaning of *TotalForce*</summary>
-    <p>
-
-Value | Meaning
------ | -------
-<-1  | use ABS(TotalForce) as the total count
--1   | always calculate the total count
-0    | don't calculate the total count
-&gt; 0  | calculate only if the total count is not passed in `args`
-
-</p>
-</details>
-
-If variable `rowcount` (*number of records per page*) is set in input, and field `TotalForce` is not 0, then pagination will be triggered. The total count and total pages will be calculated and put back in variable names `totalno` and `maxpageno`. For consecutive requests, we should attach values of *pageno*, *totalno* and *rowcount* to get the
-right page back.
-
-By combining *TopicsHash*, *CurrentTables* and the pagination variables, we can build up quite sophisticated SQLs for most queries.
-
-#### 2.1.4) Definition of *Next Pages*
-
-As in GraphQL and gRCP, *godbi* allows an action to trigger multiple actions on other models. To what actions
-on other models will get triggered, define *Nextpages* in *Table*.
-
-Here is type *Page*:
+As in GraphQL, *godbi* allows an action to trigger multiple actions on other models. *Nextpages* 
+which is a slice of *Page*, defines such follow-up actions:
 
 ```go
 type Page struct {
@@ -523,9 +293,10 @@ type Page struct {
 }
 ```
 
-Assume there are two tables, one for family and the other for children, corresponding to two models `ta` and `tb` respectively.
-
-When we *GET* the family name, we'd like to show all children under the family name as well. Technically, it means that running `Topics` on `ta` will trigger `Topics` on `tb`, constrained by the association of family's ID in both the tables. The same is true for `Edit` and `Insert`. So for the family model, its `Nextpages` will look like
+Here is a use case. There are two tables, one for family and the other for children, corresponding to models `ta` and `tb` respectively.
+We *query* the family name in `ta`, and want to show all children under the family names. Technically, it means we need to run
+a `Topics` action of `tb` on each row in the family data, constrained by the association of family's ID in both the tables. So `Nextpages`
+of `ta` will look like:
 
 <details>
     <summary>Click to show the JSON string</summary>
@@ -533,12 +304,6 @@ When we *GET* the family name, we'd like to show all children under the family n
 
 ```json
 {
-    "insert" : [
-        {"model":"tb", "action":"insert", "relate_item":{"id":"id"}}
-    ],
-    "insupd" : [
-        {"model":"tb", "action":"insert", "relate_item":{"id":"id"}}
-    ],
     "edit" : [
         {"model":"tb", "action":"topics", "relate_item":{"id":"id"}}
     ],
@@ -551,58 +316,59 @@ When we *GET* the family name, we'd like to show all children under the family n
 </p>
 </details>
 
-Parsing it will result in `map[string][]*Page`. *godbi* will run all the next pages automatically in chain.
+Parsing the JSON will build up the `Nextpages` as `map[string][]*Page`.
 
 <br /><br />
 
-### 2.2  Type *Model*
+### 2.3  Type *Model*
 
+`Model` contains both the table and all actions on the table. 
 ```go
 type Model struct {
-    DBI
-    Table
-    Navigate                                        // interface has methods to implement
-    Actions   map[string]func(...url.Values) error  // action name to closure map
-    Updated
+	Table
+	Actions map[string]interface{} `json:"actions,omitempty" hcl:"actions,optional"`
 ```
 
-where `Actions` is an action name to action closure map; the interface `Navigate` is:
+The best way to build up a new `Model` is to parse it from a JSON string or file.
+
+<details>
+    <summary>Click to show a full Model example</summary>
+    <p>
 
 ```go
-type Navigate interface {
-    SetArgs(url.Values)                            // set http request data
-    SetDB(*sql.DB)                                 // set the database handle
-    GetAction(string)   func(...url.Values) error  // get function by action name
-    GetLists()          []map[string]interface{}   // get result after an action
-}
 ```
 
-In *godbi*, the `Model` type has already implemented the 4 methods.
+</p>
+</details>
 
-#### 2.2.1) Constructor `NewModel`
-
-A `Model` instance can be parsed from JSON file on disk:
+#### 2.3.1 `NewModelJson`
 
 ```go
-func NewModel(filename string) (*Model, error)
+func NewModelJson(bs []byte, custom ...map[string]Capability) (*Model, error)
 ```
+where `bs` is the JSON string in bytes, custom is the map between customized action names and their `Capabilities`. Note that
+if you are using only the CRUD actions, there is no need to pass `custom`.
 
-where `filename` is the file name.
-
-#### 2.2.2) Set Database Handle and Input Data
-
-Use
+#### 2.3.2 `NewModelJsonFile`
 
 ```go
-func (*Model) SetDB(db *sql.DB)
-func (*Model) SetArgs(args url.Values)
+func NewModelJsonFile(fn string, custom ...map[string]Capability) (*Model, error)
+```
+Parse `Model` from disk file `fn`.
+
+#### 2.3.3 `Assertion`
+
+If run own JSON parsing function, we should run `Assertion` to assert the JSON structure to 
+the right `Action` types:
+```go
+func (self *Model) Assertion(custom ...map[string]Capability) error
 ```
 
-to set database handle `db`, and input data `args`. The input data is of type *url.Values*.
-In web applications, this is *Form* from http request in `net/http`.
+<br /><br />
 
+## 3. `Graph` Usage
 
-#### 2.2.3) Optional Constraints
+### 3.1 Optional Constraints
 
 For all RESTful methods of *Model*, we have option to put a data structure, named `extra` and of type `url.Values`, to constrain the *WHERE* statement. Currently we have supported 3 cases:
 

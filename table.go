@@ -156,7 +156,7 @@ func (self *Table) singleCondition(ids []interface{}, table string, extra ...map
 	}
 	sql += ")"
 
-	if hasValue(extra) {
+	if hasValue(extra) && hasValue(extra[0]) {
 		s, arr := selectCondition(extra[0], table)
 		sql += " AND " + s
 		for _, v := range arr {
