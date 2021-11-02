@@ -14,14 +14,14 @@ type Insert struct {
 // Run inserts a row using data passed in ARGS. Any value defined
 // in 'extra' will override that key in ARGS.
 //
-func (self *Insert) RunAction(db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
+func (self *Insert) RunAction(db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Edge, error) {
     return self.RunActionContext(context.Background(), db, t, ARGS, extra...)
 }
 
 // InsertContext inserts a row using data passed in ARGS. Any value defined
 // in 'extra' will override that key in ARGS.
 //
-func (self *Insert) RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
+func (self *Insert) RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Edge, error) {
 	err := self.checkNull(ARGS)
 	if err != nil { return nil, nil, err }
 

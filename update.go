@@ -12,11 +12,11 @@ type Update struct {
 	Empties    []string      `json:"empties,omitempty" hcl:"empties,optional"`
 }
 
-func (self *Update) RunAction(db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
+func (self *Update) RunAction(db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Edge, error) {
     return self.RunActionContext(context.Background(), db, t, ARGS, extra...)
 }
 
-func (self *Update) RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
+func (self *Update) RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Edge, error) {
 	err := self.checkNull(ARGS)
     if err != nil { return nil, nil, err }
 

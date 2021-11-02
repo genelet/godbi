@@ -12,11 +12,11 @@ type Insupd struct {
 	Uniques    []string      `json:"uniques,omitempty" hcl:"uniques,optional"`
 }
 
-func (self *Insupd) RunAction(db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
+func (self *Insupd) RunAction(db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Edge, error) {
     return self.RunActionContext(context.Background(), db, t, ARGS, extra...)
 }
 
-func (self *Insupd) RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
+func (self *Insupd) RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Edge, error) {
     err := self.checkNull(ARGS)
     if err != nil { return nil, nil, err }
 

@@ -10,12 +10,12 @@ import (
 // Action is to implement Capability interface
 //
 type Capability interface {
-	RunActionContext(context.Context, *sql.DB, *Table, map[string]interface{}, ...map[string]interface{}) ([]map[string]interface{}, []*Page, error)
+	RunActionContext(context.Context, *sql.DB, *Table, map[string]interface{}, ...map[string]interface{}) ([]map[string]interface{}, []*Edge, error)
 }
 
 type Action struct {
 	Must      []string    `json:"must,omitempty" hcl:"must,optional"`
-	Nextpages []*Page     `json:"nextpages,omitempty" hcl:"nextpage,block"`
+	Nextpages []*Edge     `json:"nextpages,omitempty" hcl:"nextpage,block"`
 	Appendix  interface{} `json:"appendix,omitempty" hcl:"appendix,block"`
 }
 

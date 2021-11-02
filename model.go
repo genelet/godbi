@@ -12,7 +12,7 @@ import (
 //
 type Navigate interface {
 	NonePass(string) []string
-	RunModelContext(context.Context, *sql.DB, string, map[string]interface{}, ...map[string]interface{}) ([]map[string]interface{}, []*Page, error)
+	RunModelContext(context.Context, *sql.DB, string, map[string]interface{}, ...map[string]interface{}) ([]map[string]interface{}, []*Edge, error)
 }
 
 type Model struct {
@@ -63,11 +63,11 @@ func (self *Model) Assertion(custom ...map[string]Capability) error {
 	return nil
 }
 
-func (self *Model) RunModel(db *sql.DB, action string, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
+func (self *Model) RunModel(db *sql.DB, action string, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Edge, error) {
 	return self.RunModelContext(context.Background(), db, action, ARGS, extra...)
 }
 
-func (self *Model) RunModelContext(ctx context.Context, db *sql.DB, action string, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Page, error) {
+func (self *Model) RunModelContext(ctx context.Context, db *sql.DB, action string, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Edge, error) {
 	if self.Actions == nil { return nil, nil, fmt.Errorf("actions is nil") }
 	obi, ok := self.Actions[action]
 	if !ok { return nil, nil, fmt.Errorf("action %s has no capability", action) }
