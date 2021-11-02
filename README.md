@@ -7,7 +7,7 @@ There are three levels of usages:
 
 - _Basic_: operating on raw SQL statements and receive data as *[]map[string]interface{}*
 - _Model_: fulfilling CRUD actions on a table.
-- _Schema_: fulfilling RESTful and GraphQL actions on multiple tables.
+- _Graph_: fulfilling GraphQL actions on multiple tables.
 
 _godbi_ runs CRUD and RESTful tasks easily and gracefully.
 The package is fully tested in MySQL and PostgreSQL.
@@ -21,19 +21,22 @@ The package is fully tested in MySQL and PostgreSQL.
 
 ### Termilogy
 
-The names of arguments passed in functions or methods in this package are defined as follows, if not specifically explained:
-Name | Type | IN/OUT | Where | Meaning
----- | ---- | ------ | ----- | -------
-*args* | `...interface{}` | IN | `DBI` | slice of values, possibly empty
-*ARGS* | `map[string]interface{}` | IN | `Model`,`Graph` | input data
-*extra* | `...map[string]interface{}` | IN | `Model`,`Schema` | for WHERE constraints, possibly empty
-*lists* | `[]map[string]interface{}` | OUT | all | data received as a slice of maps.
+The names of arguments passed in functions or methods are defined as follows, if not specifically explained:
+Name | Type | IN/OUT | Meaning
+---- | ---- | ------ | -------
+*args* | `...interface{}` | IN | slice of values, possibly empty
+*ARGS* | `map[string]interface{}` | IN | input data
+*extra* | `...map[string]interface{}` | IN | for WHERE constraints, possibly empty
+*lists* | `[]map[string]interface{}` | OUT | receiving data as a slice of maps.
 
+<br />
+
+Note that most functions in this package return error, which can be checked to assert the execution status.
 <br /><br />
 
 ## Chapter 1. BASIC USAGE
 
-### 1.1  Type _DBI_
+### 1.1  _DBI_
 
 The `DBI` type simply embeds the standard SQL handle.
 
@@ -120,27 +123,35 @@ Running this example will result in something like
 
 <br /><br />
 
-### 1.2  Execution `DoSQL`
+### 1.2  `DoSQL`
 
 ```go
 func (*DBI) DoSQL  (query string, args ...interface{}) error
 ```
 
-The same as DB's `Exec`, except it saves the possible last id and returns error only. 
-
-Note that most of the functions in this package return error, which should be checked to assert the execution status.
+The same as DB's `Exec`, except it returns error only. 
 
 <br /><br />
 
-### 1.3   _SELECT_ Queries
+### 1.3  `TxSQL`
 
-#### 1.3.1)  `SelectSQL`
+```go
+func (*DBI) TxSQL  (query string, args ...interface{}) error
+```
+
+The same as `DoSQL`, but use transaction. 
+
+<br /><br />
+
+### 1.4   _SELECT_
+
+#### 1.4.1)  `SelectSQL`
 
 ```go
 func (*DBI) Select(lists *[]map[string]interface{}, query string, args ...interface{}) error
 ```
 
-Run the *SELECT*-type query and save the result in `lists`. The data types of the column are determined dynamically by the generic SQL handle.
+Runs the *SELECT*-type query and saves the result into `lists`. The data types of the column are determined dynamically by the generic SQL handle.
 
 <details>
     <summary>Click for example</summary>
@@ -163,13 +174,13 @@ will select all rows with *id=1234*.
 </details>
 
 
-#### 1.3.2) `SelectSQL`
+#### 1.4.2) `SelectSQL`
 
 ```go
 func (*DBI) SelectSQL(lists *[]map[string]interface{}, labels []interface{}, query string, args ...interface{}) error
 ```
 
-It differs from the above `Select` by specifying map's key names, and optionally their data types, in `labels`, depending if interface is `string` or `[2]string`.
+It runs `SELECT` by specifying map keys, and optionally their data types in `labels`, depending if the interface is `string` or `[2]string`.
 
 The following example assigns key names TS, id, Name, Length, Flag and fv, and
 data types _string_, _int_, _string_, _int8_, _bool_ and _float32_ to the corresponding columns:
@@ -196,9 +207,9 @@ err = dbi.querySQLLabel(&lists,
 
 <br /><br />
 
-### 1.4  _GetSQL_ Single Row
+### 1.5  _GetSQL_
 
-If only one row will be returned from a query, this function returns the data as a map.
+If there is only one row returned, this function returns the data as a map.
 
 
 ```go
@@ -209,48 +220,53 @@ func (*DBI) GetSQL(res map[string]interface{}, query string, labels []interface{
 
 ## Chapter 2. MODEL USAGE
 
-In this type of usage, we define any customized `action` using interface `Capability`
-and run it against `table`. The following CRUD actions are pre-defined:
+In this type of usage, we can run `action` on database table.
+The following CRUD actions are pre-defined:
 C | R | U | D | P
 ---- | ---- | ---- | ---- | ----
-create a new row | read all rows, or read one row | update a row | delete a row | insert or update
+create a new row | read all rows, or read one row | update a row | delete a row | update otherwise insert
 
-They correspond to the REST web methods as follows:
-
-<details>
-    <summary>Click for RESTful vs CRUD</summary>
-    <p>
+The relation to the REST web methods are:
 
 HTTP METHOD | Web URL | CRUD | Function in godbi
 ----------- | ------- | ---- | -----------------
-GET         | webHandler | R All | Topics
+LIST        | webHandler | R All | Topics
 GET         | webHandler/ID | R One | Edit
 POST        | webHandler | C | Insert
 PUT         | webHandler | U | Update
 PATCH       | webHandler | P | Insupd
 DELETE      | webHandler | D | Delete
 
-</p>
-</details>
-
 <br /><br />
 
-### 2.1  Type *Table*
+### 2.1  *Table*
 
-`Table` describes simple table properties.
+`Table` describes a database table.
 
 ```go
 type Table struct {
     CurrentTable   string    `json:"current_table,omitempty"`   // the current table name
     Pks            []string  `json:"pks,omitempty"`    // optional, the PK 
     IDAuto         string    `json:"id_auto,omitempty"` // this table has an auto id
-	Fks            []string  `json:"fks,omitempty"`    // optional, the PK
+	Fks            []string  `json:"fks,omitempty"`    // optional, for the FK
 }
 ```
 
-### 2.2  Type *Action*
+where `CurrentTable` is the table name; `Pks` the primary key (which could be a combination of multiple columns); `IDAuto` the column whose values is a series number and `Fks` the foreign key information.  The `Fks` here does not need to be a real foreign key defined in a relational database, but just a relationship between table tables. Here is the definition:
 
-`Action` defines an action on the table.
+index | meaning
+----- | -------------------------
+0 | the foreign table name
+1 | :wq
+
+ | index 1 | index 2 | index 3 | index 4 | index 5
+------- | ------- | ------- | ------- | ------- | -------
+name of the foreign table
+
+In `godbi`, foreign key is a 
+### 2.2  *Action*
+
+`Action` defines an action on table.
 
 ```go
 type Action struct {
@@ -265,6 +281,7 @@ type Capability interface {
     RunActionContext(context.Context, *sql.DB, *Table, map[string]interface{}, ...map[string]interface{}) ([]map[string]interface{}, []*Page, error)
 }
 ```
+where `Must` defines columns which have to have input data; `Nextpages` is a list of other actions, expressed in `Page`, to follow after the current action is complete; and `Appendix` stores optional data. For `Page, see below.
 
 #### 2.2.1) *Insert* 
 
@@ -275,9 +292,86 @@ type Insert struct {
 }
 ```
 
-This action inserts one row into the table. The row data is expressed as `map[string]interface{}`.
+It inserts one row into the table. `Columns` defines the table columns that need to be inserted. Row's data is expressed as `map[string]interface{}`.
 
 #### 2.2.2) *Update* 
+
+```go
+ype Update struct {
+    Action
+    Columns    []string      `json:"columns,omitempty" hcl:"columns,optional"`
+    Empties    []string      `json:"empties,omitempty" hcl:"empties,optional"`
+}
+```
+
+It updates a row using the primary key. `Empties` is list of columns whose values should be forced to set to empty or null, when there is no input data.
+
+#### 2.2.3) *Insupd* 
+
+```go
+ype Insupd struct {
+    Action
+    Columns    []string      `json:"columns,omitempty" hcl:"columns,optional"`
+    Uniques    []string      `json:"uniques,omitempty" hcl:"uniques,optional"`
+}
+```
+
+It updates a row by checking if the data in the unique columns, defined in `Uniques`, exists. If not, it will insert a new row instead of updating.
+
+#### 2.2.4) *Edit* 
+
+```go
+ype Edit struct {
+    Action
+    Joins    []*Join             `json:"joins,omitempty" hcl:"join,block"`
+    Rename   map[string][]string `json:"rename" hcl:"rename"`
+    FIELDS   string              `json:"fields,omitempty" hcl:"fields"`
+}
+```
+
+It reads a table row or JOINed row using the primary key. See below for `Join`. The columns that are going to be selected are defined as keys in `Rename`. Value of such a key has two elements. The first if the renamed label and the second the GO data type like `int`, `int64` and `string` etc.
+
+`FIELDS` is the name for the input data key which indicates a shorter list of columns to be returned. (note that the value of the key is a slice)
+
+#### 2.2.5) *Topics* 
+
+```go
+    Action
+    Joins       []*Join             `json:"joins,omitempty" hcl:"join,block"`
+    Rename      map[string][]string `json:"rename" hcl:"rename"`
+    FIELDS      string              `json:"fields,omitempty" hcl:"fields"`
+
+    TotalForce  int    `json:"total_force,omitempty" hcl:"total_force,optional"`
+    MAXPAGENO   string `json:"maxpageno,omitempty" hcl:"maxpageno,optional"`
+    TOTALNO     string `json:"totalno,omitempty" hcl:"totalno,optional"`
+    ROWCOUNT    string `json:"rawcount,omitempty" hcl:"rawcount,optional"`
+    PAGENO      string `json:"pageno,omitempty" hcl:"pageno,optional"`
+    SORTBY      string `json:"sortby,omitempty" hcl:"sortby,optional"`
+    SORTREVERSE string `json:"sortreverse,omitempty" hcl:"sortreverse,optional"`
+}
+```
+It searches many rows with pagination. The meanings of the capital fields are (note that they have default values):
+
+Field | Default | Meaning in Input Data `ARGS`
+--------- | ------- | -----------------------
+MAXPAGENO | "maxpageno" | how many pages in total
+TOTALNO | "totalno" | how many records in total
+ROWCOUNT | "rowcount" | how many record in each page
+PAGENO | "pageno" | return only data of the specific page
+SORTBY | "sortby" | sort the returned data by this
+SORTREVERSE | "sortreverse" | 1 to return the data in reverse
+
+`TotalForce` defines: 0 for not calculating total number of records; -1 for calculating; and 1 for optionally calculating. In the last case, if there is no input data for `ROWCOUNT` or `PAGENO`, there is no pagination information.
+
+#### 2.2.6) *Delete* 
+
+```go
+type Delete struct {
+    Action
+}
+```
+
+It deletes a row by the primary key. 
 
 ### 2.3  *Nextpages* for Follow-up Actions
 
