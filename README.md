@@ -80,7 +80,7 @@ The same as `DoSQL`, but use transaction.
 
 ### 1.4   _Select_
 
-#### 1.4.1)  `SelectSQL`
+#### 1.4.1)  `Select`
 
 ```go
 func (*DBI) Select(lists *[]map[string]interface{}, query string, args ...interface{}) error
@@ -235,7 +235,7 @@ _DELETE_      | webHandler | D | _Delete_ | delete a row
 
 ### 2.1  *Table*
 
-`Table` describes a database table.
+_Table_ describes a database table.
 
 ```go
 type Table struct {
@@ -245,21 +245,21 @@ type Table struct {
     Fks           []string  `json:"fks,omitempty"`     // optional, for the FK
 }
 ```
-<br />
+
 where _CurrentTable_ is the table name; _Pks_ the primary key (which could be a combination of multiple columns); _IDAuto_ the column whose values is a series number and _Fks_ the foreign key information.
 
-The _Fks_ here does not need to be a native foreign key defined in relational database, but a relationship between two tables. Here is the definition:
+_Fks_ does not need to be a native foreign key defined in relational database, but a relationship between two tables. Currently, we only support foreign
+tables which use a single column as its primary key. _Fks_ is defined:
 
 index | meaning
 ----- | -------------------------
 0 | the foreign table name
-1 | :wq
+1 | the primary key name in the foreign table
+2 | the signature name of foreign table's primary key
+3 | the corresponding column of foreign table's PK in the current table
+4 | the signature name of the corresponding column
 
- | index 1 | index 2 | index 3 | index 4 | index 5
-------- | ------- | ------- | ------- | ------- | -------
-name of the foreign table
-
-In `godbi`, foreign key is a 
+<br />
 
 ### 2.2  *Action*
 
@@ -372,6 +372,8 @@ type Delete struct {
 
 It deletes a row by the primary key. 
 
+<br />
+
 ### 2.3  *Nextpages* for Follow-up Actions
 
 As in GraphQL, *godbi* allows an action to trigger multiple actions. *Nextpages* which is a slice of *Edge*, defines such follow-up actions:
@@ -421,37 +423,14 @@ type Model struct {
 	Actions map[string]interface{} `json:"actions,omitempty" hcl:"actions,optional"`
 ```
 
-The best way to build up a new `Model` is to parse it from a JSON string or file.
-
-<details>
-    <summary>Click to show a full Model example</summary>
-    <p>
+We can parse _Model_ from disk file `filename`:
 
 ```go
+func NewModelJsonFile(filename string, custom ...map[string]Capability) (*Model, error)
 ```
+where _custom_ would add customized actions where using action's name as the key and _Capability_ as the value. Note that
 
-</p>
-</details>
-
-#### 2.3.1 `NewModelJson`
-
-```go
-func NewModelJson(bs []byte, custom ...map[string]Capability) (*Model, error)
-```
-where `bs` is the JSON string in bytes, custom is the map between customized action names and their `Capabilities`. Note that
-if you are using only the CRUD actions, there is no need to pass `custom`.
-
-#### 2.3.2 `NewModelJsonFile`
-
-```go
-func NewModelJsonFile(fn string, custom ...map[string]Capability) (*Model, error)
-```
-Parse `Model` from disk file `fn`.
-
-#### 2.3.3 `Assertion`
-
-If run own JSON parsing function, we should run `Assertion` to assert the JSON structure to 
-the right `Action` types:
+Make sure to run `Assertion` to assert the JSON structure to the right `Action` types, if to parse differently:
 ```go
 func (self *Model) Assertion(custom ...map[string]Capability) error
 ```
