@@ -283,6 +283,16 @@ where _Must_ is a list of `NOT NULL` columns; _Nextpages_ a list of other action
 
 In _RunActionContext_, _ARGS_ is the input data, _extras_ optionaly extra constraints for the current action and all follow-up actions. The function returns the output data, the follow-up _Edge_s and error.
 
+To define *extra*:
+
+key in `extra` | meaning
+-------------- | -------
+only one value | an EQUAL constraint
+multiple values | an IN constraint
+named *_gsql* | a raw SQL statement
+
+For multiple keys, the relationship is AND.
+
 
 #### 2.2.1) *Insert* 
 
@@ -401,7 +411,7 @@ To parse _Model_ from json file `filename`:
 ```go
 func NewModelJsonFile(filename string, custom ...map[string]Capability) (*Model, error)
 ```
-where _custom_ would add customized actions where using action's name as the key and _Capability_ as the value. Note that
+where _custom_ defines optional customized actions.
 
 If to write own parse function, make sure to run `Assertion` to assert right `Action` types:
 
@@ -430,17 +440,13 @@ Here is a use case. There are two tables, one for family and the other for child
 We search the family name in `ta`, and want to show all children as well. Technically, it means we need to run a `Topics` action on *ta*. For each row, we
 run *Topics* on *tb*, constrained by the family ID in both the tables.
 
-So `Nextpages` of `ta` will look like:
+So *Nextpages* of *Topics* on *ta* will look like:
 
 <details>
     <summary>Click to show the JSON string</summary>
     <p>
 
 ```json
-{
-    "edit" : [
-        {"model":"tb", "action":"topics", "relate_item":{"id":"id"}}
-    ],
     "topics" : [
         {"model":"tb", "action":"topics", "relate_item":{"id":"id"}}
     ]
@@ -456,85 +462,30 @@ Parsing the JSON will build up a `map[string][]*Edge` structure.
 
 ## 3. `Graph` Usage
 
-### 3.1 Optional Constraints
-
-For all RESTful methods of *Model*, we have option to put a data structure, named `extra` and of type `url.Values`, to constrain the *WHERE* statement. Currently we have supported 3 cases:
-
-<details>
-    <summary>Click to show *extra*</summary>
-    <p>
-
-key in `extra` | meaning
---------------------------- | -------
-key has only one value | an EQUAL constraint
-key has multiple values | an IN constraint
-key is named *_gsql* | a raw SQL statement
-among multiple keys | AND conditions.
-
-</p>
-</details>
-
-#### 2.2.4) Returning Data
-
-After we have run an action on the model, we can retrieve data using
+*Graph* describes a database
 
 ```go
-(*Model) GetLists()
+type Graph struct {
+    *sql.DB
+    Models map[string]Navigate
+}
 ```
 
-The closure associated with the action name can be get back:
+### 3.1 Constructor
 
 ```go
-(*Model) GetAction(name string) func(...url.Values) error
+func NewGraph(db *sql.DB, s map[string]Navigate) *Graph
 ```
 
-<br /><br />
-
-### 2.3) Methods of *Model*
-
-#### 2.3.1) For Http METHOD: GET (read all)
+### 3.2 Run actions on models
 
 ```go
-func (*Model) Topics(extra ...url.Values) error
+func (self *Graph) RunContext(ctx context.Context, model, action string, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error)
 ```
 
-#### 2.3.2) For Http METHOD: GET (read one)
+which returns the data as *[]map[string]interface{}*, and optional error.
 
-```go
-func (*Model) Edit(extra ...url.Values) error
-```
-
-#### 2.3.3) For Http METHOD: POST (create)
-
-```go
-func (*Model) Insert(extra ...url.Values) error
-```
-
-It inserts a new row using the input data. If `extra` is passed in, it will override the input data.
-
-#### 2.3.4) Http METHOD: PUT (update)
-
-```go
-func (*Model) Update(extra ...url.Values) error
-```
-
-It updates a row using the input data, constrained by `extra`.
-
-#### 2.3.5) Http METHOD: PATCH (insupd)
-
-```go
-func (*Model) Insupd(extra ...url.Values) error
-```
-
-It inserts or updates a row using the input data, constrained optionally by `extra`.
-
-#### 2.3.6) Http METHOD: DELETE
-
-```go
-func (*Model) Delete(extra ...url.Values) error
-```
-
-It rows constrained by `extra`. For this function, the input data will NOT be used.
+### 3.3) Example
 
 #### 2.3.7）Example
 
@@ -645,59 +596,6 @@ if acting := model.GetAction("topics"); acting != nil {
 which is equivalent to `err := model.Topics(extra...)`.
 
 <br /><br />
-
-## Chapter 3  ADVANCED USAGE
-
-### 3.1 Type `Schema`
-
-Because models are allowed to interact with each other, we introduce type `Schema` which handles the whole database schema at once:
-
-```go
-type Schema struct {
-    // private fields
-    Models  map[string]Navigate
-}
-```
-
-where keys in the map are assigned model name strings.
-
-#### 3.1.1) Create Schema, `NewSchema`
-
-Create a new schema instance by passing the string to `Model` map.
-
-```go
-NewSchema(models map[string]Navigate) *Schema
-```
-
-#### 3.1.2) Assign DB, `SetDB`
-
-After a new schema is created, we assign it a database handle:
-
-```go
-(* Schema) SetDB(db *sql.DB)
-```
-
-#### 3.1.2) Get Model by Name, `GetNavigate`
-
-We can get a model by name
-
-```go
-(*Schema) GetNavigate(args url.Values) Navigate
-```
-
-Here we pass in the input data as well, so the interface can be cast to the model with input and database handle embedded.
-
-### 3.2) Run a RESTful action
-
-`Schema` implement the `Run` method which is ideal for RESTful requests.
-
-```go
-func (*Schema) Run(model, action string, args url.Values, extra ...url.Values) ([]map[string]interface{}, error)
-```
-
-Here we pass in the string names of model and action, the input data `args`, the database handle `db`, and optional `extra` constraints. It runs the action and **all next pages defined inside the schema**. The return is the data and optional error.
-
-Here is a full example that covers most information in Chapter 3.
 
 <details>
     <summary>Click for RESTful example using Schema</summary>
