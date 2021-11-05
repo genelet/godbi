@@ -5,9 +5,9 @@ _godbi_ adds a set of high-level functions to the generic SQL handle in GO. Chec
 
 There are three levels of usages:
 
-- _Basic_: operating on raw SQL statements and receive data as *[]map[string]interface{}*
-- _Model_: fulfilling CRUD actions on a table.
-- _Graph_: fulfilling GraphQL actions on multiple tables.
+- _Basic_: on raw SQL statements and receive data as *[]map[string]interface{}*
+- _Model_: on CRUD actions of a table.
+- _Graph_: on GraphQL actions of a database
 
 _godbi_ runs CRUD and RESTful tasks easily and gracefully.
 The package is fully tested in MySQL and PostgreSQL.
@@ -56,7 +56,7 @@ To create a new handle
 dbi := &DBI{DB: the_standard_sql_handle}
 ```
 
-<br /><br />
+<br />
 
 ### 1.2  `DoSQL`
 
@@ -66,7 +66,7 @@ func (*DBI) DoSQL(query string, args ...interface{}) error
 
 The same as DB's `Exec`, except it returns error only. 
 
-<br /><br />
+<br />
 
 ### 1.3  `TxSQL`
 
@@ -76,7 +76,7 @@ func (*DBI) TxSQL(query string, args ...interface{}) error
 
 The same as `DoSQL`, but use transaction. 
 
-<br /><br />
+<br />
 
 ### 1.4   _Select_
 
@@ -139,7 +139,7 @@ err = dbi.querySQLLabel(&lists,
 </details>
 
 
-<br /><br />
+<br />
 
 ### 1.5  _GetSQL_
 
@@ -149,6 +149,8 @@ If there is only one data row returned, this function returns it as a map.
 ```go
 func (*DBI) GetSQL(res map[string]interface{}, query string, labels []interface{}, args ...interface{}) error
 ```
+
+<br />
 
 ### 1.6) Example
 
@@ -219,7 +221,6 @@ Running this example will result in something like
 
 ## Chapter 2. MODEL USAGE
 
-In this usage, we start by define an `action` on database table.
 The following _CRUD_ actions, and associated _REST_ methods, are pre-defined in our package:
 
 HTTP METHOD | Web URL | CRUD | Function Name | Meaning
@@ -246,10 +247,10 @@ type Table struct {
 }
 ```
 
-where _CurrentTable_ is the table name; _Pks_ the primary key (which could be a combination of multiple columns); _IDAuto_ the column whose values is a series number and _Fks_ the foreign key information.
+where _CurrentTable_ is the table name; _Pks_ the primary key which could be a combination of multiple columns; _IDAuto_ the column for a series number and _Fks_ the foreign key information.
 
 _Fks_ does not need to be a native foreign key defined in relational database, but a relationship between two tables. Currently, we only support foreign
-tables which use a single column as its primary key. _Fks_ is defined:
+tables which use a single column as its primary key. _Fks[]_ is defined by:
 
 index | meaning
 ----- | -------------------------
@@ -257,7 +258,7 @@ index | meaning
 1 | the primary key name in the foreign table
 2 | the signature name of foreign table's primary key
 3 | the corresponding column of foreign table's PK in the current table
-4 | the signature name of the corresponding column
+4 | the signature name of current table's primary key
 
 <br />
 
@@ -273,14 +274,13 @@ type Action struct {
 }
 
 type Capability interface {
-    RunActionContext(context.Context, *sql.DB, *Table, map[string]interface{}, ...map[string]interface{}) ([]map[string]interface{}, []*Edge, error)
+    RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extras ...map[string]interface{}) ([]map[string]interface{}, []*Edge, error)
 }
 ```
-where _Must_ defines non-empty columns; _Nextpages_ a list of other actions, expressed in _Edge_, to follow after the current action is complete; and _Appendix_ stores optional data. For _Edge_, see below.
+where _Must_ is a list of `NOT NULL` columns; _Nextpages_ a list of other actions to follow after the current one is complete; and _Appendix_ stores optional data. For _Edge_, see below.
 
-In _RunActionContext_, the input data _ARGS_ is expressed as _map[string]interface{}_.
+In _RunActionContext_, _ARGS_ is the input data, _extras_ optionaly extra constraints for the current action and all follow-up actions. The function returns the output data, the follow-up _Edge_s and error.
 
-<br />
 
 #### 2.2.1) *Insert* 
 
@@ -374,9 +374,40 @@ It deletes a row by the primary key.
 
 <br />
 
-### 2.3  *Nextpages* for Follow-up Actions
+### 2.3  Type *Model*
 
-As in GraphQL, *godbi* allows an action to trigger multiple actions. *Nextpages* which is a slice of *Edge*, defines such follow-up actions:
+`Model` contains the table and actions on the table, using the *Navigate* type:
+
+```go
+type Model struct {
+	Table
+	Actions map[string]interface{} `json:"actions,omitempty" hcl:"actions,optional"`
+}
+
+type Navigate interface {
+    NonePass(action string) []string
+    RunModelContext(ctx context.Context, db *sql.DB, action string, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Edge, error)
+}
+```
+
+To parse _Model_ from json file `filename`:
+
+```go
+func NewModelJsonFile(filename string, custom ...map[string]Capability) (*Model, error)
+```
+where _custom_ would add customized actions where using action's name as the key and _Capability_ as the value. Note that
+
+If to make own parse function, make sure to run `Assertion` to assert the JSON structure to the right `Action` types:
+
+```go
+func (self *Model) Assertion(custom ...map[string]Capability) error
+```
+
+<br />
+
+### 2.4  *Edge*
+
+As in GraphQL, *godbi* allows an action to trigger multiple actions defined as a slice of *Edge*:
 
 ```go
 type Edge struct {
@@ -411,29 +442,6 @@ of `ta` will look like:
 </details>
 
 Parsing the JSON will build up the `Nextpages` as `map[string][]*Edge`.
-
-<br /><br />
-
-### 2.3  Type *Model*
-
-`Model` contains the table and all actions on the table. 
-```go
-type Model struct {
-	Table
-	Actions map[string]interface{} `json:"actions,omitempty" hcl:"actions,optional"`
-```
-
-We can parse _Model_ from disk file `filename`:
-
-```go
-func NewModelJsonFile(filename string, custom ...map[string]Capability) (*Model, error)
-```
-where _custom_ would add customized actions where using action's name as the key and _Capability_ as the value. Note that
-
-Make sure to run `Assertion` to assert the JSON structure to the right `Action` types, if to parse differently:
-```go
-func (self *Model) Assertion(custom ...map[string]Capability) error
-```
 
 <br /><br />
 
