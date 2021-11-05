@@ -86,7 +86,7 @@ The same as `DoSQL`, but use transaction.
 func (*DBI) Select(lists *[]map[string]interface{}, query string, args ...interface{}) error
 ```
 
-It runs a *Select*-type query and saves the result into `lists`. The data types of the column are determined dynamically by the generic SQL handle.
+It runs a *Select*-type query and saves the result into *lists*. The data types of the column are determined dynamically by the generic SQL handle.
 
 <details>
     <summary>Click for example</summary>
@@ -154,7 +154,7 @@ func (*DBI) GetSQL(res map[string]interface{}, query string, labels []interface{
 
 ### 1.6) Example
 
-In this example, we create a MySQL handle using credentials in the environment; then create a new table _letters_ with 3 rows. We query the data using `SelectSQL` and put the result into `lists`.
+In this example, we create a MySQL handle using credentials in the environment; then create a new table _letters_ with 3 rows. We query the data using `SelectSQL` and put the result into *lists*.
 
 <details>
     <summary>Click for Sample 1</summary>
@@ -279,7 +279,7 @@ type Capability interface {
     RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extras ...map[string]interface{}) ([]map[string]interface{}, []*Edge, error)
 }
 ```
-where _Must_ is a list of `NOT NULL` columns; _Nextpages_ a list of other actions to follow after the current one is complete; and _Appendix_ stores optional data. For _Edge_, see below.
+where _Must_ is a slice of `NOT NULL` columns; _Nextpages_ a slice of other actions to follow after the current one is complete; and _Appendix_ stores optional data. For _Edge_, see below.
 
 In _RunActionContext_, _ARGS_ is the input data, _extras_ optionaly extra constraints for the current action and all follow-up actions. The function returns the output data, the follow-up _Edge_s and error.
 
@@ -315,7 +315,7 @@ ype Update struct {
 }
 ```
 
-It updates a row using the primary key. _Empties_ is a list of columns whose values should be forced to be empty or null, when there is no input data.
+It updates a row using the primary key. _Empties_ is a slice of columns whose values should be forced to be empty or null, when there is no input data.
 
 #### 2.2.3) *Insupd* 
 
@@ -342,7 +342,7 @@ type Edit struct {
 
 It reads a row or JOINed-table row using the primary key. See below for _Join_. The selected columns are keys in `Rename`. The value of such a key has two elements. The first one is the renamed label and the second the GO data type like _int_, _int64_ and _string_ etc.
 
-If we need only a part of the row, not the whole row, we can use _FIELDS_ which is a key in input data _ARGS_. Its value is a shorter list of columns, separated by comma. For example, we have defined _FIELDS ="fields"_. In order to return just the user id and username, our input data should have _ARGS["fields"] = "user_id,username"_.
+If we need only a part of the row, not the whole row, we can use _FIELDS_ which is a key in input data _ARGS_. Its value is a shorter slice of columns, separated by comma. For example, we have defined _FIELDS ="fields"_. In order to return just the user id and username, our input data should have _ARGS["fields"] = "user_id,username"_.
 
 #### 2.2.5) *Topics* 
 
@@ -447,6 +447,7 @@ So *Nextpages* of *Topics* on *ta* will look like:
     <p>
 
 ```json
+{
     "topics" : [
         {"model":"tb", "action":"topics", "relate_item":{"id":"id"}}
     ]
@@ -458,39 +459,12 @@ So *Nextpages* of *Topics* on *ta* will look like:
 
 Parsing the JSON will build up a `map[string][]*Edge` structure.
 
-<br /><br />
+<br />
 
-## 3. `Graph` Usage
-
-*Graph* describes a database
-
-```go
-type Graph struct {
-    *sql.DB
-    Models map[string]Navigate
-}
-```
-
-### 3.1 Constructor
-
-```go
-func NewGraph(db *sql.DB, s map[string]Navigate) *Graph
-```
-
-### 3.2 Run actions on models
-
-```go
-func (self *Graph) RunContext(ctx context.Context, model, action string, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error)
-```
-
-which returns the data as *[]map[string]interface{}*, and optional error.
-
-### 3.3) Example
-
-#### 2.3.7）Example
+### 2.5) Example
 
 <details>
-    <summary>Click for example to run RESTful actions</summary>
+    <summary>Click for example to run Model actions</summary>
     <p>
 
 ```go
@@ -576,29 +550,39 @@ Running the program will result in
 
 <br /><br />
 
-### 2.4 Action by Name, `GetAction`
+## 3. `Graph` Usage
 
-Besides running action directly by calling its method, we can run it alternatively by calling its string name. This is important in web application where the server is open to many different user actions and response particular one dynamically according to user query.
-
-To achieve this, build up a map between action name and function (a closure). To get the closure back, use:
+*Graph* describes a database
 
 ```go
-// defining the action map 
-actions := make(map[string]func(...url.Values) error)
-actions["topics"] = func(extra ...url.Values) error { return model.Topics(extra...) }
-model.Actions = actions
-// later
-if acting := model.GetAction("topics"); acting != nil {
-    err := acting(extra...)
+type Graph struct {
+    *sql.DB
+    Models map[string]Navigate
 }
 ```
 
-which is equivalent to `err := model.Topics(extra...)`.
+### 3.1 Constructor
 
-<br /><br />
+```go
+func NewGraph(db *sql.DB, s map[string]Navigate) *Graph
+```
+
+<br />
+
+### 3.2 Run actions on models
+
+```go
+func (self *Graph) RunContext(ctx context.Context, model, action string, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error)
+```
+
+which returns the data as *[]map[string]interface{}*, and optional error.
+
+<br />
+
+### 3.3) Example
 
 <details>
-    <summary>Click for RESTful example using Schema</summary>
+    <summary>Click for Graph</summary>
     <p>
 
 ```go
