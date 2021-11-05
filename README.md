@@ -272,7 +272,9 @@ type Action struct {
     Nextpages []*Edge     `json:"nextpages,omitempty"
     Appendix  interface{} `json:"appendix,omitempty"
 }
+```
 
+```go
 type Capability interface {
     RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extras ...map[string]interface{}) ([]map[string]interface{}, []*Edge, error)
 }
@@ -320,7 +322,7 @@ It updates a row by checking the data in the unique columns _Uniques_. If not ex
 #### 2.2.4) *Edit* 
 
 ```go
-ype Edit struct {
+type Edit struct {
     Action
     Joins    []*Join             `json:"joins,omitempty" hcl:"join,block"`
     Rename   map[string][]string `json:"rename" hcl:"rename"`
@@ -383,12 +385,16 @@ type Model struct {
 	Table
 	Actions map[string]interface{} `json:"actions,omitempty" hcl:"actions,optional"`
 }
+```
 
+```go
 type Navigate interface {
     NonePass(action string) []string
     RunModelContext(ctx context.Context, db *sql.DB, action string, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Edge, error)
 }
 ```
+
+where *NonePass* defines a slice of columns for a given action, whose values should not be passed to the next actions as constrains but as input data.
 
 To parse _Model_ from json file `filename`:
 
@@ -397,7 +403,7 @@ func NewModelJsonFile(filename string, custom ...map[string]Capability) (*Model,
 ```
 where _custom_ would add customized actions where using action's name as the key and _Capability_ as the value. Note that
 
-If to make own parse function, make sure to run `Assertion` to assert the JSON structure to the right `Action` types:
+If to write own parse function, make sure to run `Assertion` to assert right `Action` types:
 
 ```go
 func (self *Model) Assertion(custom ...map[string]Capability) error
@@ -418,10 +424,13 @@ type Edge struct {
 }
 ```
 
-Here is a use case. There are two tables, one for family and the other for children, corresponding to models `ta` and `tb` respectively.
-We *query* the family name in `ta`, and want to show all children under the family names. Technically, it means we need to run
-a `Topics` action of `tb` on each row in the family data, constrained by the association of family's ID in both the tables. So `Nextpages`
-of `ta` will look like:
+where *Model* is the model name, *Action* the action name, *RelateItem* the map between the current data columns to next action's columns, whose values will be used as constraints, *Extra* the manually input constraint on the next action.
+
+Here is a use case. There are two tables, one for family and the other for children, corresponding to models named `ta` and `tb` respectively.
+We search the family name in `ta`, and want to show all children as well. Technically, it means we need to run a `Topics` action on *ta*. For each row, we
+run *Topics* on *tb*, constrained by the family ID in both the tables.
+
+So `Nextpages` of `ta` will look like:
 
 <details>
     <summary>Click to show the JSON string</summary>
@@ -441,7 +450,7 @@ of `ta` will look like:
 </p>
 </details>
 
-Parsing the JSON will build up the `Nextpages` as `map[string][]*Edge`.
+Parsing the JSON will build up a `map[string][]*Edge` structure.
 
 <br /><br />
 
