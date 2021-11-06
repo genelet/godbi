@@ -12,7 +12,9 @@ func TestJoin(t *testing.T) {
     {"name":"user_table", "alias":"t", "type":"LEFT", "using":"tableid"}]`
 	joins := make([]*Join, 0)
 	err := json.Unmarshal([]byte(str), &joins)
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if joins[0].Alias != `j` || joins[0].Sortby != `c.componentid` {
 		t.Errorf("%v", joins[0])

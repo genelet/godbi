@@ -11,25 +11,27 @@ type Delete struct {
 }
 
 func (self *Delete) RunAction(db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Edge, error) {
-    return self.RunActionContext(context.Background(), db, t, ARGS, extra...)
+	return self.RunActionContext(context.Background(), db, t, ARGS, extra...)
 }
 
 func (self *Delete) RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Edge, error) {
 	err := self.checkNull(ARGS)
-	if err != nil { return nil, nil, err }
+	if err != nil {
+		return nil, nil, err
+	}
 
 	ids := t.getIdVal(ARGS, extra...)
 	if !hasValue(ids) {
 		return nil, nil, fmt.Errorf("pk value not provided")
 	}
 
-    sql := "DELETE FROM " + t.CurrentTable
+	sql := "DELETE FROM " + t.CurrentTable
 	where, values := t.singleCondition(ids, "", extra...)
 	if where != "" {
-        sql += "\nWHERE " + where
-    } else {
-        return nil, nil, fmt.Errorf("delete whole table is not supported")
-    }
-	dbi := &DBI{DB:db}
-    return extra, self.Nextpages, dbi.DoSQLContext(ctx, sql, values...)
+		sql += "\nWHERE " + where
+	} else {
+		return nil, nil, fmt.Errorf("delete whole table is not supported")
+	}
+	dbi := &DBI{DB: db}
+	return extra, self.Nextpages, dbi.DoSQLContext(ctx, sql, values...)
 }

@@ -64,7 +64,7 @@ dbi := &DBI{DB: the_standard_sql_handle}
 func (*DBI) DoSQL(query string, args ...interface{}) error
 ```
 
-The same as DB's `Exec`, except it returns error only. 
+The same as DB's `Exec`, except it returns error only.
 
 <br />
 
@@ -74,7 +74,7 @@ The same as DB's `Exec`, except it returns error only.
 func (*DBI) TxSQL(query string, args ...interface{}) error
 ```
 
-The same as `DoSQL`, but use transaction. 
+The same as `DoSQL`, but use transaction.
 
 <br />
 
@@ -108,7 +108,6 @@ will select all rows with *id=1234*.
 </p>
 </details>
 
-
 #### 1.4.2) `SelectSQL`
 
 ```go
@@ -127,7 +126,7 @@ The following example assigns key names _TS_, _id_, _Name_, _Length_, _Flag_ and
 lists := make([]map[string]interface{})
 err = dbi.querySQLLabel(&lists, 
     `SELECT ts, id, name, len, flag, fv FROM mytable WHERE id=?`,
-	[]interface{}{[2]string{"TS","string"], [2]string{"id","int"], [2]string{"Name","string"], [2]string{"Length","int8"], [2]string{"Flag","bool"], [2]string{"fv","float32"]},
+ []interface{}{[2]string{"TS","string"], [2]string{"id","int"], [2]string{"Name","string"], [2]string{"Length","int8"], [2]string{"Flag","bool"], [2]string{"fv","float32"]},
     1234)
 ```
 
@@ -138,13 +137,11 @@ err = dbi.querySQLLabel(&lists,
 </p>
 </details>
 
-
 <br />
 
 ### 1.5  _GetSQL_
 
 If there is only one data row returned, this function returns it as a map.
-
 
 ```go
 func (*DBI) GetSQL(res map[string]interface{}, query string, labels []interface{}, args ...interface{}) error
@@ -214,8 +211,8 @@ Running this example will result in something like
 [map[id:1 x:m] map[id:2 x:n] map[id:3 x:p]]
 ```
 
-</p> 
-</details> 
+</p>
+</details>
 
 <br /><br />
 
@@ -279,6 +276,7 @@ type Capability interface {
     RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extras ...map[string]interface{}) ([]map[string]interface{}, []*Edge, error)
 }
 ```
+
 where _Must_ is a slice of `NOT NULL` columns; _Nextpages_ a slice of other actions to follow after the current one is complete; and _Appendix_ stores optional data. For _Edge_, see below.
 
 In _RunActionContext_, _ARGS_ is the input data, _extras_ optionaly extra constraints for the current action and all follow-up actions. The function returns the output data, the follow-up _Edge_s and error.
@@ -293,8 +291,7 @@ named *_gsql* | a raw SQL statement
 
 For multiple keys, the relationship is AND.
 
-
-#### 2.2.1) *Insert* 
+#### 2.2.1) *Insert*
 
 ```go
 type Insert struct {
@@ -305,7 +302,7 @@ type Insert struct {
 
 It inserts one row into _Columns_ of the table. Row's data is expressed as _map[string]interface{}_ in _RunActionContext_.
 
-#### 2.2.2) *Update* 
+#### 2.2.2) *Update*
 
 ```go
 ype Update struct {
@@ -317,7 +314,7 @@ ype Update struct {
 
 It updates a row using the primary key. _Empties_ is a slice of columns whose values should be forced to be empty or null, when there is no input data.
 
-#### 2.2.3) *Insupd* 
+#### 2.2.3) *Insupd*
 
 ```go
 ype Insupd struct {
@@ -329,7 +326,7 @@ ype Insupd struct {
 
 It updates a row by checking the data in the unique columns _Uniques_. If not exists, it will insert a new row instead of updating.
 
-#### 2.2.4) *Edit* 
+#### 2.2.4) *Edit*
 
 ```go
 type Edit struct {
@@ -344,7 +341,7 @@ It reads a row or JOINed-table row using the primary key. See below for _Join_. 
 
 If we need only a part of the row, not the whole row, we can use _FIELDS_ which is a key in input data _ARGS_. Its value is a shorter slice of columns, separated by comma. For example, we have defined _FIELDS ="fields"_. In order to return just the user id and username, our input data should have _ARGS["fields"] = "user_id,username"_.
 
-#### 2.2.5) *Topics* 
+#### 2.2.5) *Topics*
 
 ```go
     Action
@@ -361,6 +358,7 @@ If we need only a part of the row, not the whole row, we can use _FIELDS_ which 
     SORTREVERSE string `json:"sortreverse,omitempty" hcl:"sortreverse,optional"`
 }
 ```
+
 It selects multiple rows with pagination. The meanings of the capital fields are:
 
 Field | Default | Meaning in Input Data `ARGS`
@@ -374,7 +372,7 @@ _SORTREVERSE_ | "sortreverse" | 1 to return the data in reverse
 
 _TotalForce_ is defined in this way: 0 for not calculating total number of records; -1 for calculating; and 1 for optionally calculating. In the last case, if there is no input data for `ROWCOUNT` or `PAGENO`, there is no pagination information.
 
-#### 2.2.6) *Delete* 
+#### 2.2.6) *Delete*
 
 ```go
 type Delete struct {
@@ -382,7 +380,7 @@ type Delete struct {
 }
 ```
 
-It deletes a row by the primary key. 
+It deletes a row by the primary key.
 
 <br />
 
@@ -392,8 +390,8 @@ It deletes a row by the primary key.
 
 ```go
 type Model struct {
-	Table
-	Actions map[string]interface{} `json:"actions,omitempty" hcl:"actions,optional"`
+ Table
+ Actions map[string]interface{} `json:"actions,omitempty" hcl:"actions,optional"`
 }
 ```
 
@@ -411,6 +409,7 @@ To parse _Model_ from json file `filename`:
 ```go
 func NewModelJsonFile(filename string, custom ...map[string]Capability) (*Model, error)
 ```
+
 where _custom_ defines optional customized actions.
 
 If to write own parse function, make sure to run `Assertion` to assert right `Action` types:

@@ -14,9 +14,11 @@ func TestInsert(t *testing.T) {
 	"must":["adv_id","campaign_name"],
 	"columns":["adv_id","campaign_name"]
 	}`
-    insert := new(Insert)
-    err := json.Unmarshal([]byte(str), insert)
-    if err != nil { t.Fatal(err) }
+	insert := new(Insert)
+	err := json.Unmarshal([]byte(str), insert)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if insert.Must[1] != "campaign_name" ||
 		insert.Columns[0] != "adv_id" {
 		t.Errorf("%v", insert)

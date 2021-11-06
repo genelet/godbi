@@ -1,13 +1,13 @@
 package godbi
 
 import (
-	"fmt"
 	"context"
 	"database/sql"
+	"fmt"
 	"strings"
 )
 
-// DBI embeds GO's generic SQL handler and 
+// DBI embeds GO's generic SQL handler and
 // adds few functions for database executions and queries.
 //
 type DBI struct {
@@ -133,24 +133,24 @@ func (self *DBI) SelectContext(ctx context.Context, lists *[]map[string]interfac
 }
 
 func getLabels(labels []interface{}) ([]string, []string) {
-	if labels==nil || len(labels)==0 {
+	if labels == nil || len(labels) == 0 {
 		return nil, nil
 	}
 
 	selectLabels := make([]string, 0)
-	typeLabels   := make([]string, 0)
+	typeLabels := make([]string, 0)
 	for _, vs := range labels {
 		switch v := vs.(type) {
 		case [2]string:
 			selectLabels = append(selectLabels, v[0])
-			if len(v)>1 {
+			if len(v) > 1 {
 				typeLabels = append(typeLabels, v[1])
 			} else {
 				typeLabels = append(typeLabels, "")
 			}
 		default:
 			selectLabels = append(selectLabels, vs.(string))
-			typeLabels   = append(typeLabels, "")
+			typeLabels = append(typeLabels, "")
 		}
 	}
 
@@ -335,7 +335,7 @@ func (self *DBI) GetSQLContext(ctx context.Context, res map[string]interface{}, 
 func sp(procName string, labels []interface{}, n int) (string, string) {
 	names, _ := getLabels(labels)
 	strQ := strings.Join(strings.Split(strings.Repeat("?", n), ""), ",")
-	str  := procName + "(" + strQ
+	str := procName + "(" + strQ
 	strN := "@" + strings.Join(names, ",@")
 	if names != nil {
 		str += ", " + strN
@@ -404,18 +404,18 @@ func (self *DBI) getProc(res map[string]interface{}, procName string, labels []i
 // GetProcContext returns single row from stored procedure into 'res'.
 //
 func (self *DBI) getProcContext(ctx context.Context, res map[string]interface{}, procName string, labels []interface{}, args ...interface{}) error {
-    lists := make([]map[string]interface{}, 0)
-    if err := self.selectProcContext(ctx, &lists, procName, labels, args...); err != nil {
-        return err
-    }
-    if len(lists) >= 1 {
-        for k, v := range lists[0] {
-            if v != nil {
-                res[k] = v
-            }
-        }
-    }
-    return nil
+	lists := make([]map[string]interface{}, 0)
+	if err := self.selectProcContext(ctx, &lists, procName, labels, args...); err != nil {
+		return err
+	}
+	if len(lists) >= 1 {
+		for k, v := range lists[0] {
+			if v != nil {
+				res[k] = v
+			}
+		}
+	}
+	return nil
 }
 
 // SelectDoProc runs the stored procedure 'procName'.

@@ -16,18 +16,20 @@ type Table struct {
 }
 
 func (self *Table) insertHashContext(ctx context.Context, db *sql.DB, args map[string]interface{}) (int64, error) {
-    fields := make([]string, 0)
-    values := make([]interface{}, 0)
-    for k, v := range args {
-        if v != nil {
-            fields = append(fields, k)
-            values = append(values, v)
-        }
-    }
-    sql := "INSERT INTO " + self.CurrentTable + " (" + strings.Join(fields, ", ") + ") VALUES (" + strings.Join(strings.Split(strings.Repeat("?", len(fields)), ""), ",") + ")"
-	dbi := &DBI{DB:db}
-    err := dbi.DoSQLContext(ctx, sql, values...)
-	if err != nil { return 0, err }
+	fields := make([]string, 0)
+	values := make([]interface{}, 0)
+	for k, v := range args {
+		if v != nil {
+			fields = append(fields, k)
+			values = append(values, v)
+		}
+	}
+	sql := "INSERT INTO " + self.CurrentTable + " (" + strings.Join(fields, ", ") + ") VALUES (" + strings.Join(strings.Split(strings.Repeat("?", len(fields)), ""), ",") + ")"
+	dbi := &DBI{DB: db}
+	err := dbi.DoSQLContext(ctx, sql, values...)
+	if err != nil {
+		return 0, err
+	}
 	return dbi.LastID, nil
 }
 
@@ -59,75 +61,75 @@ func (self *Table) updateHashNullsContext(ctx context.Context, db *sql.DB, args 
 	}
 
 	where, extraValues := self.singleCondition(ids, "", extra...)
-    if where != "" {
-        sql += "\nWHERE " + where
+	if where != "" {
+		sql += "\nWHERE " + where
 		for _, v := range extraValues {
 			values = append(values, v)
 		}
 	}
 
-	dbi := &DBI{DB:db}
+	dbi := &DBI{DB: db}
 	return dbi.DoSQLContext(ctx, sql, values...)
 }
 
 func (self *Table) insupdTableContext(ctx context.Context, db *sql.DB, args map[string]interface{}, uniques []string) (int64, error) {
 	changed := int64(0)
-    s := "SELECT " + strings.Join(self.Pks, ", ") + " FROM " + self.CurrentTable + "\nWHERE "
-    v := make([]interface{}, 0)
-    for i, val := range uniques {
-        if i > 0 {
-            s += " AND "
-        }
-        s += val + "=?"
-        if x, ok := args[val]; ok {
+	s := "SELECT " + strings.Join(self.Pks, ", ") + " FROM " + self.CurrentTable + "\nWHERE "
+	v := make([]interface{}, 0)
+	for i, val := range uniques {
+		if i > 0 {
+			s += " AND "
+		}
+		s += val + "=?"
+		if x, ok := args[val]; ok {
 			v = append(v, x)
 		} else {
-            return changed, fmt.Errorf("unique key %s not found in input", val)
-        }
-    }
+			return changed, fmt.Errorf("unique key %s not found in input", val)
+		}
+	}
 
-    lists := make([]map[string]interface{}, 0)
-	dbi := &DBI{DB:db}
-    err := dbi.SelectContext(ctx, &lists, s, v...)
+	lists := make([]map[string]interface{}, 0)
+	dbi := &DBI{DB: db}
+	err := dbi.SelectContext(ctx, &lists, s, v...)
 	if err != nil {
-        return changed, err
-    }
-    if len(lists) > 1 {
-        return changed, fmt.Errorf("multiple records found")
-    }
+		return changed, err
+	}
+	if len(lists) > 1 {
+		return changed, fmt.Errorf("multiple records found")
+	}
 
-    if len(lists) == 1 {
+	if len(lists) == 1 {
 		ids := make([]interface{}, 0)
 		for _, k := range self.Pks {
 			ids = append(ids, lists[0][k])
 		}
-        err = self.updateHashNullsContext(ctx, db, args, ids, nil)
-    } else {
+		err = self.updateHashNullsContext(ctx, db, args, ids, nil)
+	} else {
 		changed, err = self.insertHashContext(ctx, db, args)
-    }
+	}
 
-    return changed, err
+	return changed, err
 }
 
 func (self *Table) totalHashContext(ctx context.Context, db *sql.DB, v interface{}, extra ...map[string]interface{}) error {
-    str := "SELECT COUNT(*) FROM " + self.CurrentTable
+	str := "SELECT COUNT(*) FROM " + self.CurrentTable
 
-    if hasValue(extra) {
-        where, values := selectCondition(extra[0], "")
-        if where != "" {
-            str += "\nWHERE " + where
-        }
-        return db.QueryRowContext(ctx, str, values...).Scan(v)
-    }
+	if hasValue(extra) {
+		where, values := selectCondition(extra[0], "")
+		if where != "" {
+			str += "\nWHERE " + where
+		}
+		return db.QueryRowContext(ctx, str, values...).Scan(v)
+	}
 
-    return db.QueryRowContext(ctx, str).Scan(v)
+	return db.QueryRowContext(ctx, str).Scan(v)
 }
 
 func (self *Table) getIdVal(ARGS map[string]interface{}, extra ...map[string]interface{}) []interface{} {
-    if hasValue(extra) {
-        return properValues(self.Pks, ARGS, extra[0])
-    }
-    return properValues(self.Pks, ARGS, nil)
+	if hasValue(extra) {
+		return properValues(self.Pks, ARGS, extra[0])
+	}
+	return properValues(self.Pks, ARGS, nil)
 }
 
 func (self *Table) singleCondition(ids []interface{}, table string, extra ...map[string]interface{}) (string, []interface{}) {
@@ -168,40 +170,40 @@ func (self *Table) singleCondition(ids []interface{}, table string, extra ...map
 }
 
 func properValue(v string, ARGS, extra map[string]interface{}) interface{} {
-    if !hasValue(extra) {
-        return ARGS[v]
-    }
-    if val, ok := extra[v]; ok {
-        return val
-    }
-    return ARGS[v]
+	if !hasValue(extra) {
+		return ARGS[v]
+	}
+	if val, ok := extra[v]; ok {
+		return val
+	}
+	return ARGS[v]
 }
 
 func properValues(vs []string, ARGS, extra map[string]interface{}) []interface{} {
-    outs := make([]interface{}, len(vs))
-    if !hasValue(extra) {
-        for i, v := range vs {
-            outs[i] = ARGS[v]
-        }
-        return outs
-    }
-    for i, v := range vs {
-        if val, ok := extra[v]; ok {
-            outs[i] = val
-        } else {
-            outs[i] = ARGS[v]
-        }
-    }
-    return outs
+	outs := make([]interface{}, len(vs))
+	if !hasValue(extra) {
+		for i, v := range vs {
+			outs[i] = ARGS[v]
+		}
+		return outs
+	}
+	for i, v := range vs {
+		if val, ok := extra[v]; ok {
+			outs[i] = val
+		} else {
+			outs[i] = ARGS[v]
+		}
+	}
+	return outs
 }
 
 func properValuesHash(vs []string, ARGS, extra map[string]interface{}) map[string]interface{} {
-    values := properValues(vs, ARGS, extra)
-    hash := make(map[string]interface{})
-    for i, v := range vs {
-        hash[v] = values[i]
-    }
-    return hash
+	values := properValues(vs, ARGS, extra)
+	hash := make(map[string]interface{})
+	for i, v := range vs {
+		hash[v] = values[i]
+	}
+	return hash
 }
 
 func selectCondition(extra map[string]interface{}, table string) (string, []interface{}) {
@@ -241,7 +243,8 @@ func selectCondition(extra map[string]interface{}, table string) (string, []inte
 				values = append(values, v)
 			}
 		case string:
-			if len(field) >= 5 && field[(len(field)-5):len(field)] == "_gsql" {
+			n := len(field)
+			if n >= 5 && field[(n-5):] == "_gsql" {
 				sql += value
 			} else {
 				sql += field + " =?"

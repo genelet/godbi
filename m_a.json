@@ -1,34 +1,107 @@
 {
-    "table": "m_a",
-    "pks" : ["id"],
-    "id_auto" : "id",
-	"actions":{
-		"insupd":{
-			"columns" : ["x","y","z"],
-    		"uniques" : ["x","y"],
-			"nextpages" : [
-           		{"model":"tb", "action":"insert", "relate_item":{"id":"id"}}
-        	]
-		},
-    	"insert":{
-			"columns" : ["x","y","z"],
-			"nextpages" : [
-            	{"model":"tb", "action":"insert", "relate_item":{"id":"id"}}
+	"table": "m_a",
+	"pks": [
+		"id"
+	],
+	"id_auto": "id",
+	"actions": {
+		"insupd": {
+			"columns": [
+				"x",
+				"y",
+				"z"
+			],
+			"uniques": [
+				"x",
+				"y"
+			],
+			"nextpages": [
+				{
+					"model": "tb",
+					"action": "insert",
+					"relate_item": {
+						"id": "id"
+					}
+				}
 			]
 		},
-    	"edit":{
-			"rename" : {"x":["x","string"], "y":["y","string"], "z":["z","string"],"id":["id","int"]},
-			"nextpages" : [
-            	{"model":"tb", "action":"topics", "relate_item":{"id":"id"}}
+		"insert": {
+			"columns": [
+				"x",
+				"y",
+				"z"
+			],
+			"nextpages": [
+				{
+					"model": "tb",
+					"action": "insert",
+					"relate_item": {
+						"id": "id"
+					}
+				}
 			]
 		},
-		"delete":{
-			"must":["id"]
+		"edit": {
+			"rename": {
+				"x": [
+					"x",
+					"string"
+				],
+				"y": [
+					"y",
+					"string"
+				],
+				"z": [
+					"z",
+					"string"
+				],
+				"id": [
+					"id",
+					"int"
+				]
+			},
+			"nextpages": [
+				{
+					"model": "tb",
+					"action": "topics",
+					"relate_item": {
+						"id": "id"
+					}
+				}
+			]
 		},
-    	"topics":{
-			"rename" : {"x":["x","string"], "y":["y","string"], "z":["z","string"],"id":["id","int"]},
-			"nextpages" : [
-            	{"model":"ta", "action":"edit", "relate_item":{"id":"id"}}
+		"delete": {
+			"must": [
+				"id"
+			]
+		},
+		"topics": {
+			"rename": {
+				"x": [
+					"x",
+					"string"
+				],
+				"y": [
+					"y",
+					"string"
+				],
+				"z": [
+					"z",
+					"string"
+				],
+				"id": [
+					"id",
+					"int"
+				]
+			},
+			"nextpages": [
+				{
+					"model": "ta",
+					"action": "edit",
+					"relate_item": {
+						"id": "id"
+					}
+				}
 			]
 		}
 	}

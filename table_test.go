@@ -12,9 +12,11 @@ func TestTable(t *testing.T) {
     "pks":["campaign_id"],
     "id_auto":"campaign_id"
 	}`
-    table := new(Table)
-    err := json.Unmarshal([]byte(str), table)
-    if err != nil { t.Fatal(err) }
+	table := new(Table)
+	err := json.Unmarshal([]byte(str), table)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if table.Fks[4] != "campaign_id_md5" ||
 		table.CurrentTable != "adv_campaign" {
 		t.Errorf("%v", table)
