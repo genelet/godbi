@@ -14,12 +14,12 @@ The package is fully tested in MySQL and PostgreSQL.
 
 <br /><br />
 
-### Installation
+## Installation
 
 > $ go get -u github.com/genelet/godbi
 <!-- go mod init github.com/genelet/godbi -->
 
-### Termilogy
+## Termilogy
 
 The names of arguments passed in functions or methods are defined as follows, if not specifically explained:
 Name | Type | IN/OUT | Meaning
@@ -161,11 +161,11 @@ In this example, we create a MySQL handle using credentials in the environment; 
 package main
 
 import (
-    "os"
-    "log"
-    "database/sql"
-    "github.com/genelet/godbi"
-    _ "github.com/go-sql-driver/mysql"
+    "log"
+    "database/sql"
+    "os"
+    "github.com/genelet/godbi"
+    _ "github.com/go-sql-driver/mysql"
 )
 
 func main() {
@@ -384,7 +384,7 @@ It deletes a row by the primary key.
 
 <br />
 
-### 2.3  Type *Model*
+### 2.3  *Model*
 
 `Model` contains the table and actions on the table, using the *Navigate* type:
 
@@ -402,7 +402,7 @@ type Navigate interface {
 }
 ```
 
-where *NonePass* defines a slice of columns for a given action, whose values should not be passed to the next actions as constrains but as input data.
+where *NonePass* defines a slice of columns for given action, whose values should not be passed to the next actions as constrains but as input data.
 
 To parse _Model_ from json file `filename`:
 
@@ -436,8 +436,7 @@ type Edge struct {
 where *Model* is the model name, *Action* the action name, *RelateItem* the map between the current data columns to next action's columns, whose values will be used as constraints, *Extra* the manually input constraint on the next action.
 
 Here is a use case. There are two tables, one for family and the other for children, corresponding to models named `ta` and `tb` respectively.
-We search the family name in `ta`, and want to show all children as well. Technically, it means we need to run a `Topics` action on *ta*. For each row, we
-run *Topics* on *tb*, constrained by the family ID in both the tables.
+We search the family name in `ta`, and want to show all children as well. Technically, it means we need to run a `Topics` action on *ta*. For each row returned, we run *Topics* on *tb*, constrained by the family ID in both the tables.
 
 So *Nextpages* of *Topics* on *ta* will look like:
 
@@ -472,7 +471,6 @@ package main
 import (
     "log"
     "os"
-    "net/url"
     "database/sql"
     "github.com/genelet/godbi"
     _ "github.com/go-sql-driver/mysql"
@@ -486,50 +484,38 @@ func main() {
     if err != nil { panic(err) }
     defer db.Close()
 
-    model := new(godbi.Model)
-    model.CurrentTable = "testing"
-    model.Sortby        ="sortby"
-    model.Sortreverse   ="sortreverse"
-    model.Pageno        ="pageno"
-    model.Rowcount      ="rowcount"
-    model.Totalno       ="totalno"
-    model.Maxpageno     ="max_pageno"
-    model.Fields        ="fields"
-    model.Empties       ="empties"
-
     db.Exec(`DROP TABLE IF EXISTS testing`)
     db.Exec(`CREATE TABLE testing (id int auto_increment, x varchar(255), y varchar(255), primary key (id))`)
 
-    args := make(url.Values)
-    model.SetDB(db)
-    model.SetArgs(args)
+    table := &godbi.Table{CurrentTable: "testing", Pks:[]string{"id"}, IDAuto:"id"}
 
-    model.CurrentKey    = "id"
-    model.CurrentIDAuto = "id"
-    model.InsertPars    = []string{     "x","y"}
-    model.TopicsPars    = []string{"id","x","y"}
-    model.UpdatePars    = []string{"id","x","y"}
-    model.EditPars      = []string{"id","x","y"}
+    insert := &godbi.Insert{Columns: []string{"x","y"}}
+    topics := &godbi.Topics{Rename: map[string][]string{"id":{"id","int"}, "x":{"x","string"},"y":{"y","string"}}}
+    update := &godbi.Update{Columns: []string{"id","x","y"}}
+    edit   := &godbi.Edit{Rename: map[string][]string{"id":{"id","int"}, "x":{"x","string"},"y":{"y","string"}}}
 
-    args["x"] = []string{"a"}
-    args["y"] = []string{"b"}
-    if err := model.Insert(); err != nil { panic(err) }
-    log.Println(model.LastID)
+    args := map[string]interface{}{"x":"a","y":"b"}
+    lists, _, err := insert.RunAction(db, table, args)
+    if err != nil { panic(err) }
+    log.Println(lists)
 
-    args["x"] = []string{"c"}
-    args["y"] = []string{"d"}
-    if err := model.Insert(); err != nil { panic(err) }
-    log.Println(model.LastID)
+    args = map[string]interface{}{"x":"c","y":"d"}
+    lists, _, err = insert.RunAction(db, table, args)
+    if err != nil { panic(err) }
+    log.Println(lists)
 
-    if err := model.Topics(); err != nil { panic(err) }
-    log.Println(model.GetLists())
+    args = map[string]interface{}{}
+    lists, _, err = topics.RunAction(db, table, args)
+    log.Println(lists)
 
-    args.Set("id","2")
-    args["x"] = []string{"c"}
-    args["y"] = []string{"z"}
-    if err := model.Update(); err != nil { panic(err) }
-    if err := model.Edit(); err != nil { panic(err) }
-    log.Println(model.GetLists())
+    args = map[string]interface{}{"id":2,"x":"c","y":"z"}
+    lists, _, err = update.RunAction(db, table, args)
+    if err != nil { panic(err) }
+    log.Println(lists)
+
+    args = map[string]interface{}{"id":2}
+    lists, _, err = edit.RunAction(db, table, args)
+    log.Println(lists)
 
     os.Exit(0)
 }
@@ -538,9 +524,10 @@ func main() {
 Running the program will result in
 
 ```bash
-1
-2
+[map[id:1 x:a y:b]]
+[map[id:2 x:c y:d]]
 [map[id:1 x:a y:b] map[id:2 x:c y:d]]
+[map[id:2 x:c y:z]]
 [map[id:2 x:c y:z]]
 ```
 
@@ -589,9 +576,8 @@ package main
 
 import (
     "log"
-    "os"
-    "net/url"
     "database/sql"
+    "os"
     "github.com/genelet/godbi"
     _ "github.com/go-sql-driver/mysql"
 )
@@ -611,76 +597,57 @@ func main() {
     db.Exec(`CREATE TABLE test_b (tid int auto_increment not null primary key,
         child varchar(8), id int)`)
 
-    ta, err := godbi.NewModel("test_a.json")
+    ta, err := godbi.NewModelJsonFile("test_a.json")
     if err != nil { panic(err) }
-    tb, err := godbi.NewModel("test_b.json")
+    tb, err := godbi.NewModelJsonFile("test_b.json")
     if err != nil { panic(err) }
 
-    // create action map for ta, the value of map is closure
-    //
-    action_ta := make(map[string]func(...url.Values)error)
-    action_ta["topics"] = func(args ...url.Values) error { return ta.Topics(args...) }
-    action_ta["insert"] = func(args ...url.Values) error { return ta.Insert(args...) }
-    action_ta["insupd"] = func(args ...url.Values) error { return ta.Insupd(args...) }
-    action_ta["delete"] = func(args ...url.Values) error { return ta.Delete(args...) }
-    action_ta["edit"]   = func(args ...url.Values) error { return ta.Edit(args...) }
-    ta.SetActions(action_ta)
+    graph := &godbi.Graph{db, map[string]godbi.Navigate{"ta":ta, "tb":tb}}
 
-    // create action map for ta, the value of map is closure
-    //
-    action_tb := make(map[string]func(...url.Values)error)
-    action_tb["topics"] = func(args ...url.Values) error { return tb.Topics(args...) }
-    action_tb["insert"] = func(args ...url.Values) error { return tb.Insert(args...) }
-    action_tb["update"] = func(args ...url.Values) error { return tb.Update(args...) }
-    action_tb["delete"] = func(args ...url.Values) error { return tb.Delete(args...) }
-    action_tb["edit"]   = func(args ...url.Values) error { return tb.Edit(args...) }
-    tb.SetActions(action_tb)
-
-    schema := &godbi.Schema{db, map[string]godbi.Navigate{"ta":ta, "tb":tb}}
-
-    methods := map[string]string{"GET":"topics", "GET_one":"edit", "POST":"insert", "PATCH":"insupd", "PUT":"update", "DELETE":"delete"}
+    methods := map[string]string{"LIST":"topics", "GET":"edit", "POST":"insert", "PATCH":"insupd", "PUT":"update", "DELETE":"delete"}
 
     var lists []map[string]interface{}
     // the 1st web requests is assumed to create id=1 to the test_a and test_b tables:
     //
-    args := url.Values{"x":[]string{"a1234567"},"y":[]string{"b1234567"},"z":[]string{"temp"}, "child":[]string{"john"}}
-    if lists, err = schema.Run("ta", methods["PATCH"], args); err != nil { panic(err) }
+    args := map[string]interface{}{"x":"a1234567","y":"b1234567","z":"temp", "child":"john"}
+    if lists, err = graph.Run("ta", methods["PATCH"], args); err != nil { panic(err) }
 
     // the 2nd request just updates, because [x,y] is defined to the unique in ta.
     // but create a new record to tb for id=1, since insupd triggers insert in tb
     //
-    args = url.Values{"x":[]string{"a1234567"},"y":[]string{"b1234567"},"z":[]string{"zzzzz"}, "child":[]string{"sam"}}
-    if lists, err = schema.Run("ta", methods["PATCH"], args); err != nil { panic(err) }
+    args = map[string]interface{}{"x":"a1234567","y":"b1234567","z":"zzzzz", "child":"sam"}
+    if lists, err = graph.Run("ta", methods["PATCH"], args); err != nil { panic(err) }
 
     // the 3rd request creates id=2
     //
-    args = url.Values{"x":[]string{"c1234567"},"y":[]string{"d1234567"},"z":[]string{"e1234"},"child":[]string{"mary"}}
-    if lists, err = schema.Run("ta", methods["POST"], args); err != nil { panic(err) }
+    args = map[string]interface{}{"x":"c1234567","y":"d1234567","z":"e1234","child":"mary"}
+    if lists, err = graph.Run("ta", methods["POST"], args); err != nil { panic(err) }
 
     // the 4th request creates id=3
     //
-    args = url.Values{"x":[]string{"e1234567"},"y":[]string{"f1234567"},"z":[]string{"e1234"},"child":[]string{"marcus"}}
-    if lists, err = schema.Run("ta", methods["POST"], args); err != nil { panic(err) }
+    args = map[string]interface{}{"x":"e1234567","y":"f1234567","z":"e1234","child":"marcus"}
+    if lists, err = graph.Run("ta", methods["POST"], args); err != nil { panic(err) }
 
-    // GET all
-    args = url.Values{}
-    if lists, err = schema.Run("ta", methods["GET"], args); err != nil { panic(err) }
-    log.Printf("%v", lists)
+    // LIST all
+    args = map[string]interface{}{}
+    if lists, err = graph.Run("ta", methods["LIST"], args); err != nil { panic(err) }
+    log.Printf("LIST: %v", lists)
 
     // GET one
-    args = url.Values{"id":[]string{"1"}}
-    if lists, err = schema.Run("ta", methods["GET_one"], args); err != nil { panic(err) }
-    log.Printf("%v", lists)
+    args = map[string]interface{}{"id":1}
+    if lists, err = graph.Run("ta", methods["GET"], args); err != nil { panic(err) }
+    log.Printf("GET: %v", lists)
 
     // DELETE
-    extra := url.Values{"id":[]string{"1"}}
-    if lists, err = schema.Run("tb", methods["DELETE"], url.Values{}, extra); err != nil { panic(err) }
-    if lists, err = schema.Run("ta", methods["DELETE"], url.Values{}, extra); err != nil { panic(err) }
+    extra := map[string]interface{}{"id":1}
+    if lists, err = graph.Run("tb", methods["DELETE"], map[string]interface{}{"tid": 1}, extra); err != nil { panic(err) }
+    if lists, err = graph.Run("tb", methods["DELETE"], map[string]interface{}{"tid": 2}, extra); err != nil { panic(err) }
+    if lists, err = graph.Run("ta", methods["DELETE"], map[string]interface{}{"id":1}); err != nil { panic(err) }
 
-    // GET all
-    args = url.Values{}
-    if lists, err = schema.Run("ta", methods["GET"], args); err != nil { panic(err) }
-    log.Printf("%v", lists)
+    // LIST all
+    args = map[string]interface{}{}
+    if lists, err = graph.Run("ta", methods["LIST"], args); err != nil { panic(err) }
+    log.Printf("LIST: %v", lists)
 
     os.Exit(0)
 }
@@ -689,9 +656,9 @@ func main() {
 Running it will result in:
 
 ```bash
-[map[id:1 tb_topics:[map[child:john id:1 tid:1] map[child:sam id:1 tid:2]] x:a1234567 y:b1234567 z:zzzzz] map[id:2 tb_topics:[map[child:mary id:2 tid:3]] x:c1234567 y:d1234567 z:e1234] map[id:3 tb_topics:[map[child:marcus id:3 tid:4]] x:e1234567 y:f1234567 z:e1234]]
-[map[id:1 tb_topics:[map[child:john id:1 tid:1] map[child:sam id:1 tid:2]] x:a1234567 y:b1234567 z:zzzzz]]
-[map[id:2 tb_topics:[map[child:mary id:2 tid:3]] x:c1234567 y:d1234567 z:e1234] map[id:3 tb_topics:[map[child:marcus id:3 tid:4]] x:e1234567 y:f1234567 z:e1234]]
+LIST: [map[id:1 ta_edit:[map[id:1 tb_topics:[map[child:john id:1 tid:1]] x:a1234567 y:b1234567 z:zzzzz]] x:a1234567 y:b1234567 z:zzzzz] map[id:2 ta_edit:[map[id:2 tb_topics:[map[child:mary id:2 tid:3]] x:c1234567 y:d1234567 z:e1234]] x:c1234567 y:d1234567 z:e1234] map[id:3 ta_edit:[map[id:3 tb_topics:[map[child:marcus id:3 tid:4]] x:e1234567 y:f1234567 z:e1234]] x:e1234567 y:f1234567 z:e1234]]
+GET: [map[id:1 tb_topics:[map[child:john id:1 tid:1]] x:a1234567 y:b1234567 z:zzzzz]]
+LIST: [map[id:2 ta_edit:[map[id:2 tb_topics:[map[child:mary id:2 tid:3]] x:c1234567 y:d1234567 z:e1234]] x:c1234567 y:d1234567 z:e1234] map[id:3 ta_edit:[map[id:3 tb_topics:[map[child:marcus id:3 tid:4]] x:e1234567 y:f1234567 z:e1234]] x:e1234567 y:f1234567 z:e1234]]
 ```
 
 </p>

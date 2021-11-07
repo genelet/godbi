@@ -1,51 +1,26 @@
 {
 	"table": "m_b",
-	"pks": [
-		"tid"
-	],
+	"pks": [ "tid" ],
 	"id_auto": "tid",
 	"actions": {
 		"insert": {
-			"columns": [
-				"id",
-				"child"
-			]
+			"columns": [ "id", "child" ]
 		},
 		"edit": {
 			"rename": {
-				"tid": [
-					"tid",
-					"int"
-				],
-				"child": [
-					"child",
-					"string"
-				],
-				"id": [
-					"id",
-					"int"
-				]
+				"tid": [ "tid", "int" ],
+				"child": [ "child", "string" ],
+				"id": [ "id", "int" ]
 			}
 		},
 		"delete": {
-			"must": [
-				"tid"
-			]
+			"must": [ "tid" ]
 		},
 		"topics": {
 			"rename": {
-				"tid": [
-					"tid",
-					"int"
-				],
-				"child": [
-					"child",
-					"string"
-				],
-				"id": [
-					"id",
-					"int"
-				]
+				"tid": [ "tid", "int" ],
+				"child": [ "child", "string" ],
+				"id": [ "id", "int" ]
 			}
 		}
 	}
