@@ -7,9 +7,8 @@ There are three levels of usages:
 
 - _Basic_: on raw SQL statements and receive data as *[]map[string]interface{}*
 - _Model_: on CRUD actions of a table.
-- _Graph_: on GraphQL actions of a database
+- _Graph_: on GraphQL/gRPC actions of a database
 
-_godbi_ runs CRUD and RESTful tasks easily and gracefully.
 The package is fully tested in MySQL and PostgreSQL.
 
 <br /><br />
@@ -24,21 +23,18 @@ The package is fully tested in MySQL and PostgreSQL.
 The names of arguments passed in functions or methods are defined as follows, if not specifically explained:
 Name | Type | IN/OUT | Meaning
 ---- | ---- | ------ | -------
-*args* | `...interface{}` | IN | function's arguments, possibly empty
+*args* | `...interface{}` | IN | arguments
 *ARGS* | `map[string]interface{}` | IN | input data
-*extra* | `...map[string]interface{}` | IN | _WHERE_ constraints, possibly empty
-*lists* | `[]map[string]interface{}` | OUT | receiving data as a slice of maps.
+*extra* | `...map[string]interface{}` | IN | _WHERE_ constraints
+*lists* | `[]map[string]interface{}` | OUT | data output as a slice of maps.
 
-<br />
-
-Most functions in this package return error, which can be checked to assert the execution status.
 <br /><br />
 
 ## Chapter 1. BASIC USAGE
 
 ### 1.1  _DBI_
 
-The `DBI` type simply embeds the standard SQL handle.
+The `DBI` type embeds the standard SQL handle.
 
 ```go
 package godbi
@@ -74,7 +70,7 @@ The same as DB's `Exec`, except it returns error only.
 func (*DBI) TxSQL(query string, args ...interface{}) error
 ```
 
-The same as `DoSQL`, but use transaction.
+The same as `DoSQL` using transaction.
 
 <br />
 
@@ -86,7 +82,7 @@ The same as `DoSQL`, but use transaction.
 func (*DBI) Select(lists *[]map[string]interface{}, query string, args ...interface{}) error
 ```
 
-It runs a *Select*-type query and saves the result into *lists*. The data types of the column are determined dynamically by the generic SQL handle.
+It runs a *Select* query and saves the result into *lists*. The data types of the rows are determined dynamically by the generic SQL handle.
 
 <details>
     <summary>Click for example</summary>
@@ -98,7 +94,7 @@ err = dbi.Select(&lists,
     `SELECT ts, id, name, len, flag, fv FROM mytable WHERE id=?`, 1234)
 ```
 
-will select all rows with *id=1234*.
+will select all rows with *id=1234* into *lists*:
 
 ```json
     {"ts":"2019-12-15 01:01:01", "id":1234, "name":"company", "len":30, "flag":true, "fv":789.123},
@@ -114,13 +110,14 @@ will select all rows with *id=1234*.
 func (*DBI) SelectSQL(lists *[]map[string]interface{}, labels []interface{}, query string, args ...interface{}) error
 ```
 
-It selects by specifying map keys, and optionally their data types in `labels`, depending on if it is `string` or `[2]string`.
-
-The following example assigns key names _TS_, _id_, _Name_, _Length_, _Flag_ and _fv_, of data types _string_, _int_, _string_, _int8_, _bool_ and _float32_ to the corresponding columns:
+The same as *Select* using *labels*. The interface can be either *string*
+which defines renamed key name, or *[2]string* which defines renames key name and its data type like _int_, _int64_ and _string_ etc.
 
 <details>
     <summary>Click for example</summary>
     <p>
+
+The following example assigns key names _TS_, _id_, _Name_, _Length_, _Flag_ and _fv_, of data types _string_, _int_, _string_, _int8_, _bool_ and _float32_, to the returned rows:
 
 ```go
 lists := make([]map[string]interface{})
@@ -141,7 +138,7 @@ err = dbi.querySQLLabel(&lists,
 
 ### 1.5  _GetSQL_
 
-If there is only one data row returned, this function returns it as a map.
+If there is only one row expected, this function returns it as a map.
 
 ```go
 func (*DBI) GetSQL(res map[string]interface{}, query string, labels []interface{}, args ...interface{}) error
@@ -149,9 +146,9 @@ func (*DBI) GetSQL(res map[string]interface{}, query string, labels []interface{
 
 <br />
 
-### 1.6) Example
+### 1.6) *DBI* Example
 
-In this example, we create a MySQL handle using credentials in the environment; then create a new table _letters_ with 3 rows. We query the data using `SelectSQL` and put the result into *lists*.
+In this example, we create table _letters_ with 3 rows, then query the data into *lists*.
 
 <details>
     <summary>Click for Sample 1</summary>
@@ -178,7 +175,7 @@ func main() {
 
     dbi := &godbi.DBI{DB:db}
 
-    // create a new table and insert some data using ExecSQL
+    // create a new table and insert 3 rows
     //
     _, err = db.Exec(`DROP TABLE IF EXISTS letters`)
     if err != nil { panic(err) }
@@ -193,7 +190,8 @@ func main() {
     _, err = db.Exec(`insert into letters (x) values ('p')`)
     if err != nil { panic(err) }
 
-    // select all data from the table
+    // select all data from the table using SelectSQL
+    //
     lists := make([]map[string]interface{}, 0)
     err = dbi.SelectSQL(&lists, "SELECT id, x FROM letters")
     if err != nil { panic(err) }
@@ -205,7 +203,7 @@ func main() {
 }
 ```
 
-Running this example will result in something like
+Running this example will result in
 
 ```bash
 [map[id:1 x:m] map[id:2 x:n] map[id:3 x:p]]
@@ -218,7 +216,7 @@ Running this example will result in something like
 
 ## Chapter 2. MODEL USAGE
 
-The following _CRUD_ actions, and associated _REST_ methods, are pre-defined in our package:
+The following _CRUD_ actions and _REST_ methods are defined in our package:
 
 HTTP METHOD | Web URL | CRUD | Function Name | Meaning
 ----------- | ------- | ---- | ------------- | ----------------
@@ -244,10 +242,9 @@ type Table struct {
 }
 ```
 
-where _CurrentTable_ is the table name; _Pks_ the primary key which could be a combination of multiple columns; _IDAuto_ the column for a series number and _Fks_ the foreign key information.
+where _CurrentTable_ is the table name; _Pks_ the primary key defined as a slice of columns; _IDAuto_ (optional) the column of a series number and _Fks_ (optional) the foreign key information.
 
-_Fks_ does not need to be a native foreign key defined in relational database, but a relationship between two tables. Currently, we only support foreign
-tables which use a single column as its primary key. _Fks[]_ is defined by:
+_Fks_ does not need to be a native foreign key defined in relational database, but a relationship between two tables. It is defined by 5 elements:
 
 index | meaning
 ----- | -------------------------
@@ -257,11 +254,12 @@ index | meaning
 3 | the corresponding column of foreign table's PK in the current table
 4 | the signature name of current table's primary key
 
+Currently, to use this feature, we require tables' primary keys are single column.
 <br />
 
 ### 2.2  *Action*
 
-`Action` defines an action on table. It should implement function `RunActionContext` using the `Capability` interface:
+*Action* defines an action on table, such as *CRUD*. It should implement function *RunActionContext* using the *Capability* interface:
 
 ```go
 type Action struct {
@@ -277,19 +275,21 @@ type Capability interface {
 }
 ```
 
-where _Must_ is a slice of `NOT NULL` columns; _Nextpages_ a slice of other actions to follow after the current one is complete; and _Appendix_ stores optional data. For _Edge_, see below.
+where _Must_ is a slice of `NOT NULL` columns; _Nextpages_ other actions to follow after the current one is complete; and _Appendix_ optional data. For _Edge_, see below.
 
-In _RunActionContext_, _ARGS_ is the input data, _extras_ optionaly extra constraints for the current action and all follow-up actions. The function returns the output data, the follow-up _Edge_s and error.
+In _RunActionContext_, _ARGS_ is the input data and _extras_ a slice of constraints for the current action and all follow-up actions. It returns the output data, the follow-up _Edge_s and error.
 
 To define *extra*:
 
-key in `extra` | meaning
+key in *extra* | meaning
 -------------- | -------
 only one value | an EQUAL constraint
 multiple values | an IN constraint
 named *_gsql* | a raw SQL statement
 
-For multiple keys, the relationship is AND.
+Relationship AND is assumed among multiple keys.
+
+The following *CRUD* actions are pre-defined.
 
 #### 2.2.1) *Insert*
 
@@ -300,7 +300,7 @@ type Insert struct {
 }
 ```
 
-It inserts one row into _Columns_ of the table. Row's data is expressed as _map[string]interface{}_ in _RunActionContext_.
+It adds a new row into _Columns_ of table. The columns data are extract from *ARGS* in _RunActionContext_.
 
 #### 2.2.2) *Update*
 
@@ -312,19 +312,20 @@ ype Update struct {
 }
 ```
 
-It updates a row using the primary key. _Empties_ is a slice of columns whose values should be forced to be empty or null, when there is no input data.
+It updates row's *Columns* using the primary key. Colummns in _Empties_ will
+be forced to empty or null if having no input data.
 
 #### 2.2.3) *Insupd*
 
 ```go
-ype Insupd struct {
+type Insupd struct {
     Action
     Columns    []string      `json:"columns,omitempty" hcl:"columns,optional"`
     Uniques    []string      `json:"uniques,omitempty" hcl:"uniques,optional"`
 }
 ```
 
-It updates a row by checking the data in the unique columns _Uniques_. If not exists, it will insert a new row instead of updating.
+It checks if the input data is unique using the unique columns _Uniques_. If it exists, run a *Update* otherwise *Insert*.
 
 #### 2.2.4) *Edit*
 
@@ -337,9 +338,28 @@ type Edit struct {
 }
 ```
 
-It reads a row or JOINed-table row using the primary key. See below for _Join_. The selected columns are keys in `Rename`. The value of such a key has two elements. The first one is the renamed label and the second the GO data type like _int_, _int64_ and _string_ etc.
+```go
+type Join struct {
+	Name   string `json:"name" hcl:"name,label"`
+	Alias  string `json:"alias,omitempty" hcl:"alias,optional"`
+	Type   string `json:"type,omitempty" hcl:"type,optional"`
+	Using  string `json:"using,omitempty" hcl:"using,optional"`
+	On     string `json:"on,omitempty" hcl:"on,optional"`
+	Sortby string `json:"sortby,omitempty" hcl:"sortby,optional"`
+}
 
-If we need only a part of the row, not the whole row, we can use _FIELDS_ which is a key in input data _ARGS_. Its value is a shorter slice of columns, separated by comma. For example, we have defined _FIELDS ="fields"_. In order to return just the user id and username, our input data should have _ARGS["fields"] = "user_id,username"_.
+It searches one row from a table or joint tables, using main table's primary key.
+
+*Joins* defines the joint tables. The main table is the first element
+in the list. *Join* defines the table and how it is joint. *Name* is main table's name; *Alias* the table name alias; *Type* the join type such as *JOIN*, "INNER JOIN", "LEFT JOIN" etc.; "Using" the *USING* statement in SQL; "On" the "ON* statement; and *Sortby* which appears only in the main table the column name to sort the data.
+ 
+In *Rename*, the keys are SQL column names and keys' values are renamed labels. See 1.4.2).
+
+*FIELDS* defines a key in the input data which, if exists, tells us
+to return only a few selected columns instead of whole set of columns.
+By default, _FIELDS ="fields"_.  For example, in order to return
+just *user_id* and *username*, we can assign
+the following value in the input data: _ARGS["fields"] = "user_id,username"_. (Note that multiple column names are concated and separated by comma.)
 
 #### 2.2.5) *Topics*
 
@@ -359,7 +379,7 @@ If we need only a part of the row, not the whole row, we can use _FIELDS_ which 
 }
 ```
 
-It selects multiple rows with pagination. The meanings of the capital fields are:
+It searches many rows with pagination. The capital fields are:
 
 Field | Default | Meaning in Input Data `ARGS`
 --------- | ------- | -----------------------
@@ -386,7 +406,7 @@ It deletes a row by the primary key.
 
 ### 2.3  *Model*
 
-`Model` contains the table and actions on the table, using the *Navigate* type:
+*Model* contains the table and actions on the table, using the *Navigate* interface:
 
 ```go
 type Model struct {
@@ -402,17 +422,18 @@ type Navigate interface {
 }
 ```
 
-where *NonePass* defines a slice of columns for given action, whose values should not be passed to the next actions as constrains but as input data.
+where *Actions* defines an action name (as the key) and the associated *Capability* (as the value).
 
-To parse _Model_ from json file `filename`:
+*NonePass* defines columns, whose values should not be passed to the next actions as constraints.
+
+To parse _Model_ from the json file *filename*
+containing the *CRUD* capabilities and customized capabilities *custom*:
 
 ```go
 func NewModelJsonFile(filename string, custom ...map[string]Capability) (*Model, error)
 ```
 
-where _custom_ defines optional customized actions.
-
-If to write own parse function, make sure to run `Assertion` to assert right `Action` types:
+Note that if to write own parse function, make sure to run `Assertion` to assert right `Action` types:
 
 ```go
 func (self *Model) Assertion(custom ...map[string]Capability) error
@@ -422,7 +443,7 @@ func (self *Model) Assertion(custom ...map[string]Capability) error
 
 ### 2.4  *Edge*
 
-As in GraphQL, *godbi* allows an action to trigger multiple actions defined as a slice of *Edge*:
+As in GraphQL and gRPC, *godbi* allows action to trigger multiple actions using *Edge*:
 
 ```go
 type Edge struct {
@@ -433,7 +454,7 @@ type Edge struct {
 }
 ```
 
-where *Model* is the model name, *Action* the action name, *RelateItem* the map between the current data columns to next action's columns, whose values will be used as constraints, *Extra* the manually input constraint on the next action.
+where *Models* are defined as a map between names and instance of type *Model*, and *Model* in *Edge* denotes the name. *Action* is the action name, *RelateItem* the map between the current data columns to next action's columns, whose values will be used as constraints, *Extra* the manually-input constraint on the next action.
 
 Here is a use case. There are two tables, one for family and the other for children, corresponding to models named `ta` and `tb` respectively.
 We search the family name in `ta`, and want to show all children as well. Technically, it means we need to run a `Topics` action on *ta*. For each row returned, we run *Topics* on *tb*, constrained by the family ID in both the tables.
@@ -462,7 +483,7 @@ Parsing the JSON will build up a `map[string][]*Edge` structure.
 ### 2.5) Example
 
 <details>
-    <summary>Click for example to run Model actions</summary>
+    <summary>Click for Example 2</summary>
     <p>
 
 ```go
@@ -568,7 +589,7 @@ which returns the data as *[]map[string]interface{}*, and optional error.
 ### 3.3) Example
 
 <details>
-    <summary>Click for Graph</summary>
+    <summary>Click for Example 3</summary>
     <p>
 
 ```go
