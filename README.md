@@ -5,9 +5,9 @@ _godbi_ adds a set of high-level functions to the generic SQL handle in GO. Chec
 
 There are three levels of usages:
 
-- _Basic_: on raw SQL statements and receive data as *[]map[string]interface{}*
-- _Model_: on CRUD actions of a table.
-- _Graph_: on GraphQL/gRPC actions of a database
+- _Basic_: on raw SQL statements
+- _Model_: on CRUD actions of table.
+- _Graph_: on GraphQL/gRPC actions of database
 
 The package is fully tested in MySQL and PostgreSQL.
 
@@ -138,7 +138,7 @@ err = dbi.querySQLLabel(&lists,
 
 ### 1.5  _GetSQL_
 
-If there is only one row expected, this function returns it as a map.
+If there is only one row expected, it returns the data as a map.
 
 ```go
 func (*DBI) GetSQL(res map[string]interface{}, query string, labels []interface{}, args ...interface{}) error
@@ -203,7 +203,7 @@ func main() {
 }
 ```
 
-Running this example will result in
+Running the example will result in
 
 ```bash
 [map[id:1 x:m] map[id:2 x:n] map[id:3 x:p]]
@@ -244,7 +244,7 @@ type Table struct {
 
 where _CurrentTable_ is the table name; _Pks_ the primary key defined as a slice of columns; _IDAuto_ (optional) the column of a series number and _Fks_ (optional) the foreign key information.
 
-_Fks_ does not need to be a native foreign key defined in relational database, but a relationship between two tables. It is defined by 5 elements:
+_Fks_ defines a relationship between columns in two tables, which does not need to be a native foreign key:
 
 index | meaning
 ----- | -------------------------
@@ -254,7 +254,7 @@ index | meaning
 3 | the corresponding column of foreign table's PK in the current table
 4 | the signature name of current table's primary key
 
-Currently, to use this feature, we require tables' primary keys are single column.
+Currently, to use this feature, we require table's primary key is a single column.
 <br />
 
 ### 2.2  *Action*
@@ -275,19 +275,19 @@ type Capability interface {
 }
 ```
 
-where _Must_ is a slice of `NOT NULL` columns; _Nextpages_ other actions to follow after the current one is complete; and _Appendix_ optional data. For _Edge_, see below.
+where _Must_ is a slice of `NOT NULL` columns; _Nextpages_ other actions to follow after the current one is complete (for _Edge_, see below); and _Appendix_ optional data.
 
-In _RunActionContext_, _ARGS_ is the input data and _extras_ a slice of constraints for the current action and all follow-up actions. It returns the output data, the follow-up _Edge_s and error.
+In _RunActionContext_, _ARGS_ is the input data and _extras_ a slice of constraints for the current action and all follow-up actions. This function returns the output data, the follow-up _Edge_s and error.
 
 To define *extra*:
 
 key in *extra* | meaning
 -------------- | -------
-only one value | an EQUAL constraint
-multiple values | an IN constraint
+has one value | an EQUAL constraint
+has multiple values | an IN constraint
 named *_gsql* | a raw SQL statement
 
-Relationship AND is assumed among multiple keys.
+The AND relation is assumed among multiple keys.
 
 The following *CRUD* actions are pre-defined.
 
@@ -300,7 +300,7 @@ type Insert struct {
 }
 ```
 
-It adds a new row into _Columns_ of table. The columns data are extract from *ARGS* in _RunActionContext_.
+It adds a new row into _Columns_ of table. The input data are in *ARGS* defined in _RunActionContext_.
 
 #### 2.2.2) *Update*
 
@@ -312,8 +312,8 @@ ype Update struct {
 }
 ```
 
-It updates row's *Columns* using the primary key. Colummns in _Empties_ will
-be forced to empty or null if having no input data.
+It updates row's *Columns* using the primary key. _Empties_ defines columns
+which are forced to be empty or null if having no input data.
 
 #### 2.2.3) *Insupd*
 
@@ -325,7 +325,7 @@ type Insupd struct {
 }
 ```
 
-It checks if the input data is unique using the unique columns _Uniques_. If it exists, run a *Update* otherwise *Insert*.
+It checks if the input data is unique using input data from columns _Uniques_. If it exists, run a *Update* otherwise *Insert*.
 
 #### 2.2.4) *Edit*
 
