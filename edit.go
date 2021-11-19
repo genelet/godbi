@@ -31,7 +31,7 @@ func (self *Edit) RunActionContext(ctx context.Context, db *sql.DB, t *Table, AR
 	}
 
 	self.defaultNames()
-	sql, labels, table := self.filterPars(t.CurrentTable, ARGS, self.Rename, self.FIELDS, self.Joins)
+	sql, labels, table := self.filterPars(t.TableName, ARGS, self.Rename, self.FIELDS, self.Joins)
 
 	ids := t.getIdVal(ARGS, extra...)
 	if !hasValue(ids) {

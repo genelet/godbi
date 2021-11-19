@@ -170,7 +170,7 @@ func (self *Topics) RunActionContext(ctx context.Context, db *sql.DB, t *Table, 
 	}
 
 	self.defaultNames()
-	sql, labels, table := self.filterPars(t.CurrentTable, ARGS, self.Rename, self.FIELDS, self.Joins)
+	sql, labels, table := self.filterPars(t.TableName, ARGS, self.Rename, self.FIELDS, self.Joins)
 	err = self.pagination(ctx, db, t, ARGS, extra...)
 	if err != nil {
 		return nil, nil, err

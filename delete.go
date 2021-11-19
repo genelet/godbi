@@ -25,7 +25,7 @@ func (self *Delete) RunActionContext(ctx context.Context, db *sql.DB, t *Table, 
 		return nil, nil, fmt.Errorf("pk value not provided")
 	}
 
-	sql := "DELETE FROM " + t.CurrentTable
+	sql := "DELETE FROM " + t.TableName
 	where, values := t.singleCondition(ids, "", extra...)
 	if where != "" {
 		sql += "\nWHERE " + where

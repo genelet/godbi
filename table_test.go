@@ -18,7 +18,7 @@ func TestTable(t *testing.T) {
 		t.Fatal(err)
 	}
 	if table.Fks[4] != "campaign_id_md5" ||
-		table.CurrentTable != "adv_campaign" {
+		table.TableName != "adv_campaign" {
 		t.Errorf("%v", table)
 	}
 }

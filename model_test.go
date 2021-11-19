@@ -50,7 +50,7 @@ func TestModel(t *testing.T) {
 			}
 		case "sql":
 			sql := v.(*SQL)
-			if model.CurrentTable != "adv_campaign" ||
+			if model.TableName != "adv_campaign" ||
 				model.Pks[0] != "campaign_id" ||
 				model.Fks[4] != "campaign_id_md5" ||
 				sql.Nextpages[0].Action != "topics" ||

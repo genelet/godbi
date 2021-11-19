@@ -9,10 +9,10 @@ import (
 )
 
 type Table struct {
-	CurrentTable string   `json:"table" hcl:"table"`
-	Pks          []string `json:"pks,omitempty" hcl:"pks,optional"`
-	IDAuto       string   `json:"id_auto,omitempty" hcl:"id_auto,optional"`
-	Fks          []string `json:"fks,omitempty" hcl:"fks,optional"`
+	TableName string   `json:"table" hcl:"table"`
+	Pks       []string `json:"pks,omitempty" hcl:"pks,optional"`
+	IDAuto    string   `json:"id_auto,omitempty" hcl:"id_auto,optional"`
+	Fks       []string `json:"fks,omitempty" hcl:"fks,optional"`
 }
 
 func (self *Table) insertHashContext(ctx context.Context, db *sql.DB, args map[string]interface{}) (int64, error) {
@@ -24,7 +24,7 @@ func (self *Table) insertHashContext(ctx context.Context, db *sql.DB, args map[s
 			values = append(values, v)
 		}
 	}
-	sql := "INSERT INTO " + self.CurrentTable + " (" + strings.Join(fields, ", ") + ") VALUES (" + strings.Join(strings.Split(strings.Repeat("?", len(fields)), ""), ",") + ")"
+	sql := "INSERT INTO " + self.TableName + " (" + strings.Join(fields, ", ") + ") VALUES (" + strings.Join(strings.Split(strings.Repeat("?", len(fields)), ""), ",") + ")"
 	dbi := &DBI{DB: db}
 	err := dbi.DoSQLContext(ctx, sql, values...)
 	if err != nil {
@@ -52,7 +52,7 @@ func (self *Table) updateHashNullsContext(ctx context.Context, db *sql.DB, args 
 		values = append(values, v)
 	}
 
-	sql := "UPDATE " + self.CurrentTable + " SET " + strings.Join(field0, ", ")
+	sql := "UPDATE " + self.TableName + " SET " + strings.Join(field0, ", ")
 	for _, v := range empties {
 		if _, ok := args[v]; ok {
 			continue
@@ -74,7 +74,7 @@ func (self *Table) updateHashNullsContext(ctx context.Context, db *sql.DB, args 
 
 func (self *Table) insupdTableContext(ctx context.Context, db *sql.DB, args map[string]interface{}, uniques []string) (int64, error) {
 	changed := int64(0)
-	s := "SELECT " + strings.Join(self.Pks, ", ") + " FROM " + self.CurrentTable + "\nWHERE "
+	s := "SELECT " + strings.Join(self.Pks, ", ") + " FROM " + self.TableName + "\nWHERE "
 	v := make([]interface{}, 0)
 	for i, val := range uniques {
 		if i > 0 {
@@ -112,7 +112,7 @@ func (self *Table) insupdTableContext(ctx context.Context, db *sql.DB, args map[
 }
 
 func (self *Table) totalHashContext(ctx context.Context, db *sql.DB, v interface{}, extra ...map[string]interface{}) error {
-	str := "SELECT COUNT(*) FROM " + self.CurrentTable
+	str := "SELECT COUNT(*) FROM " + self.TableName
 
 	if hasValue(extra) {
 		where, values := selectCondition(extra[0], "")
