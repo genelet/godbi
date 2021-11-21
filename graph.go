@@ -93,11 +93,11 @@ func (self *Graph) RunContext(ctx context.Context, model, action string, ARGS ma
 			if hasValue(extra) {
 				newExtras = append(newExtras, extra[:1]...)
 			}
-			newLists, err := self.RunContext(ctx, page.Model, page.Action, ARGS, newExtras...)
+			newLists, err := self.RunContext(ctx, page.ModelName, page.ActionName, ARGS, newExtras...)
 			if err != nil {
 				return nil, err
 			}
-			item[page.Model+"_"+page.Action] = newLists
+			item[page.ModelName+"_"+page.ActionName] = newLists
 		}
 	}
 

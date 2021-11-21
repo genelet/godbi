@@ -36,7 +36,7 @@ func TestModel(t *testing.T) {
 			topics := v.(*Topics)
 			if topics.Nextpages != nil {
 				for i, page := range topics.Nextpages {
-					if (i == 0 && (page.Model != "adv_campaign")) ||
+					if (i == 0 && (page.ModelName != "adv_campaign")) ||
 						(i == 1 && (page.RelateItem["campaign_id"] != "campaign_id")) {
 						t.Errorf("%#v", page)
 					}
@@ -53,7 +53,7 @@ func TestModel(t *testing.T) {
 			if model.TableName != "adv_campaign" ||
 				model.Pks[0] != "campaign_id" ||
 				model.Fks[4] != "campaign_id_md5" ||
-				sql.Nextpages[0].Action != "topics" ||
+				sql.Nextpages[0].ActionName != "topics" ||
 				sql.Statement != "SELECT x, y, z FROM a WHERE b=?" {
 				t.Errorf("%#v", sql)
 			}

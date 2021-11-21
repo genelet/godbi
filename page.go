@@ -6,8 +6,8 @@ package godbi
 // Manual: constraint conditions manually assigned
 // RelateItem: current page's column versus next page's column, as constraints.
 type Edge struct {
-	Model      string            `json:"model" hcl:"model,label"`
-	Action     string            `json:"action" hcl:"action,label"`
+	ModelName  string            `json:"model" hcl:"model,label"`
+	ActionName string            `json:"action" hcl:"action,label"`
 	Manual     map[string]string `json:"manual,omitempty" hcl:"manual,optional"`
 	RelateItem map[string]string `json:"relate_item,omitempty" hcl:"relate_item"`
 }
