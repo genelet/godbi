@@ -33,19 +33,19 @@ func TestAction(t *testing.T) {
 	"must":["id"]
 	}`
 	topTable := `{
-	"rename":{
-		"x":["x","string"],
-		"y":["y","string"],
-		"z":["z","string"],
-		"id":["id","int"]}
-	}`
+	"rename":[
+		{"column_name": "x", "type_name":"string", "label":"x"},
+		{"column_name": "y", "type_name":"string", "label":"y"},
+		{"column_name": "z", "type_name":"string", "label":"z"},
+		{"column_name": "id", "type_name":"int", "label":"id"}
+	]}`
 	ediTable := `{
-	"rename":{
-		"x":["x","string"],
-		"y":["y","string"],
-		"z":["z","string"],
-		"id":["id","int"]}
-	}`
+	"rename":[
+		{"column_name": "x", "type_name":"string", "label":"x"},
+		{"column_name": "y", "type_name":"string", "label":"y"},
+		{"column_name": "z", "type_name":"string", "label":"z"},
+		{"column_name": "id", "type_name":"int", "label":"id"}
+	]}`
 	table := new(Table)
 	err = json.Unmarshal([]byte(tstr), table)
 	if err != nil {

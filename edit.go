@@ -6,10 +6,16 @@ import (
 	"fmt"
 )
 
+type Col struct {
+	ColumnName string `json:"column_name" hcl:"column_name"`
+	Label string      `json:"label" hcl:"label"`
+	TypeName string   `json:"type_name" hcl:"type_name"`
+}
+
 type Edit struct {
 	Action
 	Joins  []*Join             `json:"joins,omitempty" hcl:"join,block"`
-	Rename map[string][]string `json:"rename" hcl:"rename"`
+	Rename []*Col              `json:"rename" hcl:"rename"`
 	FIELDS string              `json:"fields,omitempty" hcl:"fields"`
 }
 
@@ -25,7 +31,7 @@ func (self *Edit) RunAction(db *sql.DB, t *Table, ARGS map[string]interface{}, e
 }
 
 func (self *Edit) RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...interface{}) ([]map[string]interface{}, []*Edge, error) {
-	err := self.checkNull(ARGS)
+	err := self.checkNull(ARGS, extra...)
 	if err != nil {
 		return nil, nil, err
 	}

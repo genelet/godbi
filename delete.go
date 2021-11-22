@@ -15,7 +15,7 @@ func (self *Delete) RunAction(db *sql.DB, t *Table, ARGS map[string]interface{},
 }
 
 func (self *Delete) RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...interface{}) ([]map[string]interface{}, []*Edge, error) {
-	err := self.checkNull(ARGS)
+	err := self.checkNull(ARGS, extra...)
 	if err != nil {
 		return nil, nil, err
 	}

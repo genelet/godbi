@@ -9,12 +9,12 @@
 				{"model":"adv_campaign", "action":"edit", "relate_item":{"campaign_id":"campaign_id"}},
 				{"model":"adv_item", "action":"topics", "manual":{"name":"john"}, "relate_item":{"campaign_id":"campaign_id"}}
 			],
-			"rename":{"adv_id":["adv_id","INT"],"campaign_id":["campaign_id","INT"],"campaign_name":["campaign_name","VARCHAR"]},
+			"rename":[{"column_name":"adv_id","label":"adv_id","type_name":"INT"},{"column_name":"campaign_id","label":"campaign_id","type_name":"INT"},{"column_name":"campaign_name","label":"campaign_name","type_name":"VARCHAR"}],
 			"total_force":1
 		},
 		"edit":{
 			"must":["campaign_id"],
-			"rename":{"adv_id":["adv_id","INT"],"campaign_id":["campaign_id","INT"],"campaign_name":["campaign_name","VARCHAR"]}
+			"rename":[{"column_name":"adv_id","label":"adv_id","type_name":"INT"},{"column_name":"campaign_id","label":"campaign_id","type_name":"INT"},{"column_name":"campaign_name","label":"campaign_name","type_name":"VARCHAR"}]
 		},
 		"insert":{
 			"must":["adv_id","campaign_name"],

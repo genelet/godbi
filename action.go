@@ -19,24 +19,22 @@ type Action struct {
 	Appendix  interface{} `json:"appendix,omitempty" hcl:"appendix,block"`
 }
 
-func (self *Action) filterPars(currentTable string, ARGS map[string]interface{}, rename map[string][]string, fieldsName string, joins []*Join) (string, []interface{}, string) {
+func (self *Action) filterPars(currentTable string, ARGS map[string]interface{}, rename []*Col, fieldsName string, joins []*Join) (string, []interface{}, string) {
 	var fields []string
 	if v, ok := ARGS[fieldsName]; ok {
 		fields = v.([]string)
 	}
 
-	shorts := make(map[string][2]string)
-	for k, v := range rename {
-		if fields == nil {
-			shorts[k] = [2]string{v[0], v[1]}
-		} else {
-			if grep(fields, k) {
-				shorts[k] = [2]string{v[0], v[1]}
-			}
+	keys := make([]string, 0)
+	labels := make([]interface{}, 0)
+	for _, col := range rename {
+		if fields==nil || grep (fields, col.ColumnName) {
+			keys = append(keys, col.ColumnName)
+			labels = append(labels, [2]string{col.Label, col.TypeName})
 		}
 	}
+	sql := strings.Join(keys, ", ")
 
-	sql, labels := selectType(shorts)
 	var table string
 	if hasValue(joins) {
 		sql = "SELECT " + sql + "\nFROM " + joinString(joins)
@@ -48,13 +46,31 @@ func (self *Action) filterPars(currentTable string, ARGS map[string]interface{},
 	return sql, labels, table
 }
 
-func (self *Action) checkNull(ARGS map[string]interface{}) error {
+func (self *Action) checkNull(ARGS map[string]interface{}, extra ...interface{}) error {
 	if self.Must == nil {
 		return nil
 	}
 	for _, item := range self.Must {
+		err := fmt.Errorf("item %s not found in input", item)
 		if _, ok := ARGS[item]; !ok {
-			return fmt.Errorf("item %s not found in input", item)
+			if hasValue(extra) {
+				switch t := extra[0].(type) {
+				case []map[string]interface{}:
+					for _, each := range t {
+						if _, ok = each[item]; !ok {
+							return err
+						}
+					}
+				case map[string]interface{}:
+					if _, ok = t[item]; !ok {
+						return err
+					}
+				default:
+					return err
+				}
+			} else {
+				return err
+			}
 		}
 	}
 	return nil
@@ -91,18 +107,4 @@ func getFv(pars []string, ARGS map[string]interface{}, fieldNames []string) map[
 		}
 	}
 	return fieldValues
-}
-
-func selectType(selectPars map[string][2]string) (string, []interface{}) {
-	if selectPars == nil {
-		return "", nil
-	}
-
-	keys := make([]string, 0)
-	labels := make([]interface{}, 0)
-	for key, val := range selectPars {
-		keys = append(keys, key)
-		labels = append(labels, val)
-	}
-	return strings.Join(keys, ", "), labels
 }

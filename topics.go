@@ -11,9 +11,9 @@ import (
 
 type Topics struct {
 	Action
-	Joins  []*Join             `json:"joins,omitempty" hcl:"join,block"`
-	Rename map[string][]string `json:"rename" hcl:"rename"`
-	FIELDS string              `json:"fields,omitempty" hcl:"fields"`
+	Joins  []*Join     `json:"joins,omitempty" hcl:"join,block"`
+	Rename []*Col      `json:"rename" hcl:"rename"`
+	FIELDS string      `json:"fields,omitempty" hcl:"fields"`
 
 	TotalForce  int    `json:"total_force,omitempty" hcl:"total_force,optional"`
 	MAXPAGENO   string `json:"maxpageno,omitempty" hcl:"maxpageno,optional"`
@@ -164,7 +164,7 @@ func (self *Topics) RunAction(db *sql.DB, t *Table, ARGS map[string]interface{},
 }
 
 func (self *Topics) RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...interface{}) ([]map[string]interface{}, []*Edge, error) {
-	err := self.checkNull(ARGS)
+	err := self.checkNull(ARGS, extra...)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -7,21 +7,21 @@
 			"columns": [ "id", "child" ]
 		},
 		"edit": {
-			"rename": {
-				"tid": [ "tid", "int" ],
-				"child": [ "child", "string" ],
-				"id": [ "id", "int" ]
-			}
+			"rename": [
+				{"column_name":"tid", "label":"tid", "type_name":"int"},
+				{"column_name":"child", "label":"child", "type_name":"string"},
+				{"column_name":"id", "label":"id", "type_name":"int"}
+			]
 		},
 		"delete": {
 			"must": [ "tid" ]
 		},
 		"topics": {
-			"rename": {
-				"tid": [ "tid", "int" ],
-				"child": [ "child", "string" ],
-				"id": [ "id", "int" ]
-			}
+			"rename": [
+				{"column_name":"tid", "label":"tid", "type_name":"int"},
+				{"column_name":"child", "label":"child", "type_name":"string"},
+				{"column_name":"id", "label":"id", "type_name":"int"}
+			]
 		}
 	}
 }

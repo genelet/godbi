@@ -91,20 +91,20 @@ func TestModelRun(t *testing.T) {
 		"must":["id"]
 	},
 	"topics":{
-		"rename":{
-		"x":["x","string"],
-		"y":["y","string"],
-		"z":["z","string"],
-		"id":["id","int"]
-		}
+        "rename": [
+            {"column_name":"x", "label":"x", "type_name":"string" },
+            {"column_name":"y", "label":"y", "type_name":"string" },
+            {"column_name":"z", "label":"z", "type_name":"string" },
+            {"column_name":"id", "label":"id", "type_name":"int" }
+        ]
 	},
 	"edit":{
-		"rename":{
-		"x":["x","string"],
-		"y":["y","string"],
-		"z":["z","string"],
-		"id":["id","int"]
-		}
+        "rename": [
+            {"column_name":"x", "label":"x", "type_name":"string" },
+            {"column_name":"y", "label":"y", "type_name":"string" },
+            {"column_name":"z", "label":"z", "type_name":"string" },
+            {"column_name":"id", "label":"id", "type_name":"int" }
+		]
 	}
 }}`
 	model, err := NewModelJson([]byte(str))
