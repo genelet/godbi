@@ -33,7 +33,7 @@ func (self *Table) insertHashContext(ctx context.Context, db *sql.DB, args map[s
 	return dbi.LastID, nil
 }
 
-func (self *Table) updateHashNullsContext(ctx context.Context, db *sql.DB, args map[string]interface{}, ids []interface{}, empties []string, extra ...map[string]interface{}) error {
+func (self *Table) updateHashNullsContext(ctx context.Context, db *sql.DB, args map[string]interface{}, ids []interface{}, empties []string, extra ...interface{}) error {
 	if empties == nil {
 		empties = make([]string, 0)
 	}
@@ -111,7 +111,7 @@ func (self *Table) insupdTableContext(ctx context.Context, db *sql.DB, args map[
 	return changed, err
 }
 
-func (self *Table) totalHashContext(ctx context.Context, db *sql.DB, v interface{}, extra ...map[string]interface{}) error {
+func (self *Table) totalHashContext(ctx context.Context, db *sql.DB, v interface{}, extra ...interface{}) error {
 	str := "SELECT COUNT(*) FROM " + self.TableName
 
 	if hasValue(extra) {
@@ -125,14 +125,14 @@ func (self *Table) totalHashContext(ctx context.Context, db *sql.DB, v interface
 	return db.QueryRowContext(ctx, str).Scan(v)
 }
 
-func (self *Table) getIdVal(ARGS map[string]interface{}, extra ...map[string]interface{}) []interface{} {
+func (self *Table) getIdVal(ARGS map[string]interface{}, extra ...interface{}) []interface{} {
 	if hasValue(extra) {
 		return properValues(self.Pks, ARGS, extra[0])
 	}
 	return properValues(self.Pks, ARGS, nil)
 }
 
-func (self *Table) singleCondition(ids []interface{}, table string, extra ...map[string]interface{}) (string, []interface{}) {
+func (self *Table) singleCondition(ids []interface{}, table string, extra ...interface{}) (string, []interface{}) {
 	keys := self.Pks
 	sql := ""
 	extraValues := make([]interface{}, 0)
@@ -161,43 +161,51 @@ func (self *Table) singleCondition(ids []interface{}, table string, extra ...map
 	if hasValue(extra) && hasValue(extra[0]) {
 		s, arr := selectCondition(extra[0], table)
 		sql += " AND " + s
-		for _, v := range arr {
-			extraValues = append(extraValues, v)
+		for _, u := range arr {
+			extraValues = append(extraValues, u)
 		}
 	}
 
 	return sql, extraValues
 }
 
-func properValue(v string, ARGS, extra map[string]interface{}) interface{} {
+func properValue(u string, ARGS map[string]interface{}, extra interface{}) interface{} {
 	if !hasValue(extra) {
-		return ARGS[v]
+		return ARGS[u]
 	}
-	if val, ok := extra[v]; ok {
-		return val
+	switch v := extra.(type) {
+	case map[string]interface{}:
+		if val, ok := v[u]; ok {
+			return val
+		}
+	default:
 	}
-	return ARGS[v]
+	return ARGS[u]
 }
 
-func properValues(vs []string, ARGS, extra map[string]interface{}) []interface{} {
-	outs := make([]interface{}, len(vs))
+func properValues(us []string, ARGS map[string]interface{}, extra interface{}) []interface{} {
+	outs := make([]interface{}, len(us))
 	if !hasValue(extra) {
-		for i, v := range vs {
-			outs[i] = ARGS[v]
+		for i, u := range us {
+			outs[i] = ARGS[u]
 		}
 		return outs
 	}
-	for i, v := range vs {
-		if val, ok := extra[v]; ok {
-			outs[i] = val
-		} else {
-			outs[i] = ARGS[v]
+	switch v := extra.(type) {
+	case map[string]interface{}:
+		for i, u := range us {
+			if val, ok := v[u]; ok {
+				outs[i] = val
+			} else {
+				outs[i] = ARGS[u]
+			}
 		}
+	default:
 	}
 	return outs
 }
 
-func properValuesHash(vs []string, ARGS, extra map[string]interface{}) map[string]interface{} {
+func properValuesHash(vs []string, ARGS map[string]interface{}, extra interface{}) map[string]interface{} {
 	values := properValues(vs, ARGS, extra)
 	hash := make(map[string]interface{})
 	for i, v := range vs {
@@ -206,11 +214,15 @@ func properValuesHash(vs []string, ARGS, extra map[string]interface{}) map[strin
 	return hash
 }
 
-func selectCondition(extra map[string]interface{}, table string) (string, []interface{}) {
+func selectCondition(extra interface{}, table string) (string, []interface{}) {
 	sql := ""
 	values := make([]interface{}, 0)
 	i := 0
-	for field, valueInterface := range extra {
+
+	switch vt := extra.(type) {
+	case map[string]interface{}:
+
+	for field, valueInterface := range vt {
 		if i > 0 {
 			sql += " AND "
 		}
@@ -255,6 +267,9 @@ func selectCondition(extra map[string]interface{}, table string) (string, []inte
 			values = append(values, value)
 		}
 		sql += ")"
+	}
+
+	default:
 	}
 
 	return sql, values

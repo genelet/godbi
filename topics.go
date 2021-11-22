@@ -110,7 +110,7 @@ func (self *Topics) orderString(t *Table, ARGS map[string]interface{}) string {
 	return order
 }
 
-func (self *Topics) pagination(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) error {
+func (self *Topics) pagination(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...interface{}) error {
 	nameTotalno := self.TOTALNO
 	nameRowcount := self.ROWCOUNT
 	namePageno := self.PAGENO
@@ -159,11 +159,11 @@ func (self *Topics) pagination(ctx context.Context, db *sql.DB, t *Table, ARGS m
 	return nil
 }
 
-func (self *Topics) RunAction(db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Edge, error) {
+func (self *Topics) RunAction(db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...interface{}) ([]map[string]interface{}, []*Edge, error) {
 	return self.RunActionContext(context.Background(), db, t, ARGS, extra...)
 }
 
-func (self *Topics) RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Edge, error) {
+func (self *Topics) RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...interface{}) ([]map[string]interface{}, []*Edge, error) {
 	err := self.checkNull(ARGS)
 	if err != nil {
 		return nil, nil, err

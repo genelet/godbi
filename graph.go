@@ -24,7 +24,7 @@ func NewGraph(db *sql.DB, s map[string]Navigate) *Graph {
 // The first extra is the input data, shared by all sub actions.
 // The rest are specific data for each action starting with the current one.
 //
-func (self *Graph) Run(model, action string, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
+func (self *Graph) Run(model, action string, ARGS map[string]interface{}, extra ...interface{}) ([]map[string]interface{}, error) {
 	return self.RunContext(context.Background(), model, action, ARGS, extra...)
 }
 
@@ -35,7 +35,7 @@ func (self *Graph) Run(model, action string, ARGS map[string]interface{}, extra 
 // The first extra is the input data, shared by all sub actions.
 // The rest are specific data for each action starting with the current one.
 //
-func (self *Graph) RunContext(ctx context.Context, model, action string, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
+func (self *Graph) RunContext(ctx context.Context, model, action string, ARGS map[string]interface{}, extra ...interface{}) ([]map[string]interface{}, error) {
 	modelObj, ok := self.Models[model]
 	if !ok {
 		return nil, fmt.Errorf("model %s not found in graph", model)
@@ -44,11 +44,20 @@ func (self *Graph) RunContext(ctx context.Context, model, action string, ARGS ma
 	nones := modelObj.NonePass(action)
 	// nones input should be moved from extra to ARGS
 	if nones != nil && hasValue(extra) && hasValue(extra[0]) {
-		for _, item := range nones {
-			if fs, ok := extra[0][item]; ok {
-				ARGS[item] = fs
-				delete(extra[0], item)
+		switch v := extra[0].(type) {
+		case map[string]interface{}:
+			newExtra := make(map[string]interface{})
+			for key, value := range v {
+				for _, item := range nones {
+					if item == key {
+						ARGS[key] = value
+					} else {
+						newExtra[key] = value
+					}
+				}
 			}
+			extra[0] = newExtra
+		default:
 		}
 	}
 
@@ -75,29 +84,26 @@ func (self *Graph) RunContext(ctx context.Context, model, action string, ARGS ma
 		if hasValue(extra) {
 			extra = extra[1:]
 		}
-		extra0 := make(map[string]interface{})
+		//extra0 := make(map[string]interface{})
+		var extra0 interface{}
 		if hasValue(extra) {
 			extra0 = extra[0]
 		}
-		if page.Manual != nil {
-			for k, v := range page.Manual {
-				extra0[k] = v
-			}
-		}
+		extra0 = page.manualRefresh(extra0)
 		for _, item := range lists {
 			newExtra0, ok := page.refresh(item, extra0)
 			if !ok {
 				continue
 			}
-			newExtras := []map[string]interface{}{newExtra0}
+			newExtras := []interface{}{newExtra0}
 			if hasValue(extra) {
 				newExtras = append(newExtras, extra[:1]...)
 			}
-			newLists, err := self.RunContext(ctx, page.ModelName, page.ActionName, ARGS, newExtras...)
+			newLists, err := self.RunContext(ctx, page.TableName, page.ActionName, ARGS, newExtras...)
 			if err != nil {
 				return nil, err
 			}
-			item[page.ModelName+"_"+page.ActionName] = newLists
+			item[page.TableName+"_"+page.ActionName] = newLists
 		}
 	}
 

@@ -10,7 +10,7 @@ import (
 // Action is to implement Capability interface
 //
 type Capability interface {
-	RunActionContext(context.Context, *sql.DB, *Table, map[string]interface{}, ...map[string]interface{}) ([]map[string]interface{}, []*Edge, error)
+	RunActionContext(context.Context, *sql.DB, *Table, map[string]interface{}, ...interface{}) ([]map[string]interface{}, []*Edge, error)
 }
 
 type Action struct {

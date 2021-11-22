@@ -12,7 +12,7 @@ import (
 //
 type Navigate interface {
 	NonePass(string) []string
-	RunModelContext(context.Context, *sql.DB, string, map[string]interface{}, ...map[string]interface{}) ([]map[string]interface{}, []*Edge, error)
+	RunModelContext(context.Context, *sql.DB, string, map[string]interface{}, ...interface{}) ([]map[string]interface{}, []*Edge, error)
 }
 
 type Model struct {
@@ -51,10 +51,14 @@ func (self *Model) Assertion(custom ...map[string]Capability) error {
 			switch name {
 			case "insert":
 				tran = new(Insert)
+			case "inserts":
+				tran = new(Inserts)
 			case "update":
 				tran = new(Update)
 			case "insupd":
 				tran = new(Insupd)
+			case "insupds":
+				tran = new(Insupds)
 			case "edit":
 				tran = new(Edit)
 			case "topics":
@@ -75,11 +79,11 @@ func (self *Model) Assertion(custom ...map[string]Capability) error {
 	return nil
 }
 
-func (self *Model) RunModel(db *sql.DB, action string, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Edge, error) {
+func (self *Model) RunModel(db *sql.DB, action string, ARGS map[string]interface{}, extra ...interface{}) ([]map[string]interface{}, []*Edge, error) {
 	return self.RunModelContext(context.Background(), db, action, ARGS, extra...)
 }
 
-func (self *Model) RunModelContext(ctx context.Context, db *sql.DB, action string, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Edge, error) {
+func (self *Model) RunModelContext(ctx context.Context, db *sql.DB, action string, ARGS map[string]interface{}, extra ...interface{}) ([]map[string]interface{}, []*Edge, error) {
 	if self.Actions == nil {
 		return nil, nil, fmt.Errorf("actions is nil")
 	}

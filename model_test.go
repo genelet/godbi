@@ -13,7 +13,7 @@ type SQL struct {
 	Statement string   `json:"statement"`
 }
 
-func (self *SQL) RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Edge, error) {
+func (self *SQL) RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...interface{}) ([]map[string]interface{}, []*Edge, error) {
 	v, ok := ARGS[self.Must[0]]
 	if !ok {
 		return nil, nil, fmt.Errorf("missing %s in input", self.Must[0])
@@ -36,7 +36,7 @@ func TestModel(t *testing.T) {
 			topics := v.(*Topics)
 			if topics.Nextpages != nil {
 				for i, page := range topics.Nextpages {
-					if (i == 0 && (page.ModelName != "adv_campaign")) ||
+					if (i == 0 && (page.TableName != "adv_campaign")) ||
 						(i == 1 && (page.RelateItem["campaign_id"] != "campaign_id")) {
 						t.Errorf("%#v", page)
 					}
