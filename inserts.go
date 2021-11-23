@@ -50,8 +50,8 @@ func (self *Inserts) RunActionContext(ctx context.Context, db *sql.DB, t *Table,
 				if err != nil {
 					return nil, nil, err
 				}
-				if t.IDAuto != "" {
-					item[t.IDAuto] = autoID
+				if t.IdAuto != "" {
+					item[t.IdAuto] = autoID
 				}
 				multi = append(multi, item)
 			}

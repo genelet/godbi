@@ -14,7 +14,8 @@ type Capability interface {
 }
 
 type Action struct {
-	Must      []string    `json:"must,omitempty" hcl:"must,optional"`
+	ActionName string     `json:"actionName,omitempty" hcl:"actionName,optional"`
+	Musts     []string    `json:"musts,omitempty" hcl:"musts,optional"`
 	Nextpages []*Edge     `json:"nextpages,omitempty" hcl:"nextpage,block"`
 	Appendix  interface{} `json:"appendix,omitempty" hcl:"appendix,block"`
 }
@@ -47,10 +48,10 @@ func (self *Action) filterPars(currentTable string, ARGS map[string]interface{},
 }
 
 func (self *Action) checkNull(ARGS map[string]interface{}, extra ...interface{}) error {
-	if self.Must == nil {
+	if self.Musts == nil {
 		return nil
 	}
-	for _, item := range self.Must {
+	for _, item := range self.Musts {
 		err := fmt.Errorf("item %s not found in input", item)
 		if _, ok := ARGS[item]; !ok {
 			if hasValue(extra) {

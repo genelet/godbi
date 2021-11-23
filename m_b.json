@@ -8,19 +8,19 @@
 		},
 		"edit": {
 			"rename": [
-				{"column_name":"tid", "label":"tid", "type_name":"int"},
-				{"column_name":"child", "label":"child", "type_name":"string"},
-				{"column_name":"id", "label":"id", "type_name":"int"}
+				{"columnName":"tid", "label":"tid", "typeName":"int"},
+				{"columnName":"child", "label":"child", "typeName":"string"},
+				{"columnName":"id", "label":"id", "typeName":"int"}
 			]
 		},
 		"delete": {
-			"must": [ "tid" ]
+			"musts": [ "tid" ]
 		},
 		"topics": {
 			"rename": [
-				{"column_name":"tid", "label":"tid", "type_name":"int"},
-				{"column_name":"child", "label":"child", "type_name":"string"},
-				{"column_name":"id", "label":"id", "type_name":"int"}
+				{"columnName":"tid", "label":"tid", "typeName":"int"},
+				{"columnName":"child", "label":"child", "typeName":"string"},
+				{"columnName":"id", "label":"id", "typeName":"int"}
 			]
 		}
 	}

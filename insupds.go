@@ -50,8 +50,8 @@ func (self *Insupds) RunActionContext(ctx context.Context, db *sql.DB, t *Table,
 					return nil, nil, err
 				}
 
-				if t.IDAuto != "" {
-					item[t.IDAuto] = changed
+				if t.IdAuto != "" {
+					item[t.IdAuto] = changed
 				}
 				multi = append(multi, item)
 			}

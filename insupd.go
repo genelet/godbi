@@ -47,8 +47,8 @@ func (self *Insupd) RunActionContext(ctx context.Context, db *sql.DB, t *Table, 
 		return nil, nil, err
 	}
 
-	if t.IDAuto != "" {
-		fieldValues[t.IDAuto] = changed
+	if t.IdAuto != "" {
+		fieldValues[t.IdAuto] = changed
 	}
 
 	return fromFv(fieldValues), self.Nextpages, nil

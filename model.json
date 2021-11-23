@@ -6,18 +6,18 @@
 	"actions":{
 		"topics":{
 			"nextpages": [
-				{"model":"adv_campaign", "action":"edit", "relate_item":{"campaign_id":"campaign_id"}},
-				{"model":"adv_item", "action":"topics", "manual":{"name":"john"}, "relate_item":{"campaign_id":"campaign_id"}}
+				{"model":"adv_campaign", "action":"edit", "relateItem":{"campaign_id":"campaign_id"}},
+				{"model":"adv_item", "action":"topics", "manual":{"name":"john"}, "relateItem":{"campaign_id":"campaign_id"}}
 			],
-			"rename":[{"column_name":"adv_id","label":"adv_id","type_name":"INT"},{"column_name":"campaign_id","label":"campaign_id","type_name":"INT"},{"column_name":"campaign_name","label":"campaign_name","type_name":"VARCHAR"}],
+			"rename":[{"columnName":"adv_id","label":"adv_id","typeName":"INT"},{"columnName":"campaign_id","label":"campaign_id","typeName":"INT"},{"columnName":"campaign_name","label":"campaign_name","typeName":"VARCHAR"}],
 			"total_force":1
 		},
 		"edit":{
-			"must":["campaign_id"],
-			"rename":[{"column_name":"adv_id","label":"adv_id","type_name":"INT"},{"column_name":"campaign_id","label":"campaign_id","type_name":"INT"},{"column_name":"campaign_name","label":"campaign_name","type_name":"VARCHAR"}]
+			"musts":["campaign_id"],
+			"rename":[{"columnName":"adv_id","label":"adv_id","typeName":"INT"},{"columnName":"campaign_id","label":"campaign_id","typeName":"INT"},{"columnName":"campaign_name","label":"campaign_name","typeName":"VARCHAR"}]
 		},
 		"insert":{
-			"must":["adv_id","campaign_name"],
+			"musts":["adv_id","campaign_name"],
 			"columns":["adv_id","campaign_name"]
 		},
 		"update":{
@@ -25,20 +25,20 @@
 			"empties":["created"]
 		},
 		"insupd":{
-			"must":["adv_id","campaign_name"],
+			"musts":["adv_id","campaign_name"],
 			"columns":["adv_id","campaign_name"],
 			"uniques":["adv_id","campaign_id"]
 		},
 		"sql":{
-			"must":["bravo"],
+			"musts":["bravo"],
 			"columns":["fistname", "lastname", "nick"],
 			"statement":"SELECT x, y, z FROM a WHERE b=?",
 			"nextpages": [
-				{"model":"adv_creative", "action":"topics", "manual":{"name":"john"}, "relate_item":{"nick":"nickname"}}
+				{"model":"adv_creative", "action":"topics", "manual":{"name":"john"}, "relateItem":{"nick":"nickname"}}
 			]
 		},
 		"delete":{
-			"must":["campaign_id"]
+			"musts":["campaign_id"]
 		}
 	}
 }

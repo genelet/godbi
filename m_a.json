@@ -1,7 +1,7 @@
 {
 	"table": "m_a",
 	"pks": [ "id" ],
-	"id_auto": "id",
+	"idAuto": "id",
 	"actions": {
 		"insupd": {
 			"columns": [ "x", "y", "z" ],
@@ -10,7 +10,7 @@
 				{
 					"model": "tb",
 					"action": "insert",
-					"relate_item": { "id": "id" }
+					"relateItem": { "id": "id" }
 				}
 			]
 		},
@@ -20,40 +20,40 @@
 				{
 					"model": "tb",
 					"action": "insert",
-					"relate_item": { "id": "id" }
+					"relateItem": { "id": "id" }
 				}
 			]
 		},
 		"edit": {
 			"rename": [
-				{"column_name":"x", "label":"x", "type_name":"string" },
-				{"column_name":"y", "label":"y", "type_name":"string" },
-				{"column_name":"z", "label":"z", "type_name":"string" },
-				{"column_name":"id", "label":"id", "type_name":"int" }
+				{"columnName":"x", "label":"x", "typeName":"string" },
+				{"columnName":"y", "label":"y", "typeName":"string" },
+				{"columnName":"z", "label":"z", "typeName":"string" },
+				{"columnName":"id", "label":"id", "typeName":"int" }
 			],
 			"nextpages": [
 				{
 					"model": "tb",
 					"action": "topics",
-					"relate_item": { "id": "id" }
+					"relateItem": { "id": "id" }
 				}
 			]
 		},
 		"delete": {
-			"must": [ "id" ]
+			"musts": [ "id" ]
 		},
 		"topics": {
 			"rename": [
-				{"column_name":"x", "label":"x", "type_name":"string" },
-				{"column_name":"y", "label":"y", "type_name":"string" },
-				{"column_name":"z", "label":"z", "type_name":"string" },
-				{"column_name":"id", "label":"id", "type_name":"int" }
+				{"columnName":"x", "label":"x", "typeName":"string" },
+				{"columnName":"y", "label":"y", "typeName":"string" },
+				{"columnName":"z", "label":"z", "typeName":"string" },
+				{"columnName":"id", "label":"id", "typeName":"int" }
 			],
 			"nextpages": [
 				{
 					"model": "ta",
 					"action": "edit",
-					"relate_item": { "id": "id" }
+					"relateItem": { "id": "id" }
 				}
 			]
 		}

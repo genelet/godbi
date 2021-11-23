@@ -48,8 +48,8 @@ func (self *Insert) RunActionContext(ctx context.Context, db *sql.DB, t *Table, 
 		return nil, nil, err
 	}
 
-	if t.IDAuto != "" {
-		fieldValues[t.IDAuto] = autoID
+	if t.IdAuto != "" {
+		fieldValues[t.IdAuto] = autoID
 	}
 
 	return fromFv(fieldValues), self.Nextpages, nil

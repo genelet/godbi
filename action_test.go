@@ -22,7 +22,7 @@ func TestAction(t *testing.T) {
     "id_auto":"id"
 	}`
 	insTable := `{
-	"must":["x","y"],
+	"musts":["x","y"],
 	"columns":["x","y","z"]
 	}`
 	inuTable := `{
@@ -30,21 +30,21 @@ func TestAction(t *testing.T) {
 	"columns":["x","y","z"]
 	}`
 	delTable := `{
-	"must":["id"]
+	"musts":["id"]
 	}`
 	topTable := `{
 	"rename":[
-		{"column_name": "x", "type_name":"string", "label":"x"},
-		{"column_name": "y", "type_name":"string", "label":"y"},
-		{"column_name": "z", "type_name":"string", "label":"z"},
-		{"column_name": "id", "type_name":"int", "label":"id"}
+		{"columnName": "x", "typeName":"string", "label":"x"},
+		{"columnName": "y", "typeName":"string", "label":"y"},
+		{"columnName": "z", "typeName":"string", "label":"z"},
+		{"columnName": "id", "typeName":"int", "label":"id"}
 	]}`
 	ediTable := `{
 	"rename":[
-		{"column_name": "x", "type_name":"string", "label":"x"},
-		{"column_name": "y", "type_name":"string", "label":"y"},
-		{"column_name": "z", "type_name":"string", "label":"z"},
-		{"column_name": "id", "type_name":"int", "label":"id"}
+		{"columnName": "x", "typeName":"string", "label":"x"},
+		{"columnName": "y", "typeName":"string", "label":"y"},
+		{"columnName": "z", "typeName":"string", "label":"z"},
+		{"columnName": "id", "typeName":"int", "label":"id"}
 	]}`
 	table := new(Table)
 	err = json.Unmarshal([]byte(tstr), table)

@@ -14,9 +14,9 @@ type SQL struct {
 }
 
 func (self *SQL) RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...interface{}) ([]map[string]interface{}, []*Edge, error) {
-	v, ok := ARGS[self.Must[0]]
+	v, ok := ARGS[self.Musts[0]]
 	if !ok {
-		return nil, nil, fmt.Errorf("missing %s in input", self.Must[0])
+		return nil, nil, fmt.Errorf("missing %s in input", self.Musts[0])
 	}
 	lists := make([]map[string]interface{}, 0)
 	dbi := &DBI{DB: db}
@@ -80,7 +80,7 @@ func TestModelRun(t *testing.T) {
 	"actions":
 {
 	"insert":{
-		"must":["x","y"],
+		"musts":["x","y"],
 		"columns":["x","y","z"]
 	},
 	"insupd":{
@@ -88,22 +88,22 @@ func TestModelRun(t *testing.T) {
 		"columns":["x","y","z"]
 	},
 	"delete":{
-		"must":["id"]
+		"musts":["id"]
 	},
 	"topics":{
         "rename": [
-            {"column_name":"x", "label":"x", "type_name":"string" },
-            {"column_name":"y", "label":"y", "type_name":"string" },
-            {"column_name":"z", "label":"z", "type_name":"string" },
-            {"column_name":"id", "label":"id", "type_name":"int" }
+            {"columnName":"x", "label":"x", "typeName":"string" },
+            {"columnName":"y", "label":"y", "typeName":"string" },
+            {"columnName":"z", "label":"z", "typeName":"string" },
+            {"columnName":"id", "label":"id", "typeName":"int" }
         ]
 	},
 	"edit":{
         "rename": [
-            {"column_name":"x", "label":"x", "type_name":"string" },
-            {"column_name":"y", "label":"y", "type_name":"string" },
-            {"column_name":"z", "label":"z", "type_name":"string" },
-            {"column_name":"id", "label":"id", "type_name":"int" }
+            {"columnName":"x", "label":"x", "typeName":"string" },
+            {"columnName":"y", "label":"y", "typeName":"string" },
+            {"columnName":"z", "label":"z", "typeName":"string" },
+            {"columnName":"id", "label":"id", "typeName":"int" }
 		]
 	}
 }}`

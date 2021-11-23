@@ -11,7 +11,7 @@ import (
 type Table struct {
 	TableName string   `json:"table" hcl:"table"`
 	Pks       []string `json:"pks,omitempty" hcl:"pks,optional"`
-	IDAuto    string   `json:"id_auto,omitempty" hcl:"id_auto,optional"`
+	IdAuto    string   `json:"idAuto,omitempty" hcl:"idAuto,optional"`
 	Fks       []string `json:"fks,omitempty" hcl:"fks,optional"`
 }
 

@@ -449,7 +449,7 @@ As in GraphQL and gRPC, *godbi* allows action to trigger multiple actions using 
 type Edge struct {
     Model      string            `json:"model"`                 // name of the next model to call  
     Action     string            `json:"action"`                // action name of the next model
-    RelateItem map[string]string `json:"relate_item,omitempty"` // column name mapped to that of the next model
+    RelateItem map[string]string `json:"relateItem,omitempty"` // column name mapped to that of the next model
     Extra      map[string]string `json:"extra,omitempty"`      // manually assign these constraints
 }
 ```
@@ -468,7 +468,7 @@ So *Nextpages* of *Topics* on *ta* will look like:
 ```json
 {
     "topics" : [
-        {"model":"tb", "action":"topics", "relate_item":{"id":"id"}}
+        {"model":"tb", "action":"topics", "relateItem":{"id":"id"}}
     ]
 }
 ```

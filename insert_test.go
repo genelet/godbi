@@ -11,7 +11,7 @@ func TestInsert(t *testing.T) {
     "table":"adv_campaign",
     "pks":["campaign_id"],
     "id_auto":"campaign_id",
-	"must":["adv_id","campaign_name"],
+	"musts":["adv_id","campaign_name"],
 	"columns":["adv_id","campaign_name"]
 	}`
 	insert := new(Insert)
@@ -19,7 +19,7 @@ func TestInsert(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if insert.Must[1] != "campaign_name" ||
+	if insert.Musts[1] != "campaign_name" ||
 		insert.Columns[0] != "adv_id" {
 		t.Errorf("%v", insert)
 	}

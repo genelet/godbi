@@ -6,7 +6,7 @@ import (
 )
 
 func TestEdge(t *testing.T) {
-	str := `{"model":"adv_campaign", "action":"edit", "relate_item":{"campaign_id":"c_id"}}`
+	str := `{"model":"adv_campaign", "action":"edit", "relateItem":{"campaign_id":"c_id"}}`
 	page := new(Edge)
 	err := json.Unmarshal([]byte(str), page)
 	if err != nil {

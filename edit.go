@@ -7,9 +7,9 @@ import (
 )
 
 type Col struct {
-	ColumnName string `json:"column_name" hcl:"column_name"`
+	ColumnName string `json:"columnName" hcl:"columnName"`
 	Label string      `json:"label" hcl:"label"`
-	TypeName string   `json:"type_name" hcl:"type_name"`
+	TypeName string   `json:"typeName" hcl:"typeName"`
 }
 
 type Edit struct {
