@@ -16,7 +16,7 @@ type Capability interface {
 type Action struct {
 	ActionName string     `json:"actionName,omitempty" hcl:"actionName,optional"`
 	Musts     []string    `json:"musts,omitempty" hcl:"musts,optional"`
-	Nextpages []*Edge     `json:"nextpages,omitempty" hcl:"nextpage,block"`
+	Nextpages []*Edge     `json:"nextpages,omitempty" hcl:"nextpages,block"`
 	Appendix  interface{} `json:"appendix,omitempty" hcl:"appendix,block"`
 }
 
@@ -54,7 +54,7 @@ func (self *Action) checkNull(ARGS map[string]interface{}, extra ...interface{})
 	for _, item := range self.Musts {
 		err := fmt.Errorf("item %s not found in input", item)
 		if _, ok := ARGS[item]; !ok {
-			if hasValue(extra) {
+			if hasValue(extra) && hasValue(extra[0]) {
 				switch t := extra[0].(type) {
 				case []map[string]interface{}:
 					for _, each := range t {

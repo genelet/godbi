@@ -28,7 +28,7 @@ func (self *Insert) RunActionContext(ctx context.Context, db *sql.DB, t *Table, 
 	}
 
 	fieldValues := getFv(self.Columns, ARGS, nil)
-	if hasValue(extra) {
+	if hasValue(extra) && hasValue(extra[0]) {
 		switch v := extra[0].(type) {
 		case map[string]interface{}:
 			for key, value := range v {
