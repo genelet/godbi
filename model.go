@@ -26,10 +26,10 @@ func NewModelJsonFile(fn string, custom ...Capability) (*Model, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewModelJson(dat, custom...)
+	return NewModelJson(json.RawMessage(dat), custom...)
 }
 
-func NewModelJson(dat []byte, custom ...Capability) (*Model, error) {
+func NewModelJson(dat json.RawMessage, custom ...Capability) (*Model, error) {
 	type m struct {
 		Table
 		Actions []interface{} `json:"actions,omitempty"`
