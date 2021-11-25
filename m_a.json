@@ -2,29 +2,32 @@
 	"table": "m_a",
 	"pks": [ "id" ],
 	"idAuto": "id",
-	"actions": {
-		"insupd": {
+	"actions": [
+		{
+			"actionName": "insupd",
 			"columns": [ "x", "y", "z" ],
 			"uniques": [ "x", "y" ],
 			"nextpages": [
 				{
-					"model": "tb",
+					"table": "m_b",
 					"action": "insert",
 					"relateItem": { "id": "id" }
 				}
 			]
 		},
-		"insert": {
+		{
+			"actionName": "insert",
 			"columns": [ "x", "y", "z" ],
 			"nextpages": [
 				{
-					"model": "tb",
+					"table": "m_b",
 					"action": "insert",
 					"relateItem": { "id": "id" }
 				}
 			]
 		},
-		"edit": {
+		{
+			"actionName": "edit",
 			"rename": [
 				{"columnName":"x", "label":"x", "typeName":"string" },
 				{"columnName":"y", "label":"y", "typeName":"string" },
@@ -33,16 +36,18 @@
 			],
 			"nextpages": [
 				{
-					"model": "tb",
+					"table": "m_b",
 					"action": "topics",
 					"relateItem": { "id": "id" }
 				}
 			]
 		},
-		"delete": {
+		{
+			"actionName": "delete",
 			"musts": [ "id" ]
 		},
-		"topics": {
+		{
+			"actionName": "topics",
 			"rename": [
 				{"columnName":"x", "label":"x", "typeName":"string" },
 				{"columnName":"y", "label":"y", "typeName":"string" },
@@ -51,11 +56,11 @@
 			],
 			"nextpages": [
 				{
-					"model": "ta",
+					"table": "m_a",
 					"action": "edit",
 					"relateItem": { "id": "id" }
 				}
 			]
 		}
-	}
+	]
 }

@@ -11,16 +11,17 @@ import (
 // Model is to implement Navigate interface
 //
 type Navigate interface {
+	GetName() string
 	NonePass(string) []string
 	RunModelContext(context.Context, *sql.DB, string, map[string]interface{}, ...interface{}) ([]map[string]interface{}, []*Edge, error)
 }
 
 type Model struct {
 	Table
-	Actions map[string]interface{} `json:"actions,omitempty" hcl:"actions,optional"`
+	Actions []Capability `json:"actions,omitempty" hcl:"actions,optional"`
 }
 
-func NewModelJsonFile(fn string, custom ...map[string]Capability) (*Model, error) {
+func NewModelJsonFile(fn string, custom ...Capability) (*Model, error) {
 	dat, err := ioutil.ReadFile(fn)
 	if err != nil {
 		return nil, err
@@ -28,26 +29,46 @@ func NewModelJsonFile(fn string, custom ...map[string]Capability) (*Model, error
 	return NewModelJson(dat, custom...)
 }
 
-func NewModelJson(dat []byte, custom ...map[string]Capability) (*Model, error) {
-	model := new(Model)
-	err := json.Unmarshal(dat, model)
-	if err == nil {
-		err = model.Assertion(custom...)
+func NewModelJson(dat []byte, custom ...Capability) (*Model, error) {
+	type m struct {
+		Table
+		Actions []interface{} `json:"actions,omitempty"`
 	}
-	return model, err
+	tmp := &m{}
+	if err := json.Unmarshal(dat, tmp); err != nil {
+		return nil, err
+	}
+	actions, err := Assertion(tmp.Actions, custom...)
+	return &Model{tmp.Table, actions}, err
 }
 
-func (self *Model) Assertion(custom ...map[string]Capability) error {
-	trans := make(map[string]interface{})
-	for name, action := range self.Actions {
-		jsonString, err := json.Marshal(action)
+func Assertion(actions []interface{}, custom ...Capability) ([]Capability, error) {
+	var trans []Capability
+
+	for _, item := range actions {
+		action := item.(map[string]interface{})
+		v, ok := action["actionName"]
+		if !ok { continue }
+		name := ""
+		switch u := v.(type) {
+		case string: name = u
+		default: return nil, fmt.Errorf("action name %v is wrongly typed", v)
+		}
+
+		jsonString, err := json.Marshal(item)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		var tran Capability
-		if custom != nil && len(custom) > 0 && custom[0][name] != nil {
-			tran = custom[0][name]
-		} else {
+		found := false
+		for _, item := range custom {
+			if name==item.GetName() {
+				tran = item
+				found = true
+				break
+			}
+		}
+		if !found {
 			switch name {
 			case "insert":
 				tran = new(Insert)
@@ -66,16 +87,30 @@ func (self *Model) Assertion(custom ...map[string]Capability) error {
 			case "delete":
 				tran = new(Delete)
 			default:
-				return fmt.Errorf("action %s not defined", name)
+				return nil, fmt.Errorf("action %s not defined", name)
 			}
 		}
-		err = json.Unmarshal(jsonString, tran)
-		if err != nil {
-			return err
+		if err := json.Unmarshal(jsonString, tran); err != nil {
+			return nil, err
 		}
-		trans[name] = tran
+		trans = append(trans, tran)
 	}
-	self.Actions = trans
+	return trans, nil
+}
+
+func (self *Model) GetName() string {
+	return self.TableName
+}
+
+func (self *Model) GetAction(action string) Capability {
+	if self.Actions != nil {
+		for _, item := range self.Actions {
+			if item.GetName() == action {
+				return item
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -84,28 +119,22 @@ func (self *Model) RunModel(db *sql.DB, action string, ARGS map[string]interface
 }
 
 func (self *Model) RunModelContext(ctx context.Context, db *sql.DB, action string, ARGS map[string]interface{}, extra ...interface{}) ([]map[string]interface{}, []*Edge, error) {
-	if self.Actions == nil {
-		return nil, nil, fmt.Errorf("actions is nil")
+	obj := self.GetAction(action)
+	if obj == nil {
+		return nil, nil, fmt.Errorf("actions or action %s is nil", action)
 	}
-	obi, ok := self.Actions[action]
-	if !ok {
-		return nil, nil, fmt.Errorf("action %s has no capability", action)
-	}
-
-	return obi.(Capability).RunActionContext(ctx, db, &self.Table, ARGS, extra...)
+	return obj.RunActionContext(ctx, db, &self.Table, ARGS, extra...)
 }
 
 func (self *Model) NonePass(action string) []string {
-	switch action {
-	case "edit":
-		if obi, ok := self.Actions["edit"]; ok {
-			return obi.(*Edit).defaultNames()
+	if obj := self.GetAction(action); obj != nil {
+		switch action {
+		case "edit":
+			return obj.(*Edit).defaultNames()
+		case "topics":
+			return obj.(*Topics).defaultNames()
+		default:
 		}
-	case "topics":
-		if obi, ok := self.Actions["topics"]; ok {
-			return obi.(*Topics).defaultNames()
-		}
-	default:
 	}
 	return nil
 }

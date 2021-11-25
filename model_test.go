@@ -25,12 +25,14 @@ func (self *SQL) RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARG
 }
 
 func TestModel(t *testing.T) {
-	hash := map[string]Capability{"sql": new(SQL)}
-	model, err := NewModelJsonFile("model.json", hash)
+	custom := new(SQL)
+	custom.ActionName = "sql"
+	model, err := NewModelJsonFile("model.json", custom)
 	if err != nil {
 		t.Fatal(err)
 	}
-	for k, v := range model.Actions {
+	for _, v := range model.Actions {
+		k := v.GetName()
 		switch k {
 		case "topics":
 			topics := v.(*Topics)
@@ -77,20 +79,23 @@ func TestModelRun(t *testing.T) {
     "table":"m_a",
     "pks":["id"],
     "id_auto":"id",
-	"actions":
-{
-	"insert":{
+	"actions": [
+	{
+		"actionName": "insert",
 		"musts":["x","y"],
 		"columns":["x","y","z"]
 	},
-	"insupd":{
+	{
+		"actionName": "insupd",
 		"uniques":["x","y"],
 		"columns":["x","y","z"]
 	},
-	"delete":{
+	{
+		"actionName": "delete",
 		"musts":["id"]
 	},
-	"topics":{
+	{
+		"actionName": "topics",
         "rename": [
             {"columnName":"x", "label":"x", "typeName":"string" },
             {"columnName":"y", "label":"y", "typeName":"string" },
@@ -98,7 +103,8 @@ func TestModelRun(t *testing.T) {
             {"columnName":"id", "label":"id", "typeName":"int" }
         ]
 	},
-	"edit":{
+	{
+		"actionName": "edit",
         "rename": [
             {"columnName":"x", "label":"x", "typeName":"string" },
             {"columnName":"y", "label":"y", "typeName":"string" },
@@ -106,7 +112,7 @@ func TestModelRun(t *testing.T) {
             {"columnName":"id", "label":"id", "typeName":"int" }
 		]
 	}
-}}`
+]}`
 	model, err := NewModelJson([]byte(str))
 	if err != nil {
 		t.Fatal(err)

@@ -10,6 +10,7 @@ import (
 // Action is to implement Capability interface
 //
 type Capability interface {
+	GetName() string
 	RunActionContext(context.Context, *sql.DB, *Table, map[string]interface{}, ...interface{}) ([]map[string]interface{}, []*Edge, error)
 }
 
@@ -18,6 +19,10 @@ type Action struct {
 	Musts     []string    `json:"musts,omitempty" hcl:"musts,optional"`
 	Nextpages []*Edge     `json:"nextpages,omitempty" hcl:"nextpages,block"`
 	Appendix  interface{} `json:"appendix,omitempty" hcl:"appendix,block"`
+}
+
+func (self *Action) GetName() string {
+	return self.ActionName
 }
 
 func (self *Action) filterPars(currentTable string, ARGS map[string]interface{}, rename []*Col, fieldsName string, joins []*Join) (string, []interface{}, string) {

@@ -2,26 +2,30 @@
 	"table": "m_b",
 	"pks": [ "tid" ],
 	"id_auto": "tid",
-	"actions": {
-		"insert": {
+	"actions": [
+		{
+			"actionName": "insert",
 			"columns": [ "id", "child" ]
 		},
-		"edit": {
+		{
+			"actionName": "edit",
 			"rename": [
 				{"columnName":"tid", "label":"tid", "typeName":"int"},
 				{"columnName":"child", "label":"child", "typeName":"string"},
 				{"columnName":"id", "label":"id", "typeName":"int"}
 			]
 		},
-		"delete": {
+		{
+			"actionName": "delete",
 			"musts": [ "tid" ]
 		},
-		"topics": {
+		{
+			"actionName": "topics",
 			"rename": [
 				{"columnName":"tid", "label":"tid", "typeName":"int"},
 				{"columnName":"child", "label":"child", "typeName":"string"},
 				{"columnName":"id", "label":"id", "typeName":"int"}
 			]
 		}
-	}
+	]
 }

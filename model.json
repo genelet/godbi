@@ -3,42 +3,49 @@
 	"table":"adv_campaign",
 	"pks":["campaign_id"],
 	"id_auto":"campaign_id",
-	"actions":{
-		"topics":{
+	"actions":[
+		{
+			"actionName": "topics",
 			"nextpages": [
-				{"model":"adv_campaign", "action":"edit", "relateItem":{"campaign_id":"campaign_id"}},
-				{"model":"adv_item", "action":"topics", "manual":{"name":"john"}, "relateItem":{"campaign_id":"campaign_id"}}
+				{"table":"adv_campaign", "action":"edit", "relateItem":{"campaign_id":"campaign_id"}},
+				{"table":"adv_item", "action":"topics", "manual":{"name":"john"}, "relateItem":{"campaign_id":"campaign_id"}}
 			],
 			"rename":[{"columnName":"adv_id","label":"adv_id","typeName":"INT"},{"columnName":"campaign_id","label":"campaign_id","typeName":"INT"},{"columnName":"campaign_name","label":"campaign_name","typeName":"VARCHAR"}],
 			"total_force":1
 		},
-		"edit":{
+		{
+			"actionName": "edit",
 			"musts":["campaign_id"],
 			"rename":[{"columnName":"adv_id","label":"adv_id","typeName":"INT"},{"columnName":"campaign_id","label":"campaign_id","typeName":"INT"},{"columnName":"campaign_name","label":"campaign_name","typeName":"VARCHAR"}]
 		},
-		"insert":{
+		{
+			"actionName": "insert",
 			"musts":["adv_id","campaign_name"],
 			"columns":["adv_id","campaign_name"]
 		},
-		"update":{
+		{
+			"actionName": "update",
 			"columns":["adv_id","campaign_name","campaign_id"],
 			"empties":["created"]
 		},
-		"insupd":{
+		{
+			"actionName": "insupd",
 			"musts":["adv_id","campaign_name"],
 			"columns":["adv_id","campaign_name"],
 			"uniques":["adv_id","campaign_id"]
 		},
-		"sql":{
+		{
+			"actionName": "sql",
 			"musts":["bravo"],
 			"columns":["fistname", "lastname", "nick"],
 			"statement":"SELECT x, y, z FROM a WHERE b=?",
 			"nextpages": [
-				{"model":"adv_creative", "action":"topics", "manual":{"name":"john"}, "relateItem":{"nick":"nickname"}}
+				{"table":"adv_creative", "action":"topics", "manual":{"name":"john"}, "relateItem":{"nick":"nickname"}}
 			]
 		},
-		"delete":{
+		{
+			"actionName": "delete",
 			"musts":["campaign_id"]
 		}
-	}
+	]
 }

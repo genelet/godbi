@@ -28,13 +28,13 @@ func TestGraphContext(t *testing.T) {
 	}
 
 	METHODS := map[string]string{"LIST": "topics", "GET": "edit", "POST": "insert", "PUT": "update", "PATCH": "insupd", "DELETE": "delete"}
-	graph := NewGraph(db, map[string]Navigate{"ta": ta, "tb": tb})
+	graph := NewGraph(db, []Navigate{ta, tb})
 
 	var lists []map[string]interface{}
 	// the 1st web requests is assumed to create id=1 to the m_a and m_b tables:
 	//
 	args := map[string]interface{}{"x": "a1234567", "y": "b1234567", "z": "temp", "child": "john"}
-	if lists, err = graph.RunContext(ctx, "ta", METHODS["PATCH"], args); err != nil {
+	if lists, err = graph.RunContext(ctx, "m_a", METHODS["PATCH"], args); err != nil {
 		panic(err)
 	}
 
@@ -42,73 +42,73 @@ func TestGraphContext(t *testing.T) {
 	// but create a new record to tb for id=1, since insupd triggers insert in tb
 	//
 	args = map[string]interface{}{"x": "a1234567", "y": "b1234567", "z": "zzzzz", "child": "sam"}
-	if lists, err = graph.RunContext(ctx, "ta", METHODS["PATCH"], args); err != nil {
+	if lists, err = graph.RunContext(ctx, "m_a", METHODS["PATCH"], args); err != nil {
 		panic(err)
 	}
 
 	// the 3rd request creates id=2
 	//
 	args = map[string]interface{}{"x": "c1234567", "y": "d1234567", "z": "e1234", "child": "mary"}
-	if lists, err = graph.RunContext(ctx, "ta", METHODS["POST"], args); err != nil {
+	if lists, err = graph.RunContext(ctx, "m_a", METHODS["POST"], args); err != nil {
 		panic(err)
 	}
 
 	// the 4th request creates id=3
 	//
 	args = map[string]interface{}{"x": "e1234567", "y": "f1234567", "z": "e1234", "child": "marcus"}
-	if lists, err = graph.RunContext(ctx, "ta", METHODS["POST"], args); err != nil {
+	if lists, err = graph.RunContext(ctx, "m_a", METHODS["POST"], args); err != nil {
 		panic(err)
 	}
 
 	// GET all
 	args = map[string]interface{}{}
-	lists, err = graph.RunContext(ctx, "ta", METHODS["LIST"], args)
+	lists, err = graph.RunContext(ctx, "m_a", METHODS["LIST"], args)
 	if err != nil {
 		panic(err)
 	}
-	e1 := lists[0]["ta_edit"].([]map[string]interface{})
-	e2 := e1[0]["tb_topics"].([]map[string]interface{})
+	e1 := lists[0]["m_a_edit"].([]map[string]interface{})
+	e2 := e1[0]["m_b_topics"].([]map[string]interface{})
 	if e2[0]["child"].(string) != "john" {
 		t.Errorf("%v", lists)
 	}
-	// [map[id:1 ta_edit:[map[id:1 tb_topics:[map[child:john id:1 tid:1] map[child:sam id:1 tid:2]] x:a1234567 y:b1234567 z:zzzzz]] x:a1234567 y:b1234567 z:zzzzz] map[id:2 ta_edit:[map[id:2 tb_topics:[map[child:mary id:2 tid:3]] x:c1234567 y:d1234567 z:e1234]] x:c1234567 y:d1234567 z:e1234] map[id:3 ta_edit:[map[id:3 tb_topics:[map[child:marcus id:3 tid:4]] x:e1234567 y:f1234567 z:e1234]] x:e1234567 y:f1234567 z:e1234]]
+	// [map[id:1 ta_edit:[map[id:1 m_b_topics:[map[child:john id:1 tid:1] map[child:sam id:1 tid:2]] x:a1234567 y:b1234567 z:zzzzz]] x:a1234567 y:b1234567 z:zzzzz] map[id:2 ta_edit:[map[id:2 m_b_topics:[map[child:mary id:2 tid:3]] x:c1234567 y:d1234567 z:e1234]] x:c1234567 y:d1234567 z:e1234] map[id:3 ta_edit:[map[id:3 m_b_topics:[map[child:marcus id:3 tid:4]] x:e1234567 y:f1234567 z:e1234]] x:e1234567 y:f1234567 z:e1234]]
 
 	// GET one
 	args = map[string]interface{}{"id": 1}
-	lists, err = graph.RunContext(ctx, "ta", METHODS["GET"], args)
+	lists, err = graph.RunContext(ctx, "m_a", METHODS["GET"], args)
 	if err != nil {
 		panic(err)
 	}
-	e2 = lists[0]["tb_topics"].([]map[string]interface{})
+	e2 = lists[0]["m_b_topics"].([]map[string]interface{})
 	if e2[0]["child"].(string) != "john" {
 		t.Errorf("%v", lists)
 	}
-	// [map[id:1 tb_topics:[map[child:john id:1 tid:1] map[child:sam id:1 tid:2]] x:a1234567 y:b1234567 z:zzzzz]]
+	// [map[id:1 m_b_topics:[map[child:john id:1 tid:1] map[child:sam id:1 tid:2]] x:a1234567 y:b1234567 z:zzzzz]]
 
 	// DELETE
 	extra := map[string]interface{}{"id": 1}
-	if lists, err = graph.RunContext(ctx, "tb", METHODS["DELETE"], map[string]interface{}{"tid": 1}, extra); err != nil {
+	if lists, err = graph.RunContext(ctx, "m_b", METHODS["DELETE"], map[string]interface{}{"tid": 1}, extra); err != nil {
 		panic(err)
 	}
-	if lists, err = graph.RunContext(ctx, "tb", METHODS["DELETE"], map[string]interface{}{"tid": 2}, extra); err != nil {
+	if lists, err = graph.RunContext(ctx, "m_b", METHODS["DELETE"], map[string]interface{}{"tid": 2}, extra); err != nil {
 		panic(err)
 	}
-	if lists, err = graph.RunContext(ctx, "ta", METHODS["DELETE"], map[string]interface{}{"id": 1}); err != nil {
+	if lists, err = graph.RunContext(ctx, "m_a", METHODS["DELETE"], map[string]interface{}{"id": 1}); err != nil {
 		panic(err)
 	}
 
 	// GET all
 	args = map[string]interface{}{}
-	lists, err = graph.RunContext(ctx, "ta", METHODS["LIST"], args)
+	lists, err = graph.RunContext(ctx, "m_a", METHODS["LIST"], args)
 	if err != nil {
 		panic(err)
 	}
-	e1 = lists[0]["ta_edit"].([]map[string]interface{})
-	e2 = e1[0]["tb_topics"].([]map[string]interface{})
+	e1 = lists[0]["m_a_edit"].([]map[string]interface{})
+	e2 = e1[0]["m_b_topics"].([]map[string]interface{})
 	if e2[0]["child"].(string) != "mary" {
 		t.Errorf("%v", lists)
 	}
-	// [map[id:2 ta_edit:[map[id:2 tb_topics:[map[child:mary id:2 tid:3]] x:c1234567 y:d1234567 z:e1234]] x:c1234567 y:d1234567 z:e1234] map[id:3 ta_edit:[map[id:3 tb_topics:[map[child:marcus id:3 tid:4]] x:e1234567 y:f1234567 z:e1234]] x:e1234567 y:f1234567 z:e1234]]
+	// [map[id:2 m_a_edit:[map[id:2 m_b_topics:[map[child:mary id:2 tid:3]] x:c1234567 y:d1234567 z:e1234]] x:c1234567 y:d1234567 z:e1234] map[id:3 m_a_edit:[map[id:3 m_b_topics:[map[child:marcus id:3 tid:4]] x:e1234567 y:f1234567 z:e1234]] x:e1234567 y:f1234567 z:e1234]]
 
 	db.Exec(`drop table if exists m_a`)
 	db.Exec(`drop table if exists m_b`)

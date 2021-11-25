@@ -10,11 +10,22 @@ import (
 //
 type Graph struct {
 	*sql.DB
-	Models map[string]Navigate
+	Models []Navigate
 }
 
-func NewGraph(db *sql.DB, s map[string]Navigate) *Graph {
+func NewGraph(db *sql.DB, s []Navigate) *Graph {
 	return &Graph{db, s}
+}
+
+func (self *Graph) GetModel(model string) Navigate {
+	if self.Models != nil {
+		for _, item := range self.Models {
+			if item.GetName() == model {
+				return item
+			}
+		}
+	}
+	return nil
 }
 
 // Run runs action by model and action string names.
@@ -36,9 +47,9 @@ func (self *Graph) Run(model, action string, ARGS map[string]interface{}, extra 
 // The rest are specific data for each action starting with the current one.
 //
 func (self *Graph) RunContext(ctx context.Context, model, action string, ARGS map[string]interface{}, extra ...interface{}) ([]map[string]interface{}, error) {
-	modelObj, ok := self.Models[model]
-	if !ok {
-		return nil, fmt.Errorf("model %s not found in graph", model)
+	modelObj := self.GetModel(model)
+	if modelObj==nil {
+		return nil, fmt.Errorf("models or model %s not found in graph", model)
 	}
 
 	nones := modelObj.NonePass(action)
