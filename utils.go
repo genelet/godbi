@@ -17,7 +17,7 @@ func hasValue(extra interface{}) bool {
 		if len(v) == 0 {
 			return false
 		}
-	case []*Join:
+	case []*Joint:
 		if len(v) == 0 {
 			return false
 		}

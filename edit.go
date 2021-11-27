@@ -14,9 +14,9 @@ type Col struct {
 
 type Edit struct {
 	Action
-	Joins  []*Join             `json:"joins,omitempty" hcl:"join,block"`
-	Rename []*Col              `json:"rename" hcl:"rename"`
-	FIELDS string              `json:"fields,omitempty" hcl:"fields"`
+	Joints []*Joint   `json:"joins,omitempty" hcl:"join,block"`
+	Rename []*Col     `json:"rename" hcl:"rename"`
+	FIELDS string     `json:"fields,omitempty" hcl:"fields"`
 }
 
 func (self *Edit) defaultNames() []string {
@@ -37,7 +37,7 @@ func (self *Edit) RunActionContext(ctx context.Context, db *sql.DB, t *Table, AR
 	}
 
 	self.defaultNames()
-	sql, labels, table := self.filterPars(t.TableName, ARGS, self.Rename, self.FIELDS, self.Joins)
+	sql, labels, table := self.filterPars(t.TableName, ARGS, self.Rename, self.FIELDS, self.Joints)
 
 	ids := t.getIdVal(ARGS, extra...)
 	if !hasValue(ids) {

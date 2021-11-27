@@ -11,7 +11,7 @@ import (
 
 type Topics struct {
 	Action
-	Joins  []*Join     `json:"joins,omitempty" hcl:"join,block"`
+	Joints []*Joint    `json:"joins,omitempty" hcl:"join,block"`
 	Rename []*Col      `json:"rename" hcl:"rename"`
 	FIELDS string      `json:"fields,omitempty" hcl:"fields"`
 
@@ -59,8 +59,8 @@ func (self *Topics) orderString(t *Table, ARGS map[string]interface{}) string {
 	column := ""
 	if ARGS[nameSortby] != nil {
 		column = ARGS[nameSortby].(string)
-	} else if hasValue(self.Joins) {
-		table := self.Joins[0]
+	} else if hasValue(self.Joints) {
+		table := self.Joints[0]
 		if table.Sortby != "" {
 			column = table.Sortby
 		} else {
@@ -170,7 +170,7 @@ func (self *Topics) RunActionContext(ctx context.Context, db *sql.DB, t *Table, 
 	}
 
 	self.defaultNames()
-	sql, labels, table := self.filterPars(t.TableName, ARGS, self.Rename, self.FIELDS, self.Joins)
+	sql, labels, table := self.filterPars(t.TableName, ARGS, self.Rename, self.FIELDS, self.Joints)
 	err = self.pagination(ctx, db, t, ARGS, extra...)
 	if err != nil {
 		return nil, nil, err

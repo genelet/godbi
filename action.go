@@ -25,7 +25,7 @@ func (self *Action) GetName() string {
 	return self.ActionName
 }
 
-func (self *Action) filterPars(currentTable string, ARGS map[string]interface{}, rename []*Col, fieldsName string, joins []*Join) (string, []interface{}, string) {
+func (self *Action) filterPars(currentTable string, ARGS map[string]interface{}, rename []*Col, fieldsName string, joins []*Joint) (string, []interface{}, string) {
 	var fields []string
 	if v, ok := ARGS[fieldsName]; ok {
 		fields = v.([]string)
