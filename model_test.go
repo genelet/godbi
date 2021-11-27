@@ -13,7 +13,7 @@ type SQL struct {
 	Statement string   `json:"statement"`
 }
 
-func (self *SQL) RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...interface{}) ([]map[string]interface{}, []*Edge, error) {
+func (self *SQL) RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...interface{}) ([]map[string]interface{}, []*Nextpage, error) {
 	v, ok := ARGS[self.Musts[0]]
 	if !ok {
 		return nil, nil, fmt.Errorf("missing %s in input", self.Musts[0])
@@ -119,7 +119,7 @@ func TestModelRun(t *testing.T) {
 	}
 
 	var lists []map[string]interface{}
-	var pages []*Edge
+	var pages []*Nextpage
 	// the 1st web requests is assumed to create id=1 to the m_a table
 	//
 	args := map[string]interface{}{"x": "a1234567", "y": "b1234567", "z": "temp", "child": "john"}

@@ -13,7 +13,7 @@ import (
 type Navigate interface {
 	GetName() string
 	NonePass(string) []string
-	RunModelContext(context.Context, *sql.DB, string, map[string]interface{}, ...interface{}) ([]map[string]interface{}, []*Edge, error)
+	RunModelContext(context.Context, *sql.DB, string, map[string]interface{}, ...interface{}) ([]map[string]interface{}, []*Nextpage, error)
 }
 
 type Model struct {
@@ -114,11 +114,11 @@ func (self *Model) GetAction(action string) Capability {
 	return nil
 }
 
-func (self *Model) RunModel(db *sql.DB, action string, ARGS map[string]interface{}, extra ...interface{}) ([]map[string]interface{}, []*Edge, error) {
+func (self *Model) RunModel(db *sql.DB, action string, ARGS map[string]interface{}, extra ...interface{}) ([]map[string]interface{}, []*Nextpage, error) {
 	return self.RunModelContext(context.Background(), db, action, ARGS, extra...)
 }
 
-func (self *Model) RunModelContext(ctx context.Context, db *sql.DB, action string, ARGS map[string]interface{}, extra ...interface{}) ([]map[string]interface{}, []*Edge, error) {
+func (self *Model) RunModelContext(ctx context.Context, db *sql.DB, action string, ARGS map[string]interface{}, extra ...interface{}) ([]map[string]interface{}, []*Nextpage, error) {
 	obj := self.GetAction(action)
 	if obj == nil {
 		return nil, nil, fmt.Errorf("actions or action %s is nil", action)

@@ -264,20 +264,20 @@ Currently, to use this feature, we require table's primary key is a single colum
 ```go
 type Action struct {
     Must      []string    `json:"must,omitempty"
-    Nextpages []*Edge     `json:"nextpages,omitempty"
+    Nextpages []*Nextpage `json:"nextpages,omitempty"
     Appendix  interface{} `json:"appendix,omitempty"
 }
 ```
 
 ```go
 type Capability interface {
-    RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extras ...map[string]interface{}) ([]map[string]interface{}, []*Edge, error)
+    RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extras ...map[string]interface{}) ([]map[string]interface{}, []*Nextpage, error)
 }
 ```
 
-where _Must_ is a slice of `NOT NULL` columns; _Nextpages_ other actions to follow after the current one is complete (for _Edge_, see below); and _Appendix_ optional data.
+where _Must_ is a slice of `NOT NULL` columns; _Nextpages_ other actions to follow after the current one is complete (for _Nextpage_, see below); and _Appendix_ optional data.
 
-In _RunActionContext_, _ARGS_ is the input data and _extras_ a slice of constraints for the current action and all follow-up actions. This function returns the output data, the follow-up _Edge_s and error.
+In _RunActionContext_, _ARGS_ is the input data and _extras_ a slice of constraints for the current action and all follow-up actions. This function returns the output data, the follow-up _Nextpage_s and error.
 
 To define *extra*:
 
@@ -418,7 +418,7 @@ type Model struct {
 ```go
 type Navigate interface {
     NonePass(action string) []string
-    RunModelContext(ctx context.Context, db *sql.DB, action string, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Edge, error)
+    RunModelContext(ctx context.Context, db *sql.DB, action string, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, []*Nextpage, error)
 }
 ```
 
@@ -441,12 +441,12 @@ func (self *Model) Assertion(custom ...map[string]Capability) error
 
 <br />
 
-### 2.4  *Edge*
+### 2.4  *Nextpage*
 
-As in GraphQL and gRPC, *godbi* allows action to trigger multiple actions using *Edge*:
+As in GraphQL and gRPC, *godbi* allows action to trigger multiple actions using *Nextpage*:
 
 ```go
-type Edge struct {
+type Nextpage struct {
     Model      string            `json:"model"`                 // name of the next model to call  
     Action     string            `json:"action"`                // action name of the next model
     RelateItem map[string]string `json:"relateItem,omitempty"` // column name mapped to that of the next model
@@ -454,7 +454,7 @@ type Edge struct {
 }
 ```
 
-where *Models* are defined as a map between names and instance of type *Model*, and *Model* in *Edge* denotes the name. *Action* is the action name, *RelateItem* the map between the current data columns to next action's columns, whose values will be used as constraints, *Extra* the manually-input constraint on the next action.
+where *Models* are defined as a map between names and instance of type *Model*, and *Model* in *Nextpage* denotes the name. *Action* is the action name, *RelateItem* the map between the current data columns to next action's columns, whose values will be used as constraints, *Extra* the manually-input constraint on the next action.
 
 Here is a use case. There are two tables, one for family and the other for children, corresponding to models named `ta` and `tb` respectively.
 We search the family name in `ta`, and want to show all children as well. Technically, it means we need to run a `Topics` action on *ta*. For each row returned, we run *Topics* on *tb*, constrained by the family ID in both the tables.
@@ -476,7 +476,7 @@ So *Nextpages* of *Topics* on *ta* will look like:
 </p>
 </details>
 
-Parsing the JSON will build up a `map[string][]*Edge` structure.
+Parsing the JSON will build up a `map[string][]*Nextpage` structure.
 
 <br />
 

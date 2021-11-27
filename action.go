@@ -11,18 +11,33 @@ import (
 //
 type Capability interface {
 	GetName() string
-	RunActionContext(context.Context, *sql.DB, *Table, map[string]interface{}, ...interface{}) ([]map[string]interface{}, []*Edge, error)
+	GetAppendix() interface{}
+	SetMusts([]string)
+	SetNextpage([]*Nextpage)
+	RunActionContext(context.Context, *sql.DB, *Table, map[string]interface{}, ...interface{}) ([]map[string]interface{}, []*Nextpage, error)
 }
 
 type Action struct {
 	ActionName string     `json:"actionName,omitempty" hcl:"actionName,optional"`
 	Musts     []string    `json:"musts,omitempty" hcl:"musts,optional"`
-	Nextpages []*Edge     `json:"nextpages,omitempty" hcl:"nextpages,block"`
+	Nextpages []*Nextpage `json:"nextpages,omitempty" hcl:"nextpages,block"`
 	Appendix  interface{} `json:"appendix,omitempty" hcl:"appendix,block"`
+}
+
+func (self *Action) SetMusts(musts []string) {
+	self.Musts = musts
+}
+
+func (self *Action) SetNextpage(edges []*Nextpage) {
+	self.Nextpages = edges
 }
 
 func (self *Action) GetName() string {
 	return self.ActionName
+}
+
+func (self *Action) GetAppendix() interface{} {
+	return self.Appendix
 }
 
 func (self *Action) filterPars(currentTable string, ARGS map[string]interface{}, rename []*Col, fieldsName string, joins []*Joint) (string, []interface{}, string) {

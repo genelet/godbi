@@ -1,18 +1,18 @@
 package godbi
 
-// Edge type describes next page's structure
+// Nextpage type describes next page's structure
 // Model: the name of the model
 // Action: the method name on the model
 // Manual: constraint conditions manually assigned
 // RelateItem: current page's column versus next page's column, as constraints.
-type Edge struct {
+type Nextpage struct {
 	TableName  string             `json:"table" hcl:"table,label"`
 	ActionName string             `json:"action" hcl:"action,label"`
 	Manual map[string]interface{} `json:"manual,omitempty" hcl:"manual,optional"`
 	RelateItem map[string]string  `json:"relateItem,omitempty" hcl:"relateItem"`
 }
 
-func (self *Edge) manualRefresh(extra interface{}) interface{} {
+func (self *Nextpage) manualRefresh(extra interface{}) interface{} {
 	if self.Manual == nil {
 		return extra
 	}
@@ -69,7 +69,7 @@ func short(t map[string]interface{}, item map[string]interface{}, related map[st
 	return newExtra, found
 }
 
-func (self *Edge) refresh(item map[string]interface{}, extra interface{}) (interface{}, bool) {
+func (self *Nextpage) refresh(item map[string]interface{}, extra interface{}) (interface{}, bool) {
 	if extra == nil {
 		newExtra, found := short(nil, item, self.RelateItem)
 		return newExtra, found

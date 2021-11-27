@@ -79,7 +79,7 @@ func TestAction(t *testing.T) {
 	}
 
 	var lists []map[string]interface{}
-	var pages []*Edge
+	var pages []*Nextpage
 	// the 1st web requests is assumed to create id=1 to the m_a table
 	//
 	args := map[string]interface{}{"x": "a1234567", "y": "b1234567", "z": "temp", "child": "john"}
