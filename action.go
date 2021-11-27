@@ -13,7 +13,7 @@ type Capability interface {
 	GetName() string
 	GetAppendix() interface{}
 	SetMusts([]string)
-	SetNextpage([]*Nextpage)
+	SetNextpages([]*Nextpage)
 	RunActionContext(context.Context, *sql.DB, *Table, map[string]interface{}, ...interface{}) ([]map[string]interface{}, []*Nextpage, error)
 }
 
@@ -28,7 +28,7 @@ func (self *Action) SetMusts(musts []string) {
 	self.Musts = musts
 }
 
-func (self *Action) SetNextpage(edges []*Nextpage) {
+func (self *Action) SetNextpages(edges []*Nextpage) {
 	self.Nextpages = edges
 }
 
