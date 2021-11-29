@@ -11,7 +11,7 @@ import (
 // Graph describes all models and actions in a database schema
 //
 type Graph struct {
-	Models []Navigate
+	Models []Navigate `json:"models" hcl:"models"`
 }
 
 func NewGraphJsonFile(fn string, cmap ...map[string][]Capability) (*Graph, error) {
@@ -19,13 +19,21 @@ func NewGraphJsonFile(fn string, cmap ...map[string][]Capability) (*Graph, error
 	if err != nil {
 		return nil, err
 	}
-	tmps := make([]*m, 0)
+	return NewGraphJson(json.RawMessage(dat), cmap...)
+}
+
+type g struct {
+	Models []*m `json:"models" hcl:"models"`
+}
+
+func NewGraphJson(dat json.RawMessage, cmap ...map[string][]Capability) (*Graph, error) {
+	tmps := new(g)
 	if err := json.Unmarshal(dat, &tmps); err != nil {
 		return nil, err
 	}
 
 	var models []Navigate
-	for _, tmp := range tmps {
+	for _, tmp := range tmps.Models {
 		var cs []Capability
 		if cmap != nil && cmap[0] != nil {
 			cs, _ = cmap[0][tmp.TableName]
