@@ -6,6 +6,27 @@ import (
 )
 
 func TestGraphContext(t *testing.T) {
+	ta, err := NewModelJsonFile("m_a.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	tb, err := NewModelJsonFile("m_b.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	graph := &Graph{[]Navigate{ta, tb}}
+	GraphGeneral(t, graph)
+}
+
+func TestGraphParse(t *testing.T) {
+	graph, err := NewGraphJsonFile("graph.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	GraphGeneral(t, graph)
+}
+
+func GraphGeneral(t *testing.T, graph *Graph) {
 	db, err := getdb()
 	if err != nil {
 		t.Fatal(err)
@@ -18,23 +39,13 @@ func TestGraphContext(t *testing.T) {
 	db.Exec(`drop table if exists m_b`)
 	db.Exec(`CREATE TABLE m_b (tid int auto_increment not null primary key, child varchar(8), id int)`)
 
-	ta, err := NewModelJsonFile("m_a.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-	tb, err := NewModelJsonFile("m_b.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	METHODS := map[string]string{"LIST": "topics", "GET": "edit", "POST": "insert", "PUT": "update", "PATCH": "insupd", "DELETE": "delete"}
-	graph := NewGraph(db, []Navigate{ta, tb})
 
 	var lists []map[string]interface{}
 	// the 1st web requests is assumed to create id=1 to the m_a and m_b tables:
 	//
 	args := map[string]interface{}{"x": "a1234567", "y": "b1234567", "z": "temp", "child": "john"}
-	if lists, err = graph.RunContext(ctx, "m_a", METHODS["PATCH"], args); err != nil {
+	if lists, err = graph.RunContext(ctx, db, "m_a", METHODS["PATCH"], args); err != nil {
 		panic(err)
 	}
 
@@ -42,27 +53,27 @@ func TestGraphContext(t *testing.T) {
 	// but create a new record to tb for id=1, since insupd triggers insert in tb
 	//
 	args = map[string]interface{}{"x": "a1234567", "y": "b1234567", "z": "zzzzz", "child": "sam"}
-	if lists, err = graph.RunContext(ctx, "m_a", METHODS["PATCH"], args); err != nil {
+	if lists, err = graph.RunContext(ctx, db, "m_a", METHODS["PATCH"], args); err != nil {
 		panic(err)
 	}
 
 	// the 3rd request creates id=2
 	//
 	args = map[string]interface{}{"x": "c1234567", "y": "d1234567", "z": "e1234", "child": "mary"}
-	if lists, err = graph.RunContext(ctx, "m_a", METHODS["POST"], args); err != nil {
+	if lists, err = graph.RunContext(ctx, db, "m_a", METHODS["POST"], args); err != nil {
 		panic(err)
 	}
 
 	// the 4th request creates id=3
 	//
 	args = map[string]interface{}{"x": "e1234567", "y": "f1234567", "z": "e1234", "child": "marcus"}
-	if lists, err = graph.RunContext(ctx, "m_a", METHODS["POST"], args); err != nil {
+	if lists, err = graph.RunContext(ctx, db, "m_a", METHODS["POST"], args); err != nil {
 		panic(err)
 	}
 
 	// GET all
 	args = map[string]interface{}{}
-	lists, err = graph.RunContext(ctx, "m_a", METHODS["LIST"], args)
+	lists, err = graph.RunContext(ctx, db, "m_a", METHODS["LIST"], args)
 	if err != nil {
 		panic(err)
 	}
@@ -75,7 +86,7 @@ func TestGraphContext(t *testing.T) {
 
 	// GET one
 	args = map[string]interface{}{"id": 1}
-	lists, err = graph.RunContext(ctx, "m_a", METHODS["GET"], args)
+	lists, err = graph.RunContext(ctx, db, "m_a", METHODS["GET"], args)
 	if err != nil {
 		panic(err)
 	}
@@ -87,19 +98,19 @@ func TestGraphContext(t *testing.T) {
 
 	// DELETE
 	extra := map[string]interface{}{"id": 1}
-	if lists, err = graph.RunContext(ctx, "m_b", METHODS["DELETE"], map[string]interface{}{"tid": 1}, extra); err != nil {
+	if lists, err = graph.RunContext(ctx, db, "m_b", METHODS["DELETE"], map[string]interface{}{"tid": 1}, extra); err != nil {
 		panic(err)
 	}
-	if lists, err = graph.RunContext(ctx, "m_b", METHODS["DELETE"], map[string]interface{}{"tid": 2}, extra); err != nil {
+	if lists, err = graph.RunContext(ctx, db, "m_b", METHODS["DELETE"], map[string]interface{}{"tid": 2}, extra); err != nil {
 		panic(err)
 	}
-	if lists, err = graph.RunContext(ctx, "m_a", METHODS["DELETE"], map[string]interface{}{"id": 1}); err != nil {
+	if lists, err = graph.RunContext(ctx, db, "m_a", METHODS["DELETE"], map[string]interface{}{"id": 1}); err != nil {
 		panic(err)
 	}
 
 	// GET all
 	args = map[string]interface{}{}
-	lists, err = graph.RunContext(ctx, "m_a", METHODS["LIST"], args)
+	lists, err = graph.RunContext(ctx, db, "m_a", METHODS["LIST"], args)
 	if err != nil {
 		panic(err)
 	}

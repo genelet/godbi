@@ -3,18 +3,41 @@ package godbi
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
+	"io/ioutil"
 	"fmt"
 )
 
 // Graph describes all models and actions in a database schema
 //
 type Graph struct {
-	*sql.DB
 	Models []Navigate
 }
 
-func NewGraph(db *sql.DB, s []Navigate) *Graph {
-	return &Graph{db, s}
+func NewGraphJsonFile(fn string, cmap ...map[string][]Capability) (*Graph, error) {
+	dat, err := ioutil.ReadFile(fn)
+	if err != nil {
+		return nil, err
+	}
+	tmps := make([]*m, 0)
+	if err := json.Unmarshal(dat, &tmps); err != nil {
+		return nil, err
+	}
+
+	var models []Navigate
+	for _, tmp := range tmps {
+		var cs []Capability
+		if cmap != nil && cmap[0] != nil {
+			cs, _ = cmap[0][tmp.TableName]
+		}
+		actions, err := Assertion(tmp.Actions, cs...)
+		if err != nil {
+			return nil, err
+		}
+		models = append(models, &Model{tmp.Table, actions})
+	}
+
+	return &Graph{models}, nil
 }
 
 func (self *Graph) GetModel(model string) Navigate {
@@ -35,8 +58,8 @@ func (self *Graph) GetModel(model string) Navigate {
 // The first extra is the input data, shared by all sub actions.
 // The rest are specific data for each action starting with the current one.
 //
-func (self *Graph) Run(model, action string, ARGS map[string]interface{}, extra ...interface{}) ([]map[string]interface{}, error) {
-	return self.RunContext(context.Background(), model, action, ARGS, extra...)
+func (self *Graph) Run(db *sql.DB, model, action string, ARGS map[string]interface{}, extra ...interface{}) ([]map[string]interface{}, error) {
+	return self.RunContext(context.Background(), db, model, action, ARGS, extra...)
 }
 
 // RunContext runs action by model and action string names.
@@ -46,7 +69,7 @@ func (self *Graph) Run(model, action string, ARGS map[string]interface{}, extra 
 // The first extra is the input data, shared by all sub actions.
 // The rest are specific data for each action starting with the current one.
 //
-func (self *Graph) RunContext(ctx context.Context, model, action string, ARGS map[string]interface{}, extra ...interface{}) ([]map[string]interface{}, error) {
+func (self *Graph) RunContext(ctx context.Context, db *sql.DB, model, action string, ARGS map[string]interface{}, extra ...interface{}) ([]map[string]interface{}, error) {
 	modelObj := self.GetModel(model)
 	if modelObj==nil {
 		return nil, fmt.Errorf("models or model %s not found in graph", model)
@@ -72,7 +95,7 @@ func (self *Graph) RunContext(ctx context.Context, model, action string, ARGS ma
 		}
 	}
 
-	lists, nextpages, err := modelObj.RunModelContext(ctx, self.DB, action, ARGS, extra...)
+	lists, nextpages, err := modelObj.RunModelContext(ctx, db, action, ARGS, extra...)
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +133,7 @@ func (self *Graph) RunContext(ctx context.Context, model, action string, ARGS ma
 			if hasValue(extra) {
 				newExtras = append(newExtras, extra[:1]...)
 			}
-			newLists, err := self.RunContext(ctx, page.TableName, page.ActionName, ARGS, newExtras...)
+			newLists, err := self.RunContext(ctx, db, page.TableName, page.ActionName, ARGS, newExtras...)
 			if err != nil {
 				return nil, err
 			}

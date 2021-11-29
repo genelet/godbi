@@ -1,0 +1,99 @@
+[
+{
+	"table": "m_a",
+	"pks": [ "id" ],
+	"idAuto": "id",
+	"actions": [
+		{
+			"actionName": "insupd",
+			"columns": [ "x", "y", "z" ],
+			"uniques": [ "x", "y" ],
+			"nextpages": [
+				{
+					"table": "m_b",
+					"action": "insert",
+					"relateItem": { "id": "id" }
+				}
+			]
+		},
+		{
+			"actionName": "insert",
+			"columns": [ "x", "y", "z" ],
+			"nextpages": [
+				{
+					"table": "m_b",
+					"action": "insert",
+					"relateItem": { "id": "id" }
+				}
+			]
+		},
+		{
+			"actionName": "edit",
+			"rename": [
+				{"columnName":"x", "label":"x", "typeName":"string" },
+				{"columnName":"y", "label":"y", "typeName":"string" },
+				{"columnName":"z", "label":"z", "typeName":"string" },
+				{"columnName":"id", "label":"id", "typeName":"int" }
+			],
+			"nextpages": [
+				{
+					"table": "m_b",
+					"action": "topics",
+					"relateItem": { "id": "id" }
+				}
+			]
+		},
+		{
+			"actionName": "delete",
+			"musts": [ "id" ]
+		},
+		{
+			"actionName": "topics",
+			"rename": [
+				{"columnName":"x", "label":"x", "typeName":"string" },
+				{"columnName":"y", "label":"y", "typeName":"string" },
+				{"columnName":"z", "label":"z", "typeName":"string" },
+				{"columnName":"id", "label":"id", "typeName":"int" }
+			],
+			"nextpages": [
+				{
+					"table": "m_a",
+					"action": "edit",
+					"relateItem": { "id": "id" }
+				}
+			]
+		}
+	]
+},
+{
+	"table": "m_b",
+	"pks": [ "tid" ],
+	"id_auto": "tid",
+	"actions": [
+		{
+			"actionName": "insert",
+			"columns": [ "id", "child" ]
+		},
+		{
+			"actionName": "edit",
+			"rename": [
+				{"columnName":"tid", "label":"tid", "typeName":"int"},
+				{"columnName":"child", "label":"child", "typeName":"string"},
+				{"columnName":"id", "label":"id", "typeName":"int"}
+			]
+		},
+		{
+			"actionName": "delete",
+			"musts": [ "tid" ]
+		},
+		{
+			"actionName": "topics",
+			"rename": [
+				{"columnName":"tid", "label":"tid", "typeName":"int"},
+				{"columnName":"child", "label":"child", "typeName":"string"},
+				{"columnName":"id", "label":"id", "typeName":"int"}
+			]
+		}
+	]
+}
+]

@@ -29,11 +29,11 @@ func NewModelJsonFile(fn string, custom ...Capability) (*Model, error) {
 	return NewModelJson(json.RawMessage(dat), custom...)
 }
 
+type m struct {
+	Table
+	Actions []interface{} `json:"actions,omitempty"`
+}
 func NewModelJson(dat json.RawMessage, custom ...Capability) (*Model, error) {
-	type m struct {
-		Table
-		Actions []interface{} `json:"actions,omitempty"`
-	}
 	tmp := &m{}
 	if err := json.Unmarshal(dat, tmp); err != nil {
 		return nil, err
