@@ -11,15 +11,17 @@ import (
 //
 type Capability interface {
 	GetName() string
-	GetAppendix() interface{}
 	SetMusts([]string)
-	SetNextpages([]*Nextpage)
-	RunActionContext(context.Context, *sql.DB, *Table, map[string]interface{}, ...interface{}) ([]map[string]interface{}, []*Nextpage, error)
+	GetPrepares() []*Nextpage
+	GetNextpages() []*Nextpage
+	GetAppendix() interface{}
+	RunActionContext(context.Context, *sql.DB, *Table, map[string]interface{}, ...map[string]interface{}) ([]map[string]interface{}, error)
 }
 
 type Action struct {
 	ActionName string     `json:"actionName,omitempty" hcl:"actionName,optional"`
 	Musts     []string    `json:"musts,omitempty" hcl:"musts,optional"`
+	Prepares []*Nextpage `json:"Prepares,omitempty" hcl:"Prepares,block"`
 	Nextpages []*Nextpage `json:"nextpages,omitempty" hcl:"nextpages,block"`
 	Appendix  interface{} `json:"appendix,omitempty" hcl:"appendix,block"`
 }
@@ -28,12 +30,16 @@ func (self *Action) SetMusts(musts []string) {
 	self.Musts = musts
 }
 
-func (self *Action) SetNextpages(edges []*Nextpage) {
-	self.Nextpages = edges
-}
-
 func (self *Action) GetName() string {
 	return self.ActionName
+}
+
+func (self *Action) GetPrepares() []*Nextpage {
+	return self.Prepares
+}
+
+func (self *Action) GetNextpages() []*Nextpage {
+	return self.Nextpages
 }
 
 func (self *Action) GetAppendix() interface{} {
@@ -67,7 +73,7 @@ func (self *Action) filterPars(currentTable string, ARGS map[string]interface{},
 	return sql, labels, table
 }
 
-func (self *Action) checkNull(ARGS map[string]interface{}, extra ...interface{}) error {
+func (self *Action) checkNull(ARGS map[string]interface{}, extra ...map[string]interface{}) error {
 	if self.Musts == nil {
 		return nil
 	}
@@ -75,18 +81,7 @@ func (self *Action) checkNull(ARGS map[string]interface{}, extra ...interface{})
 		err := fmt.Errorf("item %s not found in input", item)
 		if _, ok := ARGS[item]; !ok {
 			if hasValue(extra) && hasValue(extra[0]) {
-				switch t := extra[0].(type) {
-				case []map[string]interface{}:
-					for _, each := range t {
-						if _, ok = each[item]; !ok {
-							return err
-						}
-					}
-				case map[string]interface{}:
-					if _, ok = t[item]; !ok {
-						return err
-					}
-				default:
+				if _, ok = extra[0][item]; !ok {
 					return err
 				}
 			} else {

@@ -26,14 +26,14 @@ func (self *Edit) defaultNames() []string {
 	return []string{self.FIELDS}
 }
 
-func (self *Edit) RunAction(db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...interface{}) ([]map[string]interface{}, []*Nextpage, error) {
+func (self *Edit) RunAction(db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
 	return self.RunActionContext(context.Background(), db, t, ARGS, extra...)
 }
 
-func (self *Edit) RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...interface{}) ([]map[string]interface{}, []*Nextpage, error) {
+func (self *Edit) RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
 	err := self.checkNull(ARGS, extra...)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	self.defaultNames()
@@ -41,7 +41,7 @@ func (self *Edit) RunActionContext(ctx context.Context, db *sql.DB, t *Table, AR
 
 	ids := t.getIdVal(ARGS, extra...)
 	if !hasValue(ids) {
-		return nil, nil, fmt.Errorf("pk value not provided")
+		return nil, fmt.Errorf("pk value not provided")
 	}
 
 	where, extraValues := t.singleCondition(ids, table, extra...)
@@ -53,7 +53,7 @@ func (self *Edit) RunActionContext(ctx context.Context, db *sql.DB, t *Table, AR
 	dbi := &DBI{DB: db}
 	err = dbi.SelectSQLContext(ctx, &lists, sql, labels, extraValues...)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	return lists, self.Nextpages, nil
+	return lists, nil
 }

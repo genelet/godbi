@@ -79,11 +79,10 @@ func TestAction(t *testing.T) {
 	}
 
 	var lists []map[string]interface{}
-	var pages []*Nextpage
 	// the 1st web requests is assumed to create id=1 to the m_a table
 	//
 	args := map[string]interface{}{"x": "a1234567", "y": "b1234567", "z": "temp", "child": "john"}
-	lists, pages, err = insert.RunAction(db, table, args)
+	lists, err = insert.RunAction(db, table, args)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,7 +90,7 @@ func TestAction(t *testing.T) {
 	// the 2nd request just updates, becaues [x,y] is defined to the unique
 	//
 	args = map[string]interface{}{"x": "a1234567", "y": "b1234567", "z": "zzzzz", "child": "sam"}
-	lists, pages, err = insupd.RunAction(db, table, args)
+	lists, err = insupd.RunAction(db, table, args)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,7 +98,7 @@ func TestAction(t *testing.T) {
 	// the 3rd request creates id=2
 	//
 	args = map[string]interface{}{"x": "c1234567", "y": "d1234567", "z": "e1234", "child": "mary"}
-	lists, pages, err = insert.RunAction(db, table, args)
+	lists, err = insert.RunAction(db, table, args)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -107,14 +106,14 @@ func TestAction(t *testing.T) {
 	// the 4th request creates id=3
 	//
 	args = map[string]interface{}{"x": "e1234567", "y": "f1234567", "z": "e1234", "child": "marcus"}
-	lists, pages, err = insupd.RunAction(db, table, args)
+	lists, err = insupd.RunAction(db, table, args)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// GET all
 	args = map[string]interface{}{}
-	lists, pages, err = topics.RunAction(db, table, args)
+	lists, err = topics.RunAction(db, table, args)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -130,7 +129,7 @@ func TestAction(t *testing.T) {
 
 	// GET one
 	args = map[string]interface{}{"id": 1}
-	lists, pages, err = edit.RunAction(db, table, args)
+	lists, err = edit.RunAction(db, table, args)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -139,25 +138,23 @@ func TestAction(t *testing.T) {
 		e1["id"].(int) != 1 ||
 		e1["z"].(string) != "zzzzz" {
 		t.Errorf("%v", lists)
-		t.Errorf("%v", pages)
 	}
 
 	// DELETE
 	args = map[string]interface{}{"id": 1}
-	lists, pages, err = dele.RunAction(db, table, args)
+	lists, err = dele.RunAction(db, table, args)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// GET all
 	args = map[string]interface{}{}
-	lists, pages, err = topics.RunAction(db, table, args)
+	lists, err = topics.RunAction(db, table, args)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(lists) != 2 {
 		t.Errorf("%v", lists)
-		t.Errorf("%v", pages)
 	}
 
 	db.Exec(`drop table if exists m_a`)

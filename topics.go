@@ -110,7 +110,7 @@ func (self *Topics) orderString(t *Table, ARGS map[string]interface{}) string {
 	return order
 }
 
-func (self *Topics) pagination(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...interface{}) error {
+func (self *Topics) pagination(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) error {
 	nameTotalno := self.TOTALNO
 	nameRowcount := self.ROWCOUNT
 	namePageno := self.PAGENO
@@ -159,21 +159,21 @@ func (self *Topics) pagination(ctx context.Context, db *sql.DB, t *Table, ARGS m
 	return nil
 }
 
-func (self *Topics) RunAction(db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...interface{}) ([]map[string]interface{}, []*Nextpage, error) {
+func (self *Topics) RunAction(db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
 	return self.RunActionContext(context.Background(), db, t, ARGS, extra...)
 }
 
-func (self *Topics) RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...interface{}) ([]map[string]interface{}, []*Nextpage, error) {
+func (self *Topics) RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
 	err := self.checkNull(ARGS, extra...)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	self.defaultNames()
 	sql, labels, table := self.filterPars(t.TableName, ARGS, self.Rename, self.FIELDS, self.Joints)
 	err = self.pagination(ctx, db, t, ARGS, extra...)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	order := self.orderString(t, ARGS)
 
@@ -189,9 +189,9 @@ func (self *Topics) RunActionContext(ctx context.Context, db *sql.DB, t *Table, 
 		}
 		err = dbi.SelectSQLContext(ctx, &lists, sql, labels, values...)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
-		return lists, self.Nextpages, nil
+		return lists, nil
 	}
 
 	if order != "" {
@@ -200,7 +200,7 @@ func (self *Topics) RunActionContext(ctx context.Context, db *sql.DB, t *Table, 
 
 	err = dbi.SelectSQLContext(ctx, &lists, sql, labels)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	return lists, self.Nextpages, nil
+	return lists, nil
 }

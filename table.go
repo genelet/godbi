@@ -33,7 +33,7 @@ func (self *Table) insertHashContext(ctx context.Context, db *sql.DB, args map[s
 	return dbi.LastID, nil
 }
 
-func (self *Table) updateHashNullsContext(ctx context.Context, db *sql.DB, args map[string]interface{}, ids []interface{}, empties []string, extra ...interface{}) error {
+func (self *Table) updateHashNullsContext(ctx context.Context, db *sql.DB, args map[string]interface{}, ids []interface{}, empties []string, extra ...map[string]interface{}) error {
 	if empties == nil {
 		empties = make([]string, 0)
 	}
@@ -111,7 +111,7 @@ func (self *Table) insupdTableContext(ctx context.Context, db *sql.DB, args map[
 	return changed, err
 }
 
-func (self *Table) totalHashContext(ctx context.Context, db *sql.DB, v interface{}, extra ...interface{}) error {
+func (self *Table) totalHashContext(ctx context.Context, db *sql.DB, v interface{}, extra ...map[string]interface{}) error {
 	str := "SELECT COUNT(*) FROM " + self.TableName
 
 	if hasValue(extra) {
@@ -125,14 +125,14 @@ func (self *Table) totalHashContext(ctx context.Context, db *sql.DB, v interface
 	return db.QueryRowContext(ctx, str).Scan(v)
 }
 
-func (self *Table) getIdVal(ARGS map[string]interface{}, extra ...interface{}) []interface{} {
+func (self *Table) getIdVal(ARGS map[string]interface{}, extra ...map[string]interface{}) []interface{} {
 	if hasValue(extra) {
 		return properValues(self.Pks, ARGS, extra[0])
 	}
 	return properValues(self.Pks, ARGS, nil)
 }
 
-func (self *Table) singleCondition(ids []interface{}, table string, extra ...interface{}) (string, []interface{}) {
+func (self *Table) singleCondition(ids []interface{}, table string, extra ...map[string]interface{}) (string, []interface{}) {
 	keys := self.Pks
 	sql := ""
 	extraValues := make([]interface{}, 0)
@@ -169,21 +169,17 @@ func (self *Table) singleCondition(ids []interface{}, table string, extra ...int
 	return sql, extraValues
 }
 
-func properValue(u string, ARGS map[string]interface{}, extra interface{}) interface{} {
+func properValue(u string, ARGS map[string]interface{}, extra map[string]interface{}) interface{} {
 	if !hasValue(extra) {
 		return ARGS[u]
 	}
-	switch v := extra.(type) {
-	case map[string]interface{}:
-		if val, ok := v[u]; ok {
-			return val
-		}
-	default:
+	if val, ok := extra[u]; ok {
+		return val
 	}
 	return ARGS[u]
 }
 
-func properValues(us []string, ARGS map[string]interface{}, extra interface{}) []interface{} {
+func properValues(us []string, ARGS map[string]interface{}, extra map[string]interface{}) []interface{} {
 	outs := make([]interface{}, len(us))
 	if !hasValue(extra) {
 		for i, u := range us {
@@ -191,21 +187,17 @@ func properValues(us []string, ARGS map[string]interface{}, extra interface{}) [
 		}
 		return outs
 	}
-	switch v := extra.(type) {
-	case map[string]interface{}:
-		for i, u := range us {
-			if val, ok := v[u]; ok {
-				outs[i] = val
-			} else {
-				outs[i] = ARGS[u]
-			}
+	for i, u := range us {
+		if val, ok := extra[u]; ok {
+			outs[i] = val
+		} else {
+			outs[i] = ARGS[u]
 		}
-	default:
 	}
 	return outs
 }
 
-func properValuesHash(vs []string, ARGS map[string]interface{}, extra interface{}) map[string]interface{} {
+func properValuesHash(vs []string, ARGS map[string]interface{}, extra map[string]interface{}) map[string]interface{} {
 	values := properValues(vs, ARGS, extra)
 	hash := make(map[string]interface{})
 	for i, v := range vs {
@@ -214,15 +206,12 @@ func properValuesHash(vs []string, ARGS map[string]interface{}, extra interface{
 	return hash
 }
 
-func selectCondition(extra interface{}, table string) (string, []interface{}) {
+func selectCondition(extra map[string]interface{}, table string) (string, []interface{}) {
 	sql := ""
 	values := make([]interface{}, 0)
 	i := 0
 
-	switch vt := extra.(type) {
-	case map[string]interface{}:
-
-	for field, valueInterface := range vt {
+	for field, valueInterface := range extra {
 		if i > 0 {
 			sql += " AND "
 		}
@@ -267,9 +256,6 @@ func selectCondition(extra interface{}, table string) (string, []interface{}) {
 			values = append(values, value)
 		}
 		sql += ")"
-	}
-
-	default:
 	}
 
 	return sql, values

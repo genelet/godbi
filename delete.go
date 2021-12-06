@@ -10,19 +10,19 @@ type Delete struct {
 	Action
 }
 
-func (self *Delete) RunAction(db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...interface{}) ([]map[string]interface{}, []*Nextpage, error) {
+func (self *Delete) RunAction(db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
 	return self.RunActionContext(context.Background(), db, t, ARGS, extra...)
 }
 
-func (self *Delete) RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...interface{}) ([]map[string]interface{}, []*Nextpage, error) {
+func (self *Delete) RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
 	err := self.checkNull(ARGS, extra...)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	ids := t.getIdVal(ARGS, extra...)
 	if !hasValue(ids) {
-		return nil, nil, fmt.Errorf("pk value not provided")
+		return nil, fmt.Errorf("pk value not provided")
 	}
 
 	sql := "DELETE FROM " + t.TableName
@@ -30,8 +30,8 @@ func (self *Delete) RunActionContext(ctx context.Context, db *sql.DB, t *Table, 
 	if where != "" {
 		sql += "\nWHERE " + where
 	} else {
-		return nil, nil, fmt.Errorf("delete whole table is not supported")
+		return nil, fmt.Errorf("delete whole table is not supported")
 	}
 	dbi := &DBI{DB: db}
-	return nil, self.Nextpages, dbi.DoSQLContext(ctx, sql, values...)
+	return nil, dbi.DoSQLContext(ctx, sql, values...)
 }

@@ -13,7 +13,7 @@ import (
 type Navigate interface {
 	GetName() string
 	NonePass(string) []string
-	RunModelContext(context.Context, *sql.DB, string, map[string]interface{}, ...interface{}) ([]map[string]interface{}, []*Nextpage, error)
+	RunModelContext(context.Context, *sql.DB, string, interface{}, ...map[string]interface{}) ([]map[string]interface{}, error)
 }
 
 type Model struct {
@@ -72,14 +72,10 @@ func Assertion(actions []interface{}, custom ...Capability) ([]Capability, error
 			switch name {
 			case "insert":
 				tran = new(Insert)
-			case "inserts":
-				tran = new(Inserts)
 			case "update":
 				tran = new(Update)
 			case "insupd":
 				tran = new(Insupd)
-			case "insupds":
-				tran = new(Insupds)
 			case "edit":
 				tran = new(Edit)
 			case "topics":
@@ -114,27 +110,45 @@ func (self *Model) GetAction(action string) Capability {
 	return nil
 }
 
-func (self *Model) RunModel(db *sql.DB, action string, ARGS map[string]interface{}, extra ...interface{}) ([]map[string]interface{}, []*Nextpage, error) {
+func (self *Model) RunModel(db *sql.DB, action string, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
 	return self.RunModelContext(context.Background(), db, action, ARGS, extra...)
 }
 
-func (self *Model) RunModelContext(ctx context.Context, db *sql.DB, action string, ARGS map[string]interface{}, extra ...interface{}) ([]map[string]interface{}, []*Nextpage, error) {
+/*
+func (self *Model) RunModelContext(ctx context.Context, db *sql.DB, action string, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
 	obj := self.GetAction(action)
 	if obj == nil {
-		return nil, nil, fmt.Errorf("actions or action %s is nil", action)
+		return nil, fmt.Errorf("actions or action %s is nil", action)
 	}
 	return obj.RunActionContext(ctx, db, &self.Table, ARGS, extra...)
 }
+*/
 
-func (self *Model) NonePass(action string) []string {
-	if obj := self.GetAction(action); obj != nil {
-		switch action {
-		case "edit":
-			return obj.(*Edit).defaultNames()
-		case "topics":
-			return obj.(*Topics).defaultNames()
-		default:
-		}
+func (self *Model) RunModelNContext(ctx context.Context, db *sql.DB, action string, ARGS interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
+    obj := self.GetAction(action)
+    if obj == nil {
+        return nil, fmt.Errorf("actions or action %s is nil", action)
+    }
+	if ARGS == nil {
+		return obj.RunActionContext(ctx, db, &self.Table, nil, extra...)
 	}
-	return nil
+
+	switch t := ARGS.(type) {
+	case map[string]interface{}:
+		return obj.RunActionContext(ctx, db, &self.Table, t, extra...)
+	case []map[string]interface{}:
+		var data []map[string]interface{}
+		for _, item := range t {
+			lists, err := obj.RunActionContext(ctx, db, &self.Table, item, extra...)
+			if err != nil {
+				return nil, err
+			}
+			data = append(data, lists...)
+		}
+		return data, nil
+	default:
+		return ni, fmt.Errorf("wrong input data type: %#v", t)
+	}
+
+	return nil, nil
 }
