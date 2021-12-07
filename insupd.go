@@ -23,7 +23,7 @@ func (self *Insupd) RunActionContext(ctx context.Context, db *sql.DB, t *Table, 
 	}
 
 	if self.Uniques == nil {
-		return nil, fmt.Errorf("unique key not found")
+		return nil, fmt.Errorf("unique key not defined")
 	}
 
 	fieldValues := getFv(self.Columns, ARGS, nil)

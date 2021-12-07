@@ -13,7 +13,7 @@
 				{
 					"table": "m_b",
 					"action": "insert",
-					"relateItem": { "id": "id" }
+					"relateArgs": { "id": "id" }
 				}
 			]
 		},
@@ -24,7 +24,7 @@
 				{
 					"table": "m_b",
 					"action": "insert",
-					"relateItem": { "id": "id" }
+					"relateArgs": { "id": "id" }
 				}
 			]
 		},
@@ -40,7 +40,7 @@
 				{
 					"table": "m_b",
 					"action": "topics",
-					"relateItem": { "id": "id" }
+					"relateExtra": { "id": "id" }
 				}
 			]
 		},
@@ -60,7 +60,7 @@
 				{
 					"table": "m_a",
 					"action": "edit",
-					"relateItem": { "id": "id" }
+					"relateExtra": { "id": "id" }
 				}
 			]
 		}

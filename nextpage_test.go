@@ -24,7 +24,7 @@ func TestNextpage(t *testing.T) {
 	}
 
 	extra := map[string]interface{}{"y": "b", "asset": "what"}
-	hash := appendMap(nextExtra, extra)
+	hash := appendExtra(nextExtra, extra)
 	if hash["y"].(string) != "b" ||
 		hash["asset"].(string) != "what" ||
 		hash["c_id"].(int) != 123 {

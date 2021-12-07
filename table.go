@@ -84,7 +84,7 @@ func (self *Table) insupdTableContext(ctx context.Context, db *sql.DB, args map[
 		if x, ok := args[val]; ok {
 			v = append(v, x)
 		} else {
-			return changed, fmt.Errorf("unique key %s not found in input", val)
+			return changed, fmt.Errorf("input of unique key %s not found", val)
 		}
 	}
 
@@ -95,7 +95,7 @@ func (self *Table) insupdTableContext(ctx context.Context, db *sql.DB, args map[
 		return changed, err
 	}
 	if len(lists) > 1 {
-		return changed, fmt.Errorf("multiple records found")
+		return changed, fmt.Errorf("multiple records found for unique key")
 	}
 
 	if len(lists) == 1 {

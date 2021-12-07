@@ -1,33 +1,52 @@
 package godbi
 
-// Nextpage type describes next page's structure
-// Model: the name of the model
-// Action: the method name on the model
-// Manual: constraint conditions manually assigned
-// RelateItem: current page's column versus next page's column, as constraints.
+// Nextpage describes linked page
+//
 type Nextpage struct {
+	// TableName: the name of the table
 	TableName  string            `json:"table" hcl:"table,label"`
+	// ActionName: the action on the model
 	ActionName string            `json:"action" hcl:"action,label"`
+	// RelateArgs: map current page's columns to nextpage's columns as input
 	RelateArgs map[string]string `json:"relateArgs,omitempty" hcl:"relateArgs"`
+	// RelateExtra: it maps current page's columns to nextpage's columns (for Nextpages), or earlier page's columns (for Prepares) as constrains.
 	RelateExtra map[string]string `json:"relateExtra,omitempty" hcl:"relateExtra"`
 }
 
+// Subname is the marker string used to store the output
 func (self *Nextpage) Subname() string {
 	return self.TableName + "_" + self.ActionName
 }
 
+// NextArg returns nextpage's args by taking current item
+//
 func (self *Nextpage) NextArgs(item map[string]interface{}) map[string]interface{} {
 	return createNextmap(self.RelateArgs, item)
 }
 
+// AppendArg appends current item to the existing args
+//
+func (self *Nextpage) AppendArgs(args interface{}, item map[string]interface{}) interface{} {
+	return appendArgs(args, self.NextArgs(item))
+}
+
+// NextExtra returns nextpage's extra by taking current item
+//
 func (self *Nextpage) NextExtra(item map[string]interface{}) map[string]interface{} {
 	return createNextmap(self.RelateExtra, item)
+}
+
+// AppendExtra appends current item to the existing extra
+//
+func (self *Nextpage) AppendExtra(extra, item map[string]interface{}) map[string]interface{} {
+	return appendExtra(extra, self.NextExtra(item))
 }
 
 func createNextmap(which map[string]string, item map[string]interface{}) map[string]interface{} {
 	if which == nil {
 		return nil
 	}
+
 	var args map[string]interface{}
 	for k, v := range which {
 		if u, ok := item[k]; ok {
@@ -41,7 +60,9 @@ func createNextmap(which map[string]string, item map[string]interface{}) map[str
 	return args
 }
 
-func cloneMap(extra map[string]interface{}) map[string]interface{} {
+// cloneExtra clones extra to a new extra
+//
+func cloneExtra(extra map[string]interface{}) map[string]interface{} {
 	if extra == nil {
 		return nil
 	}
@@ -52,17 +73,19 @@ func cloneMap(extra map[string]interface{}) map[string]interface{} {
 	return newExtra
 }
 
+// cloneArgs clones args to a new args, keeping proper data type
+//
 func cloneArgs(args interface{}) interface{} {
 	if args == nil {
 		return nil
 	}
 	switch t := args.(type) {
 	case map[string]interface{}:
-		return cloneMap(t)
+		return cloneExtra(t)
 	case []map[string]interface{}:
 		var newArgs []map[string]interface{}
 		for _, each := range t {
-			newArgs = append(newArgs, cloneMap(each))
+			newArgs = append(newArgs, cloneExtra(each))
 		}
 		return newArgs
 	default:
@@ -70,13 +93,13 @@ func cloneArgs(args interface{}) interface{} {
 	return nil
 }
 
-func appendMap(extra, item map[string]interface{}) map[string]interface{} {
+func appendExtra(extra, item map[string]interface{}) map[string]interface{} {
 	if extra == nil {
 		return item
 	} else if item == nil {
 		return extra
 	}
-	newExtra := cloneMap(extra)
+	newExtra := cloneExtra(extra)
 	for k, v := range item {
 		newExtra[k] = v
 	}
@@ -91,110 +114,13 @@ func appendArgs(args interface{}, item map[string]interface{}) interface{} {
 	}
 	switch t := args.(type) {
 	case map[string]interface{}:
-		return appendMap(t, item)
+		return appendExtra(t, item)
 	case []map[string]interface{}:
 		var newArgs []map[string]interface{}
 		for _, each := range t {
-			newArgs = append(newArgs, appendMap(each, item))
+			newArgs = append(newArgs, appendExtra(each, item))
 		}
 		return newArgs
 	}
 	return nil
 }
-
-/*
-// Use args as input, this function returns the output containing the
-// manually assigned value
-//
-func (self *Nextpage) manualRefresh(args map[string]interface{}) map[string]interface{} {
-	newArgs := map[string]interface{}{args}
-	if self.Manual == nil {
-		for k, v := range self.Manual {
-			newArgs[k] = v
-		}
-	}
-	return newArgs
-}
-
-// This function converts args to nextpage's args
-//
-// Only apply to "insert/insupd" where RelateArgs is defined for args
-//
-func (self *Nextpage) ownRefresh(args map[string]interface{}) map[string]interface{} {
-	if args == nil {
-		return nil
-	}
-
-	newArgs := map[string]interface{}{args}
-	for k, v := range self.RelateArgs {
-		if u, ok := args[k]; ok {
-			delete(args, k)
-			args[v] = u
-		}
-	}
-	return newArgs
-}
-
-// This function adds more input on top of the existing input, 
-// using item
-//
-func (self *Nextpage) argsRefresh(item map[string]interface{}, args interface{}) interface{} {
-	newExtra := map[string]interface{}{}
-
-	if args != nil {
-		switch t := args.(type) {
-		case []map[string]interface{}:
-			var newArgs []map[string]interface{}
-			for _, each := range t {
-				hash := map[string]interface{}{each}
-				for k, v := range self.RelateItem {
-					if u, ok := item[k]; ok {
-						hash[v] = u
-					}
-				}
-				newArgs = append(newArgs, hash)
-			}
-			return newArgs
-		case map[string]interface{}:
-			newExtra = t
-		default:
-		}
-	}
-
-	for k, v := range self.RelateItem {
-		if u, ok := item[k]; ok {
-			newExtra[v] = u
-		}
-	}
-	return newExtra
-}
-
-// This function adds more extra on top of the existing extra, 
-// using item
-//
-func (self *Nextpage) itemRefresh(item, extra map[string]interface{}) interface{} {
-	newExtra := map[string]interface{}{extra}
-	for k, v := range self.RelateItem {
-		if u, ok := item[k]; ok {
-			newExtra[v] = u
-		}
-	}
-	return newExtra
-}
-
-func appendMap(one, two map[string]interface{}) map[string]interface{} {
-		if one == nil {
-			return two
-		} else if two == nil {
-			return one
-		}
-
-		three := map[string]interface{}{one}
-		for k, v := range two {
-			three[k] = v
-		}
-		return three
-}
-
-func appendArgs(one interface{}, two map[string]interface{}) interface{} {
-*/

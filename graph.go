@@ -1,6 +1,7 @@
 package godbi
 
 import (
+"log"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -74,12 +75,13 @@ func (self *Graph) GetModel(model string) Navigate {
 // The rest are specific data for each action starting with the current one.
 //
 func (self *Graph) RunContext(ctx context.Context, db *sql.DB, model, action string, rest ...interface{}) ([]map[string]interface{}, error) {
+log.Printf("1 model %s action %s rest %#v", model, action, rest)
 	var args interface{}
 	var extra map[string]interface{}
 	if rest != nil {
 		args = rest[0]
 		if len(rest) == 2 {
-			switch t := rest[0].(type) {
+			switch t := rest[1].(type) {
 			case map[string]interface{}: extra = t
 			default:
 				return nil, fmt.Errorf("Wrong type for data: %#v", rest[0])
@@ -87,11 +89,13 @@ func (self *Graph) RunContext(ctx context.Context, db *sql.DB, model, action str
 		}
 	}
 
+log.Printf("2 args: %#v, extra: %#v", args, extra)
 	modelObj := self.GetModel(model)
 	if modelObj == nil {
 		return nil, fmt.Errorf("model %s not found in graph", model)
 	}
 
+log.Printf("%#v", 3)
 	actionObj := modelObj.GetAction(action)
 	if actionObj == nil {
 		return nil, fmt.Errorf("action %s not found in graph", action)
@@ -100,44 +104,51 @@ func (self *Graph) RunContext(ctx context.Context, db *sql.DB, model, action str
 	nextpages := actionObj.GetNextpages()
 
 	newArgs := cloneArgs(args)
+	newExtra := cloneExtra(extra)
 
+log.Printf("%#v", 4)
 	// prepares only affect args, and no RelateArgs nor RelateExtra involed
 	if prepares != nil {
 		for _, p := range prepares {
-			lists, err := self.RunContext(ctx, db, p.TableName, p.ActionName)
+			lists, err := self.RunContext(ctx, db, p.TableName, p.ActionName, rest...)
 			if err != nil { return nil, err }
 			// only two types of prepares
 			// 1) one pre, with multiple outputs (when p.argsMap is multiple)
 			if hasValue(lists) && len(lists) > 0 {
 				newArgs = cloneArgs(args)
+				newExtra = cloneExtra(extra)
 				for _, item := range lists {
-					newArgs = appendArgs(newArgs, item)
+					newArgs = p.AppendArgs(newArgs, item)
+					newExtra = p.AppendExtra(newExtra, item)
 				}
 				break
 			}
 			// 2) multiple pre, with one output each.
 			// when a multiple output is found, 1) will override
-			newArgs = appendArgs(newArgs, lists[0])
+			newArgs = p.AppendArgs(newArgs, lists[0])
+			newExtra = p.AppendExtra(newExtra, lists[0])
 		}
 	}
 
-	newExtra := cloneMap(extra)
+log.Printf("%#v", 5)
+	var data []map[string]interface{}
+	var err error
+
 	if self.extraMap[model] != nil {
 		extraAction := self.extraMap[model].(map[string]interface{})
 		if extraAction[action] != nil {
-			newExtra = appendMap(newExtra, extraAction[action].(map[string]interface{}))
+			newExtra = appendExtra(newExtra, extraAction[action].(map[string]interface{}))
 		}
 	}
 
+log.Printf("%#v", 6)
 	var argsModelAction interface{}
 	if self.argsMap[model] != nil {
 		argsMap := self.argsMap[model].(map[string]interface{})
 		argsModelAction = argsMap[action]
 	}
-
-	var data []map[string]interface{}
-	var err error
 	if argsModelAction != nil {
+log.Printf("%#v", 7)
 		switch t := argsModelAction.(type) {
 		case map[string]interface{}:
 			data, err = modelObj.RunModelContext(ctx, db, action, appendArgs(newArgs, t), newExtra)
@@ -149,22 +160,30 @@ func (self *Graph) RunContext(ctx context.Context, db *sql.DB, model, action str
 				data = append(data, lists...)
 			}
 		default:
-			return nil, fmt.Errorf("original input wrong %#v", t)
+			return nil, fmt.Errorf("wrong input data type: %#v", t)
 		}
 	} else {
+log.Printf("%#v", 8)
 		data, err = modelObj.RunModelContext(ctx, db, action, newArgs, newExtra)
 		if err != nil { return nil, err }
 	}
 
+log.Printf("9 data: %#v", data)
 	if nextpages == nil { return data, nil }
 
+log.Printf("10 next page: %#v", nextpages)
 	for _, p := range nextpages {
+log.Printf("101 next page: %#v", p)
 		for _, item := range data {
+log.Printf("11 %#v", item)
+log.Printf("12 %#v", p)
 			newLists, err := self.RunContext(ctx, db, p.TableName, p.ActionName, p.NextArgs(item), p.NextExtra(item))
 			if err != nil { return nil, err }
+log.Printf("13 sub list: %#v", newLists)
 			item[p.Subname()] = newLists
 		}
 	}
 
+log.Printf("14")
 	return data, nil
 }

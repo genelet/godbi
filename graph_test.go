@@ -14,7 +14,7 @@ func TestGraphContext(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	graph := &Graph{[]Navigate{ta, tb}}
+	graph := &Graph{Models:[]Navigate{ta, tb}}
 	GraphGeneral(t, graph)
 }
 
@@ -45,6 +45,9 @@ func GraphGeneral(t *testing.T, graph *Graph) {
 	// the 1st web requests is assumed to create id=1 to the m_a and m_b tables:
 	//
 	args := map[string]interface{}{"x": "a1234567", "y": "b1234567", "z": "temp", "child": "john"}
+    data := map[string]interface{}{"child": "john"}
+    orig := map[string]interface{}{"insert": data}
+	graph.Initialize(map[string]interface{}{"m_b":orig}, nil)
 	if lists, err = graph.RunContext(ctx, db, "m_a", METHODS["PATCH"], args); err != nil {
 		panic(err)
 	}
@@ -52,21 +55,30 @@ func GraphGeneral(t *testing.T, graph *Graph) {
 	// the 2nd request just updates, becaues [x,y] is defined to the unique in ta.
 	// but create a new record to tb for id=1, since insupd triggers insert in tb
 	//
-	args = map[string]interface{}{"x": "a1234567", "y": "b1234567", "z": "zzzzz", "child": "sam"}
+	args = map[string]interface{}{"x": "a1234567", "y": "b1234567", "z": "zzzzz"}
+    data = map[string]interface{}{"child": "sam"}
+    orig = map[string]interface{}{"insert": data}
+	graph.Initialize(map[string]interface{}{"m_b":orig}, nil)
 	if lists, err = graph.RunContext(ctx, db, "m_a", METHODS["PATCH"], args); err != nil {
 		panic(err)
 	}
 
 	// the 3rd request creates id=2
 	//
-	args = map[string]interface{}{"x": "c1234567", "y": "d1234567", "z": "e1234", "child": "mary"}
+	args = map[string]interface{}{"x": "c1234567", "y": "d1234567", "z": "e1234"}
+    data = map[string]interface{}{"child": "mary"}
+    orig = map[string]interface{}{"insert": data}
+	graph.Initialize(map[string]interface{}{"m_b":orig}, nil)
 	if lists, err = graph.RunContext(ctx, db, "m_a", METHODS["POST"], args); err != nil {
 		panic(err)
 	}
 
 	// the 4th request creates id=3
 	//
-	args = map[string]interface{}{"x": "e1234567", "y": "f1234567", "z": "e1234", "child": "marcus"}
+	args = map[string]interface{}{"x": "e1234567", "y": "f1234567", "z": "e1234"}
+    data = map[string]interface{}{"child": "marcus"}
+    orig = map[string]interface{}{"insert": data}
+	graph.Initialize(map[string]interface{}{"m_b":orig}, nil)
 	if lists, err = graph.RunContext(ctx, db, "m_a", METHODS["POST"], args); err != nil {
 		panic(err)
 	}
@@ -77,12 +89,12 @@ func GraphGeneral(t *testing.T, graph *Graph) {
 	if err != nil {
 		panic(err)
 	}
+	// [map[id:1 m_a_edit:[map[id:1 m_b_topics:[map[child:john id:1 tid:1] map[child:sam id:1 tid:2]] x:a1234567 y:b1234567 z:zzzzz]] x:a1234567 y:b1234567 z:zzzzz] map[id:2 m_a_edit:[map[id:2 m_b_topics:[map[child:mary id:2 tid:3]] x:c1234567 y:d1234567 z:e1234]] x:c1234567 y:d1234567 z:e1234] map[id:3 m_a_edit:[map[id:3 m_b_topics:[map[child:marcus id:3 tid:4]] x:e1234567 y:f1234567 z:e1234]] x:e1234567 y:f1234567 z:e1234]]
 	e1 := lists[0]["m_a_edit"].([]map[string]interface{})
 	e2 := e1[0]["m_b_topics"].([]map[string]interface{})
 	if e2[0]["child"].(string) != "john" {
 		t.Errorf("%v", lists)
 	}
-	// [map[id:1 ta_edit:[map[id:1 m_b_topics:[map[child:john id:1 tid:1] map[child:sam id:1 tid:2]] x:a1234567 y:b1234567 z:zzzzz]] x:a1234567 y:b1234567 z:zzzzz] map[id:2 ta_edit:[map[id:2 m_b_topics:[map[child:mary id:2 tid:3]] x:c1234567 y:d1234567 z:e1234]] x:c1234567 y:d1234567 z:e1234] map[id:3 ta_edit:[map[id:3 m_b_topics:[map[child:marcus id:3 tid:4]] x:e1234567 y:f1234567 z:e1234]] x:e1234567 y:f1234567 z:e1234]]
 
 	// GET one
 	args = map[string]interface{}{"id": 1}
