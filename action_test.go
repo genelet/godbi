@@ -19,7 +19,7 @@ func TestAction(t *testing.T) {
 	tstr := `{
     "table":"m_a",
     "pks":["id"],
-    "id_auto":"id"
+    "idAuto":"id"
 	}`
 	insTable := `{
 	"musts":["x","y"],

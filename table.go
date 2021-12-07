@@ -104,6 +104,12 @@ func (self *Table) insupdTableContext(ctx context.Context, db *sql.DB, args map[
 			ids = append(ids, lists[0][k])
 		}
 		err = self.updateHashNullsContext(ctx, db, args, ids, nil)
+		if err == nil && self.IdAuto != "" {
+			res := make(map[string]interface{})
+			if err = dbi.GetSQLContext(ctx, res, "SELECT " + self.IdAuto + " FROM " + self.TableName + "\nWHERE " + strings.Join(self.Pks, "=? AND ") + "=?", nil, ids...); err == nil {
+				changed = res[self.IdAuto].(int64)
+			}
+		}
 	} else {
 		changed, err = self.insertHashContext(ctx, db, args)
 	}

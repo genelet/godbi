@@ -237,12 +237,12 @@ _Table_ describes a database table.
 type Table struct {
     TableName  string    `json:"table,omitempty"`  // the table name
     Pks           []string  `json:"pks,omitempty"`     // optional, the PK 
-    IDAuto        string    `json:"id_auto,omitempty"` // table's auto id
+    IdAuto        string    `json:"idAuto,omitempty"` // table's auto id
     Fks           []string  `json:"fks,omitempty"`     // optional, for the FK
 }
 ```
 
-where _TableName_ is the table name; _Pks_ the primary key defined as a slice of columns; _IDAuto_ (optional) the column of a series number and _Fks_ (optional) the foreign key information.
+where _TableName_ is the table name; _Pks_ the primary key defined as a slice of columns; _IdAuto_ (optional) the column of a series number and _Fks_ (optional) the foreign key information.
 
 _Fks_ defines a relationship between columns in two tables, which does not need to be a native foreign key:
 
@@ -508,7 +508,7 @@ func main() {
     db.Exec(`DROP TABLE IF EXISTS testing`)
     db.Exec(`CREATE TABLE testing (id int auto_increment, x varchar(255), y varchar(255), primary key (id))`)
 
-    table := &godbi.Table{TableName: "testing", Pks:[]string{"id"}, IDAuto:"id"}
+    table := &godbi.Table{TableName: "testing", Pks:[]string{"id"}, IdAuto:"id"}
 
     insert := &godbi.Insert{Columns: []string{"x","y"}}
     topics := &godbi.Topics{Rename: map[string][]string{"id":{"id","int"}, "x":{"x","string"},"y":{"y","string"}}}

@@ -2,13 +2,13 @@
 	"fks":["","adv_id","","adv_id","campaign_id_md5"],
 	"table":"adv_campaign",
 	"pks":["campaign_id"],
-	"id_auto":"campaign_id",
+	"idAuto":"campaign_id",
 	"actions":[
 		{
 			"actionName": "topics",
 			"nextpages": [
-				{"table":"adv_campaign", "action":"edit", "relateItem":{"campaign_id":"campaign_id"}},
-				{"table":"adv_item", "action":"topics", "manual":{"name":"john"}, "relateItem":{"campaign_id":"campaign_id"}}
+				{"table":"adv_campaign", "action":"edit", "relateExtra":{"campaign_id":"campaign_id"}},
+				{"table":"adv_item", "action":"topics", "manual":{"name":"john"}, "relateExtra":{"campaign_id":"campaign_id"}}
 			],
 			"rename":[{"columnName":"adv_id","label":"adv_id","typeName":"INT"},{"columnName":"campaign_id","label":"campaign_id","typeName":"INT"},{"columnName":"campaign_name","label":"campaign_name","typeName":"VARCHAR"}],
 			"total_force":1
@@ -40,7 +40,7 @@
 			"columns":["fistname", "lastname", "nick"],
 			"statement":"SELECT x, y, z FROM a WHERE b=?",
 			"nextpages": [
-				{"table":"adv_creative", "action":"topics", "manual":{"name":"john"}, "relateItem":{"nick":"nickname"}}
+				{"table":"adv_creative", "action":"topics", "manual":{"name":"john"}, "relateExtra":{"nick":"nickname"}}
 			]
 		},
 		{

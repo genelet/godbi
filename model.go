@@ -12,7 +12,7 @@ import (
 //
 type Navigate interface {
 	GetName() string
-	NonePass(string) []string
+	GetAction(string) Capability
 	RunModelContext(context.Context, *sql.DB, string, interface{}, ...map[string]interface{}) ([]map[string]interface{}, error)
 }
 
@@ -110,21 +110,11 @@ func (self *Model) GetAction(action string) Capability {
 	return nil
 }
 
-func (self *Model) RunModel(db *sql.DB, action string, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
+func (self *Model) RunModel(db *sql.DB, action string, ARGS interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
 	return self.RunModelContext(context.Background(), db, action, ARGS, extra...)
 }
 
-/*
-func (self *Model) RunModelContext(ctx context.Context, db *sql.DB, action string, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
-	obj := self.GetAction(action)
-	if obj == nil {
-		return nil, fmt.Errorf("actions or action %s is nil", action)
-	}
-	return obj.RunActionContext(ctx, db, &self.Table, ARGS, extra...)
-}
-*/
-
-func (self *Model) RunModelNContext(ctx context.Context, db *sql.DB, action string, ARGS interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
+func (self *Model) RunModelContext(ctx context.Context, db *sql.DB, action string, ARGS interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
     obj := self.GetAction(action)
     if obj == nil {
         return nil, fmt.Errorf("actions or action %s is nil", action)
@@ -147,7 +137,7 @@ func (self *Model) RunModelNContext(ctx context.Context, db *sql.DB, action stri
 		}
 		return data, nil
 	default:
-		return ni, fmt.Errorf("wrong input data type: %#v", t)
+		return nil, fmt.Errorf("wrong input data type: %#v", t)
 	}
 
 	return nil, nil

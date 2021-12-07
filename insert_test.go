@@ -10,7 +10,7 @@ func TestInsert(t *testing.T) {
     "fks":["","adv_id","","adv_id","campaign_id_md5"],
     "table":"adv_campaign",
     "pks":["campaign_id"],
-    "id_auto":"campaign_id",
+    "idAuto":"campaign_id",
 	"musts":["adv_id","campaign_name"],
 	"columns":["adv_id","campaign_name"]
 	}`

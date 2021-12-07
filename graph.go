@@ -12,8 +12,8 @@ import (
 //
 type Graph struct {
 	Models []Navigate `json:"models" hcl:"models"`
-	argsMap map[string][string]interface{}
-	extraMap map[string][string][string]interface{}
+	argsMap map[string]interface{}
+	extraMap map[string]interface{}
 }
 
 func NewGraphJsonFile(fn string, cmap ...map[string][]Capability) (*Graph, error) {
@@ -47,10 +47,10 @@ func NewGraphJson(dat json.RawMessage, cmap ...map[string][]Capability) (*Graph,
 		models = append(models, &Model{tmp.Table, actions})
 	}
 
-	return &Graph{Model:models}, nil
+	return &Graph{Models:models}, nil
 }
 
-func (self *Graph) Initialize(args map[string][string]interface{}, extra map[string][string][string]interface{}) {
+func (self *Graph) Initialize(args map[string]interface{}, extra map[string]interface{}) {
 	self.argsMap = args
     self.extraMap = extra
 }
@@ -73,16 +73,16 @@ func (self *Graph) GetModel(model string) Navigate {
 // The first extra is the input data, shared by all sub actions.
 // The rest are specific data for each action starting with the current one.
 //
-func (self *Graph) RunContext(ctx context.Context, db *sql.DB, model, action string, rest ...interface{}([]map[string]interface{}, error) {
+func (self *Graph) RunContext(ctx context.Context, db *sql.DB, model, action string, rest ...interface{}) ([]map[string]interface{}, error) {
 	var args interface{}
 	var extra map[string]interface{}
 	if rest != nil {
 		args = rest[0]
 		if len(rest) == 2 {
-			switch t := rest[0].(type)
+			switch t := rest[0].(type) {
 			case map[string]interface{}: extra = t
 			default:
-				return nil, fmt.Errorf("Wrong type for extra: %#v", rest[0])
+				return nil, fmt.Errorf("Wrong type for data: %#v", rest[0])
 			}
 		}
 	}
@@ -97,7 +97,7 @@ func (self *Graph) RunContext(ctx context.Context, db *sql.DB, model, action str
 		return nil, fmt.Errorf("action %s not found in graph", action)
 	}
 	prepares := actionObj.GetPrepares()
-	nextpages := actionObj.Nextpages()
+	nextpages := actionObj.GetNextpages()
 
 	newArgs := cloneArgs(args)
 
@@ -123,26 +123,33 @@ func (self *Graph) RunContext(ctx context.Context, db *sql.DB, model, action str
 
 	newExtra := cloneMap(extra)
 	if self.extraMap[model] != nil {
-		newExtra = appendMap(newExtra, self.extraMap[model][action])
+		extraAction := self.extraMap[model].(map[string]interface{})
+		if extraAction[action] != nil {
+			newExtra = appendMap(newExtra, extraAction[action].(map[string]interface{}))
+		}
+	}
+
+	var argsModelAction interface{}
+	if self.argsMap[model] != nil {
+		argsMap := self.argsMap[model].(map[string]interface{})
+		argsModelAction = argsMap[action]
 	}
 
 	var data []map[string]interface{}
 	var err error
-
-	if self.argsMap[model] != nil && self.argsMap[model][action] != nil {
-		switch t := self.argsMap[model][action].(type) {
+	if argsModelAction != nil {
+		switch t := argsModelAction.(type) {
 		case map[string]interface{}:
-			newArgs = append(newArgs, t)
-			data, err = modelObj.RunModelContext(ctx, db, action, newArgs, newExtra)
+			data, err = modelObj.RunModelContext(ctx, db, action, appendArgs(newArgs, t), newExtra)
 			if err != nil { return nil, err }
 		case []map[string]interface{}:
-			for _, each := range orig {
-				lists, err := modelObj.RunModelContext(ctx, db, action, newArgs, newExtra)
+			for _, each := range t {
+				lists, err := modelObj.RunModelContext(ctx, db, action, appendArgs(newArgs, each), newExtra)
 				if err != nil { return nil, err }
 				data = append(data, lists...)
 			}
 		default:
-			return nil, fmt.Errorf("original input wrong %#v", orig)
+			return nil, fmt.Errorf("original input wrong %#v", t)
 		}
 	} else {
 		data, err = modelObj.RunModelContext(ctx, db, action, newArgs, newExtra)
@@ -153,7 +160,7 @@ func (self *Graph) RunContext(ctx context.Context, db *sql.DB, model, action str
 
 	for _, p := range nextpages {
 		for _, item := range data {
-			newLists, err := self.RunContext(ctx, db, p.TableName, p.ActionName, createNextmap(p.RelateArgs, item), createNextmap(p.RelateExtra, item))
+			newLists, err := self.RunContext(ctx, db, p.TableName, p.ActionName, p.NextArgs(item), p.NextExtra(item))
 			if err != nil { return nil, err }
 			item[p.Subname()] = newLists
 		}

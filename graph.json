@@ -69,7 +69,7 @@
 {
 	"table": "m_b",
 	"pks": [ "tid" ],
-	"id_auto": "tid",
+	"idAuto": "tid",
 	"actions": [
 		{
 			"actionName": "insert",

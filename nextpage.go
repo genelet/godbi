@@ -16,7 +16,12 @@ func (self *Nextpage) Subname() string {
 	return self.TableName + "_" + self.ActionName
 }
 
-func cloneArgs(args interface{}) interface{} {
+func (self *Nextpage) NextArgs(item map[string]interface{}) map[string]interface{} {
+	return createNextmap(self.RelateArgs, item)
+}
+
+func (self *Nextpage) NextExtra(item map[string]interface{}) map[string]interface{} {
+	return createNextmap(self.RelateExtra, item)
 }
 
 func createNextmap(which map[string]string, item map[string]interface{}) map[string]interface{} {
@@ -27,7 +32,7 @@ func createNextmap(which map[string]string, item map[string]interface{}) map[str
 	for k, v := range which {
 		if u, ok := item[k]; ok {
 			if args == nil {
-				args = map[string]interface{v: u}
+				args = map[string]interface{}{v: u}
 			} else {
 				args[v] = u
 			}
@@ -59,8 +64,9 @@ func cloneArgs(args interface{}) interface{} {
 		for _, each := range t {
 			newArgs = append(newArgs, cloneMap(each))
 		}
-		return newArgs, nil
+		return newArgs
 	default:
+	}
 	return nil
 }
 
@@ -70,7 +76,7 @@ func appendMap(extra, item map[string]interface{}) map[string]interface{} {
 	} else if item == nil {
 		return extra
 	}
-	newExtra := cloneArgs(extra)
+	newExtra := cloneMap(extra)
 	for k, v := range item {
 		newExtra[k] = v
 	}
