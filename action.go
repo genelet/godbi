@@ -9,16 +9,16 @@ import (
 //
 type Capability interface {
 	GetActionName() string
-	GetPrepares()  []*Nextpage
-	GetNextpages() []*Nextpage
+	GetPrepares()  []*Connection
+	GetNextpages() []*Connection
 	GetAppendix() interface{}
 	RunActionContext(context.Context, *sql.DB, *Table, map[string]interface{}, ...map[string]interface{}) ([]map[string]interface{}, error)
 }
 
 type Action struct {
 	ActionName string     `json:"actionName,omitempty" hcl:"actionName,optional"`
-	Prepares  []*Nextpage `json:"Prepares,omitempty" hcl:"Prepares,block"`
-	Nextpages []*Nextpage `json:"nextpages,omitempty" hcl:"nextpages,block"`
+	Prepares  []*Connection `json:"Prepares,omitempty" hcl:"Prepares,block"`
+	Nextpages []*Connection `json:"nextpages,omitempty" hcl:"nextpages,block"`
 	Appendix  interface{} `json:"appendix,omitempty" hcl:"appendix,block"`
 }
 
@@ -26,11 +26,11 @@ func (self *Action) GetActionName() string {
 	return self.ActionName
 }
 
-func (self *Action) GetPrepares() []*Nextpage {
+func (self *Action) GetPrepares() []*Connection {
 	return self.Prepares
 }
 
-func (self *Action) GetNextpages() []*Nextpage {
+func (self *Action) GetNextpages() []*Connection {
 	return self.Nextpages
 }
 

@@ -1,8 +1,8 @@
 package godbi
 
-// Nextpage describes linked page
+// Connection describes linked page
 //
-type Nextpage struct {
+type Connection struct {
 	// TableName: the name of the table
 	TableName  string            `json:"table" hcl:"table,label"`
 
@@ -17,31 +17,31 @@ type Nextpage struct {
 }
 
 // Subname is the marker string used to store the output
-func (self *Nextpage) Subname() string {
+func (self *Connection) Subname() string {
 	return self.TableName + "_" + self.ActionName
 }
 
 // NextArg returns nextpage's args by taking current item
 //
-func (self *Nextpage) NextArgs(item map[string]interface{}) map[string]interface{} {
+func (self *Connection) NextArgs(item map[string]interface{}) map[string]interface{} {
 	return createNextmap(self.RelateArgs, item)
 }
 
 // MergeArg merges current item to the existing args
 //
-func (self *Nextpage) MergeArgs(args interface{}, item map[string]interface{}) interface{} {
+func (self *Connection) MergeArgs(args interface{}, item map[string]interface{}) interface{} {
 	return MergeArgs(args, self.NextArgs(item))
 }
 
 // NextExtra returns nextpage's extra by taking current item
 //
-func (self *Nextpage) NextExtra(item map[string]interface{}) map[string]interface{} {
+func (self *Connection) NextExtra(item map[string]interface{}) map[string]interface{} {
 	return createNextmap(self.RelateExtra, item)
 }
 
 // MergeExtra merges current item to the existing extra
 //
-func (self *Nextpage) MergeExtra(extra, item map[string]interface{}) map[string]interface{} {
+func (self *Connection) MergeExtra(extra, item map[string]interface{}) map[string]interface{} {
 	return MergeExtra(extra, self.NextExtra(item))
 }
 

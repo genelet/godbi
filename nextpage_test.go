@@ -5,9 +5,9 @@ import (
 	"testing"
 )
 
-func TestNextpage(t *testing.T) {
+func TestConnection(t *testing.T) {
 	str := `{"model":"adv_campaign", "action":"edit", "relateExtra":{"campaign_id":"c_id"}, "relateArgs":{"x":"firstname"}}`
-	page := new(Nextpage)
+	page := new(Connection)
 	err := json.Unmarshal([]byte(str), page)
 	if err != nil {
 		t.Fatal(err)
