@@ -1,9 +1,9 @@
 {
 	"fks":["","adv_id","","adv_id","campaign_id_md5"],
-	"table":"adv_campaign",
+	"tableName":"adv_campaign",
 	"pks":["campaign_id"],
 	"idAuto":"campaign_id",
-	"rename":[
+	"columns":[
 		{"columnName":"adv_id","label":"adv_id","typeName":"INT","notnull":true,"auto":false},
 		{"columnName":"campaign_id","label":"campaign_id","typeName":"INT","notnull":true,"auto":true},
 		{"columnName":"campaign_name","label":"campaign_name","typeName":"VARCHAR","notnull":true}
@@ -13,8 +13,8 @@
 		{
 			"actionName": "topics",
 			"nextpages": [
-				{"table":"adv_campaign", "action":"edit", "relateExtra":{"campaign_id":"campaign_id"}},
-				{"table":"adv_item", "action":"topics", "manual":{"name":"john"}, "relateExtra":{"campaign_id":"campaign_id"}}
+				{"tableName":"adv_campaign", "actionName":"edit", "relateExtra":{"campaign_id":"campaign_id"}},
+				{"tableName":"adv_item", "actionName":"topics", "relateExtra":{"campaign_id":"campaign_id"}}
 			],
 			"total_force":1
 		},
@@ -35,7 +35,7 @@
 			"actionName": "sql",
 			"statement":"SELECT x, y, z FROM a WHERE b=?",
 			"nextpages": [
-				{"table":"adv_creative", "action":"topics", "manual":{"name":"john"}, "relateExtra":{"nick":"nickname"}}
+				{"tableName":"adv_creative", "actionName":"topics", "relateExtra":{"nick":"nickname"}}
 			]
 		},
 		{

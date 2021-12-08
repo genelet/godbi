@@ -6,7 +6,7 @@ import (
 )
 
 func TestConnection(t *testing.T) {
-	str := `{"model":"adv_campaign", "action":"edit", "relateExtra":{"campaign_id":"c_id"}, "relateArgs":{"x":"firstname"}}`
+	str := `{"modelName":"adv_campaign", "actionName":"edit", "relateExtra":{"campaign_id":"c_id"}, "relateArgs":{"x":"firstname"}}`
 	page := new(Connection)
 	err := json.Unmarshal([]byte(str), page)
 	if err != nil {

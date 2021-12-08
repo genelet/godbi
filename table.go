@@ -10,15 +10,15 @@ import (
 
 type Col struct {
 	ColumnName string `json:"columnName" hcl:"columnName"`
-	Label string      `json:"label" hcl:"label"`
 	TypeName string   `json:"typeName" hcl:"typeName"`
+	Label string      `json:"label" hcl:"label"`
 	Notnull bool      `json:"notnull" hcl:"notnull"`
 	Auto bool         `json:"auto" hcl:"auto"`
 }
 
 type Table struct {
-	TableName string   `json:"table" hcl:"table"`
-    Rename    []*Col   `json:"rename" hcl:"rename"`
+	TableName string   `json:"tableName" hcl:"tableName"`
+    Columns    []*Col  `json:"columns" hcl:"columns"`
 	Pks       []string `json:"pks,omitempty" hcl:"pks,optional"`
 	IdAuto    string   `json:"idAuto,omitempty" hcl:"idAuto,optional"`
 	Fks       []string `json:"fks,omitempty" hcl:"fks,optional"`
@@ -40,7 +40,7 @@ func (self *Table) getFv(ARGS map[string]interface{}) map[string]interface{} {
 }
 
 func (self *Table) checkNull(ARGS map[string]interface{}, extra ...map[string]interface{}) error {
-	for _, col := range self.Rename {
+	for _, col := range self.Columns {
 		if col.Notnull == false || col.Auto == true {
 			continue
 		} // the column is ok with null
@@ -60,7 +60,7 @@ func (self *Table) checkNull(ARGS map[string]interface{}, extra ...map[string]in
 
 func (self *Table) insertCols() []string {
 	var cols []string
-	for _, col := range self.Rename {
+	for _, col := range self.Columns {
 		if col.Auto { continue }
 		cols = append(cols, col.ColumnName)
 	}
@@ -330,7 +330,7 @@ func (self *Table) filterPars(ARGS map[string]interface{}, fieldsName string, jo
 
 	keys := make([]string, 0)
 	labels := make([]interface{}, 0)
-	for _, col := range self.Rename {
+	for _, col := range self.Columns {
 		if fields==nil || grep (fields, col.ColumnName) {
 			keys = append(keys, col.ColumnName)
 			labels = append(labels, [2]string{col.Label, col.TypeName})

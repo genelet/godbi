@@ -4,10 +4,10 @@ package godbi
 //
 type Connection struct {
 	// TableName: the name of the table
-	TableName  string            `json:"table" hcl:"table,label"`
+	TableName  string            `json:"tableName" hcl:"tableName,label"`
 
 	// ActionName: the action on the model
-	ActionName string            `json:"action" hcl:"action,label"`
+	ActionName string            `json:"actionName" hcl:"actionName,label"`
 
 	// RelateArgs: map current page's columns to nextpage's columns as input
 	RelateArgs map[string]string `json:"relateArgs,omitempty" hcl:"relateArgs"`

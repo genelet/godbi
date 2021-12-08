@@ -8,10 +8,10 @@ import (
 func TestTable(t *testing.T) {
 	str := `{
     "fks":["","adv_id","","adv_id", "campaign_id", "campaign_md5"],
-    "table":"adv_campaign",
+    "tableName":"adv_campaign",
     "pks":["campaign_id"],
     "idAuto":"campaign_id",
-	"rename":[{
+	"columns":[{
 		"columnName":"adv_id",
 		"label":"adv_id",
 		"typeName":"int",

@@ -1,10 +1,10 @@
 {"Models":[
 
 {
-	"table": "m_a",
+	"tableName": "m_a",
 	"pks": [ "id" ],
 	"idAuto": "id",
-    "rename": [
+    "columns": [
 {"columnName":"x", "label":"x", "typeName":"string", "notnull":true },
 {"columnName":"y", "label":"y", "typeName":"string", "notnull":true },
 {"columnName":"z", "label":"z", "typeName":"string" },
@@ -16,8 +16,8 @@
 			"actionName": "insupd",
 			"nextpages": [
 				{
-					"table": "m_b",
-					"action": "insert",
+					"tableName": "m_b",
+					"actionName": "insert",
 					"relateArgs": { "id": "id" }
 				}
 			]
@@ -26,8 +26,8 @@
 			"actionName": "insert",
 			"nextpages": [
 				{
-					"table": "m_b",
-					"action": "insert",
+					"tableName": "m_b",
+					"actionName": "insert",
 					"relateArgs": { "id": "id" }
 				}
 			]
@@ -36,8 +36,8 @@
 			"actionName": "edit",
 			"nextpages": [
 				{
-					"table": "m_b",
-					"action": "topics",
+					"tableName": "m_b",
+					"actionName": "topics",
 					"relateExtra": { "id": "id" }
 				}
 			]
@@ -49,8 +49,8 @@
 			"actionName": "topics",
 			"nextpages": [
 				{
-					"table": "m_a",
-					"action": "edit",
+					"tableName": "m_a",
+					"actionName": "edit",
 					"relateExtra": { "id": "id" }
 				}
 			]
@@ -58,10 +58,10 @@
 	]
 },
 {
-	"table": "m_b",
+	"tableName": "m_b",
 	"pks": [ "tid" ],
 	"idAuto": "tid",
-	"rename": [
+	"columns": [
 {"columnName":"tid", "label":"tid", "typeName":"int", "notnull": true, "auto":true},
 {"columnName":"child", "label":"child", "typeName":"string"},
 {"columnName":"id", "label":"id", "typeName":"int", "notnull": true}

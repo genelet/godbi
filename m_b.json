@@ -1,8 +1,8 @@
 {
-	"table": "m_b",
+	"tableName": "m_b",
 	"pks": [ "tid" ],
 	"idAuto": "tid",
-	"rename": [
+	"columns": [
 {"columnName":"tid", "label":"tid", "typeName":"int", "notnull": true, "auto":true},
 {"columnName":"child", "label":"child", "typeName":"string"},
 {"columnName":"id", "label":"id", "typeName":"int", "notnull": true}

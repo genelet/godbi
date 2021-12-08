@@ -29,7 +29,7 @@ func (self *Insert) RunActionContext(ctx context.Context, db *sql.DB, t *Table, 
 	fieldValues := t.getFv(ARGS)
 	if hasValue(extra) && hasValue(extra[0]) {
 		for key, value := range extra[0] {
-			for _, col := range t.Rename {
+			for _, col := range t.Columns {
 				if col.ColumnName == key {
 					fieldValues[key] = value
 					break

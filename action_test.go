@@ -17,10 +17,10 @@ func TestAction(t *testing.T) {
         x varchar(8), y varchar(8), z varchar(8))`)
 
 	tstr := `{
-    "table":"m_a",
+    "tableName":"m_a",
     "pks":["id"],
     "idAuto":"id",
-	"rename":[
+	"columns":[
 {"columnName":"x", "typeName":"string", "label":"x", "notnull": true},
 {"columnName":"y", "typeName":"string", "label":"y", "notnull": true},
 {"columnName":"z", "typeName":"string", "label":"z"},

@@ -15,7 +15,7 @@ func (self *SQL) RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARG
 	lists := make([]map[string]interface{}, 0)
 	dbi := &DBI{DB: db}
 	var names []interface{}
-	for _, col := range t.Rename {
+	for _, col := range t.Columns {
 		names = append(names, col.ColumnName)
 	}
 	err := dbi.SelectSQLContext(ctx, &lists, self.Statement, names, ARGS["bravo"])
@@ -73,16 +73,16 @@ func TestModelRun(t *testing.T) {
         x varchar(8), y varchar(8), z varchar(8))`)
 
 	str := `{
-    "table":"m_a",
+    "tableName":"m_a",
     "pks":["id"],
     "idAuto":"id",
-    "rename": [
+    "columns": [
 {"columnName":"x", "label":"x", "typeName":"string", "notnull":true },
 {"columnName":"y", "label":"y", "typeName":"string", "notnull":true },
 {"columnName":"z", "label":"z", "typeName":"string" },
 {"columnName":"id", "label":"id", "typeName":"int", "auto":true }
-        ],
-		"uniques":["x","y"],
+    ],
+	"uniques":["x","y"],
 	"actions": [
 	{
 		"actionName": "insert"
@@ -202,16 +202,16 @@ func TestModelRunMultiple(t *testing.T) {
         x varchar(8), y varchar(8), z varchar(8))`)
 
 	str := `{
-    "table":"m_a",
+    "tableName":"m_a",
     "pks":["id"],
     "idAuto":"id",
-    "rename": [
+    "columns": [
 {"columnName":"x", "label":"x", "typeName":"string", "notnull":true },
 {"columnName":"y", "label":"y", "typeName":"string", "notnull":true },
 {"columnName":"z", "label":"z", "typeName":"string" },
 {"columnName":"id", "label":"id", "typeName":"int", "auto":true }
-        ],
-		"uniques":["x","y"],
+    ],
+	"uniques":["x","y"],
 	"actions": [
 	{
 		"actionName": "insert"

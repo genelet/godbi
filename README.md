@@ -333,7 +333,7 @@ It checks if the input data is unique using input data from columns _Uniques_. I
 type Edit struct {
     Action
     Joins    []*Join             `json:"joins,omitempty" hcl:"join,block"`
-    Rename   map[string][]string `json:"rename" hcl:"rename"`
+    Columns   map[string][]string `json:"columns" hcl:"columns"`
     FIELDS   string              `json:"fields,omitempty" hcl:"fields"`
 }
 ```
@@ -353,7 +353,7 @@ It searches one row from a table or joint tables, using main table's primary key
 *Joins* defines the joint tables. The main table is the first element
 in the list. *Join* defines the table and how it is joint. *Name* is main table's name; *Alias* the table name alias; *Type* the join type such as *JOIN*, "INNER JOIN", "LEFT JOIN" etc.; "Using" the *USING* statement in SQL; "On" the "ON* statement; and *Sortby* which appears only in the main table the column name to sort the data.
  
-In *Rename*, the keys are SQL column names and keys' values are renamed labels. See 1.4.2).
+In *Columns*, the keys are SQL column names and keys' values are renamed labels. See 1.4.2).
 
 *FIELDS* defines a key in the input data which, if exists, tells us
 to return only a few selected columns instead of whole set of columns.
@@ -366,7 +366,7 @@ the following value in the input data: _ARGS["fields"] = "user_id,username"_. (N
 ```go
     Action
     Joins       []*Join             `json:"joins,omitempty" hcl:"join,block"`
-    Rename      map[string][]string `json:"rename" hcl:"rename"`
+    Columns      map[string][]string `json:"columns" hcl:"columns"`
     FIELDS      string              `json:"fields,omitempty" hcl:"fields"`
 
     TotalForce  int    `json:"total_force,omitempty" hcl:"total_force,optional"`
@@ -511,9 +511,9 @@ func main() {
     table := &godbi.Table{TableName: "testing", Pks:[]string{"id"}, IdAuto:"id"}
 
     insert := &godbi.Insert{Columns: []string{"x","y"}}
-    topics := &godbi.Topics{Rename: map[string][]string{"id":{"id","int"}, "x":{"x","string"},"y":{"y","string"}}}
+    topics := &godbi.Topics{Columns: map[string][]string{"id":{"id","int"}, "x":{"x","string"},"y":{"y","string"}}}
     update := &godbi.Update{Columns: []string{"id","x","y"}}
-    edit   := &godbi.Edit{Rename: map[string][]string{"id":{"id","int"}, "x":{"x","string"},"y":{"y","string"}}}
+    edit   := &godbi.Edit{Columns: map[string][]string{"id":{"id","int"}, "x":{"x","string"},"y":{"y","string"}}}
 
     args := map[string]interface{}{"x":"a","y":"b"}
     lists, _, err := insert.RunAction(db, table, args)
