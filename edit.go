@@ -6,20 +6,13 @@ import (
 	"fmt"
 )
 
-type Col struct {
-	ColumnName string `json:"columnName" hcl:"columnName"`
-	Label string      `json:"label" hcl:"label"`
-	TypeName string   `json:"typeName" hcl:"typeName"`
-}
-
 type Edit struct {
 	Action
-	Joints []*Joint   `json:"joins,omitempty" hcl:"join,block"`
-	Rename []*Col     `json:"rename" hcl:"rename"`
-	FIELDS string     `json:"fields,omitempty" hcl:"fields"`
+	Joints []*Joint `json:"joins,omitempty" hcl:"join,block"`
+	FIELDS string   `json:"fields,omitempty" hcl:"fields"`
 }
 
-func (self *Edit) defaultNames() []string {
+func (self *Edit) setDefaultElementNames() []string {
 	if self.FIELDS == "" {
 		self.FIELDS = "fields"
 	}
@@ -31,13 +24,8 @@ func (self *Edit) RunAction(db *sql.DB, t *Table, ARGS map[string]interface{}, e
 }
 
 func (self *Edit) RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
-	err := self.checkNull(ARGS, extra...)
-	if err != nil {
-		return nil, err
-	}
-
-	self.defaultNames()
-	sql, labels, table := self.filterPars(t.TableName, ARGS, self.Rename, self.FIELDS, self.Joints)
+	self.setDefaultElementNames()
+	sql, labels, table := t.filterPars(ARGS, self.FIELDS, self.Joints)
 
 	ids := t.getIdVal(ARGS, extra...)
 	if !hasValue(ids) {
@@ -51,9 +39,6 @@ func (self *Edit) RunActionContext(ctx context.Context, db *sql.DB, t *Table, AR
 
 	lists := make([]map[string]interface{}, 0)
 	dbi := &DBI{DB: db}
-	err = dbi.SelectSQLContext(ctx, &lists, sql, labels, extraValues...)
-	if err != nil {
-		return nil, err
-	}
-	return lists, nil
+	err := dbi.SelectSQLContext(ctx, &lists, sql, labels, extraValues...)
+	return lists, err
 }

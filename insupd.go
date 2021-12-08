@@ -8,8 +8,6 @@ import (
 
 type Insupd struct {
 	Action
-	Columns []string `json:"columns,omitempty" hcl:"columns,optional"`
-	Uniques []string `json:"uniques,omitempty" hcl:"uniques,optional"`
 }
 
 func (self *Insupd) RunAction(db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
@@ -17,20 +15,19 @@ func (self *Insupd) RunAction(db *sql.DB, t *Table, ARGS map[string]interface{},
 }
 
 func (self *Insupd) RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
-	err := self.checkNull(ARGS, extra...)
+	err := t.checkNull(ARGS, extra...)
 	if err != nil {
 		return nil, err
 	}
 
-	if self.Uniques == nil {
-		return nil, fmt.Errorf("unique key not defined")
-	}
-
-	fieldValues := getFv(self.Columns, ARGS, nil)
+	fieldValues := t.getFv(ARGS)
 	if hasValue(extra) && hasValue(extra[0]) {
 		for key, value := range extra[0] {
-			if grep(self.Columns, key) {
-				fieldValues[key] = value
+			for _, col := range t.Rename {
+				if col.ColumnName == key {
+					fieldValues[key] = value
+					break
+				}
 			}
 		}
 	}
@@ -38,7 +35,7 @@ func (self *Insupd) RunActionContext(ctx context.Context, db *sql.DB, t *Table, 
 		return nil, fmt.Errorf("input not found")
 	}
 
-	changed, err := t.insupdTableContext(ctx, db, fieldValues, self.Uniques)
+	changed, err := t.insupdTableContext(ctx, db, fieldValues)
 	if err != nil {
 		return nil, err
 	}

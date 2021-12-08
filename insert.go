@@ -8,7 +8,6 @@ import (
 
 type Insert struct {
 	Action
-	Columns []string `json:"columns,omitempty" hcl:"columns,optional"`
 }
 
 // Run inserts a row using data passed in ARGS. Any value defined
@@ -22,16 +21,19 @@ func (self *Insert) RunAction(db *sql.DB, t *Table, ARGS map[string]interface{},
 // in 'extra' will override that key in ARGS.
 //
 func (self *Insert) RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
-	err := self.checkNull(ARGS, extra...)
+	err := t.checkNull(ARGS, extra...)
 	if err != nil {
 		return nil, err
 	}
 
-	fieldValues := getFv(self.Columns, ARGS, nil)
+	fieldValues := t.getFv(ARGS)
 	if hasValue(extra) && hasValue(extra[0]) {
 		for key, value := range extra[0] {
-			if grep(self.Columns, key) {
-				fieldValues[key] = value
+			for _, col := range t.Rename {
+				if col.ColumnName == key {
+					fieldValues[key] = value
+					break
+				}
 			}
 		}
 	}

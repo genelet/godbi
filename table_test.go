@@ -7,18 +7,41 @@ import (
 
 func TestTable(t *testing.T) {
 	str := `{
-    "fks":["","adv_id","","adv_id","campaign_id_md5"],
+    "fks":["","adv_id","","adv_id", "campaign_id", "campaign_md5"],
     "table":"adv_campaign",
     "pks":["campaign_id"],
-    "idAuto":"campaign_id"
+    "idAuto":"campaign_id",
+	"rename":[{
+		"columnName":"adv_id",
+		"label":"adv_id",
+		"typeName":"int",
+		"notnull":true,
+		"auto":false
+		},{
+		"columnName":"campaign_name",
+		"label":"campaign_name",
+		"typeName":"string",
+		"notnull":true
+		},{
+		"columnName":"campaign_id",
+		"label":"campaign_id",
+		"typeName":"int",
+		"notnull":true,
+		"auto":true
+		}
+	]
 	}`
 	table := new(Table)
 	err := json.Unmarshal([]byte(str), table)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if table.Fks[4] != "campaign_id_md5" ||
+	if table.Fks[5] != "campaign_md5" ||
 		table.TableName != "adv_campaign" {
+		t.Errorf("%v", table)
+	}
+	inCols := table.insertCols()
+	if inCols[0] != "adv_id" || inCols[1] != "campaign_name" {
 		t.Errorf("%v", table)
 	}
 }

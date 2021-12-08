@@ -8,7 +8,6 @@ import (
 
 type Update struct {
 	Action
-	Columns []string `json:"columns,omitempty" hcl:"columns,optional"`
 	Empties []string `json:"empties,omitempty" hcl:"empties,optional"`
 }
 
@@ -17,7 +16,7 @@ func (self *Update) RunAction(db *sql.DB, t *Table, ARGS map[string]interface{},
 }
 
 func (self *Update) RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
-	err := self.checkNull(ARGS, extra...)
+	err := t.checkNull(ARGS, extra...)
 	if err != nil {
 		return nil, err
 	}
@@ -27,7 +26,7 @@ func (self *Update) RunActionContext(ctx context.Context, db *sql.DB, t *Table, 
 		return nil, fmt.Errorf("pk value not found")
 	}
 
-	fieldValues := getFv(self.Columns, ARGS, nil)
+	fieldValues := t.getFv(ARGS)
 	if !hasValue(fieldValues) {
 		return nil, fmt.Errorf("no data to update")
 	} else if len(fieldValues) == 1 && fieldValues[t.Pks[0]] != nil {

@@ -11,7 +11,7 @@ import (
 // Model is to implement Navigate interface
 //
 type Navigate interface {
-	GetName() string
+	GetTableName() string
 	GetAction(string) Capability
 	RunModelContext(context.Context, *sql.DB, string, interface{}, ...map[string]interface{}) ([]map[string]interface{}, error)
 }
@@ -62,7 +62,7 @@ func Assertion(actions []interface{}, custom ...Capability) ([]Capability, error
 		var tran Capability
 		found := false
 		for _, item := range custom {
-			if name==item.GetName() {
+			if name==item.GetActionName() {
 				tran = item
 				found = true
 				break
@@ -94,14 +94,10 @@ func Assertion(actions []interface{}, custom ...Capability) ([]Capability, error
 	return trans, nil
 }
 
-func (self *Model) GetName() string {
-	return self.TableName
-}
-
 func (self *Model) GetAction(action string) Capability {
 	if self.Actions != nil {
 		for _, item := range self.Actions {
-			if item.GetName() == action {
+			if item.GetActionName() == action {
 				return item
 			}
 		}

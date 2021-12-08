@@ -2,11 +2,16 @@
 	"table": "m_a",
 	"pks": [ "id" ],
 	"idAuto": "id",
+	"rename": [
+{"columnName":"x", "label":"x", "typeName":"string", "notnull":true },
+{"columnName":"y", "label":"y", "typeName":"string", "notnull":true },
+{"columnName":"z", "label":"z", "typeName":"string" },
+{"columnName":"id", "label":"id", "typeName":"int", "auto":true }
+    ],
+    "uniques":["x","y"],
 	"actions": [
 		{
 			"actionName": "insupd",
-			"columns": [ "x", "y", "z" ],
-			"uniques": [ "x", "y" ],
 			"nextpages": [
 				{
 					"table": "m_b",
@@ -17,7 +22,6 @@
 		},
 		{
 			"actionName": "insert",
-			"columns": [ "x", "y", "z" ],
 			"nextpages": [
 				{
 					"table": "m_b",
@@ -28,12 +32,6 @@
 		},
 		{
 			"actionName": "edit",
-			"rename": [
-				{"columnName":"x", "label":"x", "typeName":"string" },
-				{"columnName":"y", "label":"y", "typeName":"string" },
-				{"columnName":"z", "label":"z", "typeName":"string" },
-				{"columnName":"id", "label":"id", "typeName":"int" }
-			],
 			"nextpages": [
 				{
 					"table": "m_b",
@@ -43,17 +41,10 @@
 			]
 		},
 		{
-			"actionName": "delete",
-			"musts": [ "id" ]
+			"actionName": "delete"
 		},
 		{
 			"actionName": "topics",
-			"rename": [
-				{"columnName":"x", "label":"x", "typeName":"string" },
-				{"columnName":"y", "label":"y", "typeName":"string" },
-				{"columnName":"z", "label":"z", "typeName":"string" },
-				{"columnName":"id", "label":"id", "typeName":"int" }
-			],
 			"nextpages": [
 				{
 					"table": "m_a",

@@ -5,11 +5,14 @@ package godbi
 type Nextpage struct {
 	// TableName: the name of the table
 	TableName  string            `json:"table" hcl:"table,label"`
+
 	// ActionName: the action on the model
 	ActionName string            `json:"action" hcl:"action,label"`
+
 	// RelateArgs: map current page's columns to nextpage's columns as input
 	RelateArgs map[string]string `json:"relateArgs,omitempty" hcl:"relateArgs"`
-	// RelateExtra: it maps current page's columns to nextpage's columns (for Nextpages), or earlier page's columns (for Prepares) as constrains.
+
+	// RelateExtra: map current page's columns to nextpage's columns (for Nextpages), or prepared page's columns to current page's columns (for Prepares) as constrains.
 	RelateExtra map[string]string `json:"relateExtra,omitempty" hcl:"relateExtra"`
 }
 
@@ -24,10 +27,10 @@ func (self *Nextpage) NextArgs(item map[string]interface{}) map[string]interface
 	return createNextmap(self.RelateArgs, item)
 }
 
-// AppendArg appends current item to the existing args
+// MergeArg merges current item to the existing args
 //
-func (self *Nextpage) AppendArgs(args interface{}, item map[string]interface{}) interface{} {
-	return appendArgs(args, self.NextArgs(item))
+func (self *Nextpage) MergeArgs(args interface{}, item map[string]interface{}) interface{} {
+	return MergeArgs(args, self.NextArgs(item))
 }
 
 // NextExtra returns nextpage's extra by taking current item
@@ -36,10 +39,10 @@ func (self *Nextpage) NextExtra(item map[string]interface{}) map[string]interfac
 	return createNextmap(self.RelateExtra, item)
 }
 
-// AppendExtra appends current item to the existing extra
+// MergeExtra merges current item to the existing extra
 //
-func (self *Nextpage) AppendExtra(extra, item map[string]interface{}) map[string]interface{} {
-	return appendExtra(extra, self.NextExtra(item))
+func (self *Nextpage) MergeExtra(extra, item map[string]interface{}) map[string]interface{} {
+	return MergeExtra(extra, self.NextExtra(item))
 }
 
 func createNextmap(which map[string]string, item map[string]interface{}) map[string]interface{} {
@@ -60,9 +63,9 @@ func createNextmap(which map[string]string, item map[string]interface{}) map[str
 	return args
 }
 
-// cloneExtra clones extra to a new extra
+// CloneExtra clones extra to a new extra
 //
-func cloneExtra(extra map[string]interface{}) map[string]interface{} {
+func CloneExtra(extra map[string]interface{}) map[string]interface{} {
 	if extra == nil {
 		return nil
 	}
@@ -73,19 +76,19 @@ func cloneExtra(extra map[string]interface{}) map[string]interface{} {
 	return newExtra
 }
 
-// cloneArgs clones args to a new args, keeping proper data type
+// CloneArgs clones args to a new args, keeping proper data type
 //
-func cloneArgs(args interface{}) interface{} {
+func CloneArgs(args interface{}) interface{} {
 	if args == nil {
 		return nil
 	}
 	switch t := args.(type) {
 	case map[string]interface{}:
-		return cloneExtra(t)
+		return CloneExtra(t)
 	case []map[string]interface{}:
 		var newArgs []map[string]interface{}
 		for _, each := range t {
-			newArgs = append(newArgs, cloneExtra(each))
+			newArgs = append(newArgs, CloneExtra(each))
 		}
 		return newArgs
 	default:
@@ -93,20 +96,24 @@ func cloneArgs(args interface{}) interface{} {
 	return nil
 }
 
-func appendExtra(extra, item map[string]interface{}) map[string]interface{} {
+// MergeExtra merges two maps
+//
+func MergeExtra(extra, item map[string]interface{}) map[string]interface{} {
 	if extra == nil {
 		return item
 	} else if item == nil {
 		return extra
 	}
-	newExtra := cloneExtra(extra)
+	newExtra := CloneExtra(extra)
 	for k, v := range item {
 		newExtra[k] = v
 	}
 	return newExtra
 }
 
-func appendArgs(args interface{}, item map[string]interface{}) interface{} {
+// MergeArgs merges map to either an existing map, or slice of map in which each element will be merged
+//
+func MergeArgs(args interface{}, item map[string]interface{}) interface{} {
 	if args == nil {
 		return item
 	} else if item == nil {
@@ -114,11 +121,11 @@ func appendArgs(args interface{}, item map[string]interface{}) interface{} {
 	}
 	switch t := args.(type) {
 	case map[string]interface{}:
-		return appendExtra(t, item)
+		return MergeExtra(t, item)
 	case []map[string]interface{}:
 		var newArgs []map[string]interface{}
 		for _, each := range t {
-			newArgs = append(newArgs, appendExtra(each, item))
+			newArgs = append(newArgs, MergeExtra(each, item))
 		}
 		return newArgs
 	}

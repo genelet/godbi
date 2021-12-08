@@ -8,11 +8,63 @@ import (
 	"strings"
 )
 
+type Col struct {
+	ColumnName string `json:"columnName" hcl:"columnName"`
+	Label string      `json:"label" hcl:"label"`
+	TypeName string   `json:"typeName" hcl:"typeName"`
+	Notnull bool      `json:"notnull" hcl:"notnull"`
+	Auto bool         `json:"auto" hcl:"auto"`
+}
+
 type Table struct {
 	TableName string   `json:"table" hcl:"table"`
+    Rename    []*Col   `json:"rename" hcl:"rename"`
 	Pks       []string `json:"pks,omitempty" hcl:"pks,optional"`
 	IdAuto    string   `json:"idAuto,omitempty" hcl:"idAuto,optional"`
 	Fks       []string `json:"fks,omitempty" hcl:"fks,optional"`
+	Uniques   []string `json:"uniques,omitempty" hcl:"uniques,optional"`
+}
+
+func (self *Table) GetTableName() string {
+	return self.TableName
+}
+
+func (self *Table) getFv(ARGS map[string]interface{}) map[string]interface{} {
+    fieldValues := make(map[string]interface{})
+    for _, f := range self.insertCols() {
+        if v, ok := ARGS[f]; ok {
+            fieldValues[f] = v
+        }
+    }
+    return fieldValues
+}
+
+func (self *Table) checkNull(ARGS map[string]interface{}, extra ...map[string]interface{}) error {
+	for _, col := range self.Rename {
+		if col.Notnull == false || col.Auto == true {
+			continue
+		} // the column is ok with null
+		err := fmt.Errorf("item %s not found in input", col.ColumnName)
+		if _, ok := ARGS[col.ColumnName]; !ok {
+			if hasValue(extra) && hasValue(extra[0]) {
+				if _, ok = extra[0][col.ColumnName]; !ok {
+					return err
+				}
+			} else {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (self *Table) insertCols() []string {
+	var cols []string
+	for _, col := range self.Rename {
+		if col.Auto { continue }
+		cols = append(cols, col.ColumnName)
+	}
+	return cols
 }
 
 func (self *Table) insertHashContext(ctx context.Context, db *sql.DB, args map[string]interface{}) (int64, error) {
@@ -72,11 +124,14 @@ func (self *Table) updateHashNullsContext(ctx context.Context, db *sql.DB, args 
 	return dbi.DoSQLContext(ctx, sql, values...)
 }
 
-func (self *Table) insupdTableContext(ctx context.Context, db *sql.DB, args map[string]interface{}, uniques []string) (int64, error) {
+func (self *Table) insupdTableContext(ctx context.Context, db *sql.DB, args map[string]interface{}) (int64, error) {
 	changed := int64(0)
 	s := "SELECT " + strings.Join(self.Pks, ", ") + " FROM " + self.TableName + "\nWHERE "
 	v := make([]interface{}, 0)
-	for i, val := range uniques {
+	if self.Uniques == nil {
+		return changed, fmt.Errorf("unique key not defined")
+	}
+	for i, val := range self.Uniques {
 		if i > 0 {
 			s += " AND "
 		}
@@ -265,4 +320,35 @@ func selectCondition(extra map[string]interface{}, table string) (string, []inte
 	}
 
 	return sql, values
+}
+
+func (self *Table) filterPars(ARGS map[string]interface{}, fieldsName string, joins []*Joint) (string, []interface{}, string) {
+	var fields []string
+	if v, ok := ARGS[fieldsName]; ok {
+		fields = v.([]string)
+	}
+
+	keys := make([]string, 0)
+	labels := make([]interface{}, 0)
+	for _, col := range self.Rename {
+		if fields==nil || grep (fields, col.ColumnName) {
+			keys = append(keys, col.ColumnName)
+			labels = append(labels, [2]string{col.Label, col.TypeName})
+		}
+	}
+	sql := strings.Join(keys, ", ")
+
+	var table string
+	if hasValue(joins) {
+		sql = "SELECT " + sql + "\nFROM " + joinString(joins)
+		table = joins[0].getAlias()
+	} else {
+		sql = "SELECT " + sql + "\nFROM " + self.TableName
+	}
+
+	return sql, labels, table
+}
+
+func fromFv(fv map[string]interface{}) []map[string]interface{} {
+	return []map[string]interface{}{fv}
 }

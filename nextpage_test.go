@@ -24,7 +24,7 @@ func TestNextpage(t *testing.T) {
 	}
 
 	extra := map[string]interface{}{"y": "b", "asset": "what"}
-	hash := appendExtra(nextExtra, extra)
+	hash := MergeExtra(nextExtra, extra)
 	if hash["y"].(string) != "b" ||
 		hash["asset"].(string) != "what" ||
 		hash["c_id"].(int) != 123 {
@@ -33,8 +33,8 @@ func TestNextpage(t *testing.T) {
 
 	item = map[string]interface{}{"x": "a", "item_id": 123}
 	arg := map[string]interface{}{"y": "b", "asset": "what"}
-	cArg  := cloneArgs(arg).(map[string]interface{})
-	aArg  := appendArgs(arg, item).(map[string]interface{})
+	cArg  := CloneArgs(arg).(map[string]interface{})
+	aArg  := MergeArgs(arg, item).(map[string]interface{})
 	if len(cArg)!=2 || cArg["y"]!="b" || cArg["asset"]!="what" {
 		t.Errorf("%#v", cArg)
 	}
@@ -44,8 +44,8 @@ func TestNextpage(t *testing.T) {
 
 	args:= []map[string]interface{}{{"y": "b", "asset": "what"},
 {"y": "bb", "asset": "whatwhat", "size_id":777}}
-	cArgs := cloneArgs(args).([]map[string]interface{})
-	aArgs := appendArgs(args, item).([]map[string]interface{})
+	cArgs := CloneArgs(args).([]map[string]interface{})
+	aArgs := MergeArgs(args, item).([]map[string]interface{})
     //[]map[string]interface {}{map[string]interface {}{"asset":"what", "y":"b"}, map[string]interface {}{"asset":"whatwhat", "size_id":777, "y":"bb"}}
 	if len(cArgs)!=2 || cArgs[0]["y"]!="b" || cArgs[1]["asset"]!="whatwhat" {
 		t.Errorf("%#v", cArgs)

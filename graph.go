@@ -59,7 +59,7 @@ func (self *Graph) Initialize(args map[string]interface{}, extra map[string]inte
 func (self *Graph) GetModel(model string) Navigate {
 	if self.Models != nil {
 		for _, item := range self.Models {
-			if item.GetName() == model {
+			if item.GetTableName() == model {
 				return item
 			}
 		}
@@ -103,8 +103,8 @@ log.Printf("%#v", 3)
 	prepares := actionObj.GetPrepares()
 	nextpages := actionObj.GetNextpages()
 
-	newArgs := cloneArgs(args)
-	newExtra := cloneExtra(extra)
+	newArgs := CloneArgs(args)
+	newExtra := CloneExtra(extra)
 
 log.Printf("%#v", 4)
 	// prepares only affect args, and no RelateArgs nor RelateExtra involed
@@ -115,18 +115,18 @@ log.Printf("%#v", 4)
 			// only two types of prepares
 			// 1) one pre, with multiple outputs (when p.argsMap is multiple)
 			if hasValue(lists) && len(lists) > 0 {
-				newArgs = cloneArgs(args)
-				newExtra = cloneExtra(extra)
+				newArgs = CloneArgs(args)
+				newExtra = CloneExtra(extra)
 				for _, item := range lists {
-					newArgs = p.AppendArgs(newArgs, item)
-					newExtra = p.AppendExtra(newExtra, item)
+					newArgs = p.MergeArgs(newArgs, item)
+					newExtra = p.MergeExtra(newExtra, item)
 				}
 				break
 			}
 			// 2) multiple pre, with one output each.
 			// when a multiple output is found, 1) will override
-			newArgs = p.AppendArgs(newArgs, lists[0])
-			newExtra = p.AppendExtra(newExtra, lists[0])
+			newArgs = p.MergeArgs(newArgs, lists[0])
+			newExtra = p.MergeExtra(newExtra, lists[0])
 		}
 	}
 
@@ -137,7 +137,7 @@ log.Printf("%#v", 5)
 	if self.extraMap[model] != nil {
 		extraAction := self.extraMap[model].(map[string]interface{})
 		if extraAction[action] != nil {
-			newExtra = appendExtra(newExtra, extraAction[action].(map[string]interface{}))
+			newExtra = MergeExtra(newExtra, extraAction[action].(map[string]interface{}))
 		}
 	}
 
@@ -151,11 +151,11 @@ log.Printf("%#v", 6)
 log.Printf("%#v", 7)
 		switch t := argsModelAction.(type) {
 		case map[string]interface{}:
-			data, err = modelObj.RunModelContext(ctx, db, action, appendArgs(newArgs, t), newExtra)
+			data, err = modelObj.RunModelContext(ctx, db, action, MergeArgs(newArgs, t), newExtra)
 			if err != nil { return nil, err }
 		case []map[string]interface{}:
 			for _, each := range t {
-				lists, err := modelObj.RunModelContext(ctx, db, action, appendArgs(newArgs, each), newExtra)
+				lists, err := modelObj.RunModelContext(ctx, db, action, MergeArgs(newArgs, each), newExtra)
 				if err != nil { return nil, err }
 				data = append(data, lists...)
 			}

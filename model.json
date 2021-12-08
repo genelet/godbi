@@ -3,6 +3,12 @@
 	"table":"adv_campaign",
 	"pks":["campaign_id"],
 	"idAuto":"campaign_id",
+	"rename":[
+		{"columnName":"adv_id","label":"adv_id","typeName":"INT","notnull":true,"auto":false},
+		{"columnName":"campaign_id","label":"campaign_id","typeName":"INT","notnull":true,"auto":true},
+		{"columnName":"campaign_name","label":"campaign_name","typeName":"VARCHAR","notnull":true}
+	],
+	"uniques":["adv_id","campaign_id"],
 	"actions":[
 		{
 			"actionName": "topics",
@@ -10,42 +16,30 @@
 				{"table":"adv_campaign", "action":"edit", "relateExtra":{"campaign_id":"campaign_id"}},
 				{"table":"adv_item", "action":"topics", "manual":{"name":"john"}, "relateExtra":{"campaign_id":"campaign_id"}}
 			],
-			"rename":[{"columnName":"adv_id","label":"adv_id","typeName":"INT"},{"columnName":"campaign_id","label":"campaign_id","typeName":"INT"},{"columnName":"campaign_name","label":"campaign_name","typeName":"VARCHAR"}],
 			"total_force":1
 		},
 		{
-			"actionName": "edit",
-			"musts":["campaign_id"],
-			"rename":[{"columnName":"adv_id","label":"adv_id","typeName":"INT"},{"columnName":"campaign_id","label":"campaign_id","typeName":"INT"},{"columnName":"campaign_name","label":"campaign_name","typeName":"VARCHAR"}]
+			"actionName": "edit"
 		},
 		{
-			"actionName": "insert",
-			"musts":["adv_id","campaign_name"],
-			"columns":["adv_id","campaign_name"]
+			"actionName": "insert"
 		},
 		{
 			"actionName": "update",
-			"columns":["adv_id","campaign_name","campaign_id"],
 			"empties":["created"]
 		},
 		{
-			"actionName": "insupd",
-			"musts":["adv_id","campaign_name"],
-			"columns":["adv_id","campaign_name"],
-			"uniques":["adv_id","campaign_id"]
+			"actionName": "insupd"
 		},
 		{
 			"actionName": "sql",
-			"musts":["bravo"],
-			"columns":["fistname", "lastname", "nick"],
 			"statement":"SELECT x, y, z FROM a WHERE b=?",
 			"nextpages": [
 				{"table":"adv_creative", "action":"topics", "manual":{"name":"john"}, "relateExtra":{"nick":"nickname"}}
 			]
 		},
 		{
-			"actionName": "delete",
-			"musts":["campaign_id"]
+			"actionName": "delete"
 		}
 	]
 }

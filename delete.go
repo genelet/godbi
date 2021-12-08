@@ -15,11 +15,6 @@ func (self *Delete) RunAction(db *sql.DB, t *Table, ARGS map[string]interface{},
 }
 
 func (self *Delete) RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
-	err := self.checkNull(ARGS, extra...)
-	if err != nil {
-		return nil, err
-	}
-
 	ids := t.getIdVal(ARGS, extra...)
 	if !hasValue(ids) {
 		return nil, fmt.Errorf("pk value not provided")

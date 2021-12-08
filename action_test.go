@@ -19,33 +19,15 @@ func TestAction(t *testing.T) {
 	tstr := `{
     "table":"m_a",
     "pks":["id"],
-    "idAuto":"id"
-	}`
-	insTable := `{
-	"musts":["x","y"],
-	"columns":["x","y","z"]
-	}`
-	inuTable := `{
-	"uniques":["x","y"],
-	"columns":["x","y","z"]
-	}`
-	delTable := `{
-	"musts":["id"]
-	}`
-	topTable := `{
+    "idAuto":"id",
 	"rename":[
-		{"columnName": "x", "typeName":"string", "label":"x"},
-		{"columnName": "y", "typeName":"string", "label":"y"},
-		{"columnName": "z", "typeName":"string", "label":"z"},
-		{"columnName": "id", "typeName":"int", "label":"id"}
-	]}`
-	ediTable := `{
-	"rename":[
-		{"columnName": "x", "typeName":"string", "label":"x"},
-		{"columnName": "y", "typeName":"string", "label":"y"},
-		{"columnName": "z", "typeName":"string", "label":"z"},
-		{"columnName": "id", "typeName":"int", "label":"id"}
-	]}`
+{"columnName":"x", "typeName":"string", "label":"x", "notnull": true},
+{"columnName":"y", "typeName":"string", "label":"y", "notnull": true},
+{"columnName":"z", "typeName":"string", "label":"z"},
+{"columnName":"id","typeName":"int", "label":"id", "auto": true}
+	],
+	"uniques":["x","y"]
+	}`
 	table := new(Table)
 	err = json.Unmarshal([]byte(tstr), table)
 	if err != nil {
@@ -57,26 +39,6 @@ func TestAction(t *testing.T) {
 	topics := new(Topics)
 	edit := new(Edit)
 	dele := new(Delete)
-	err = json.Unmarshal([]byte(insTable), insert)
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = json.Unmarshal([]byte(inuTable), insupd)
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = json.Unmarshal([]byte(topTable), topics)
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = json.Unmarshal([]byte(ediTable), edit)
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = json.Unmarshal([]byte(delTable), dele)
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	var lists []map[string]interface{}
 	// the 1st web requests is assumed to create id=1 to the m_a table

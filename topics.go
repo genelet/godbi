@@ -12,7 +12,6 @@ import (
 type Topics struct {
 	Action
 	Joints []*Joint    `json:"joins,omitempty" hcl:"join,block"`
-	Rename []*Col      `json:"rename" hcl:"rename"`
 	FIELDS string      `json:"fields,omitempty" hcl:"fields"`
 
 	TotalForce  int    `json:"total_force,omitempty" hcl:"total_force,optional"`
@@ -24,7 +23,7 @@ type Topics struct {
 	SORTREVERSE string `json:"sortreverse,omitempty" hcl:"sortreverse,optional"`
 }
 
-func (self *Topics) defaultNames() []string {
+func (self *Topics) setDefaultElementNames() []string {
 	if self.FIELDS == "" {
 		self.FIELDS = "fields"
 	}
@@ -164,14 +163,9 @@ func (self *Topics) RunAction(db *sql.DB, t *Table, ARGS map[string]interface{},
 }
 
 func (self *Topics) RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
-	err := self.checkNull(ARGS, extra...)
-	if err != nil {
-		return nil, err
-	}
-
-	self.defaultNames()
-	sql, labels, table := self.filterPars(t.TableName, ARGS, self.Rename, self.FIELDS, self.Joints)
-	err = self.pagination(ctx, db, t, ARGS, extra...)
+	self.setDefaultElementNames()
+	sql, labels, table := t.filterPars(ARGS, self.FIELDS, self.Joints)
+	err := self.pagination(ctx, db, t, ARGS, extra...)
 	if err != nil {
 		return nil, err
 	}
@@ -187,7 +181,7 @@ func (self *Topics) RunActionContext(ctx context.Context, db *sql.DB, t *Table, 
 		if order != "" {
 			sql += "\n" + order
 		}
-		err = dbi.SelectSQLContext(ctx, &lists, sql, labels, values...)
+		err := dbi.SelectSQLContext(ctx, &lists, sql, labels, values...)
 		if err != nil {
 			return nil, err
 		}
@@ -199,8 +193,5 @@ func (self *Topics) RunActionContext(ctx context.Context, db *sql.DB, t *Table, 
 	}
 
 	err = dbi.SelectSQLContext(ctx, &lists, sql, labels)
-	if err != nil {
-		return nil, err
-	}
-	return lists, nil
+	return lists, err
 }

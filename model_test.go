@@ -3,24 +3,22 @@ package godbi
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"testing"
 )
 
 type SQL struct {
 	Action
-	Columns   []string `json:"columns"`
 	Statement string   `json:"statement"`
 }
 
 func (self *SQL) RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
-	v, ok := ARGS[self.Musts[0]]
-	if !ok {
-		return nil, fmt.Errorf("missing %s in input", self.Musts[0])
-	}
 	lists := make([]map[string]interface{}, 0)
 	dbi := &DBI{DB: db}
-	err := dbi.SelectSQLContext(ctx, &lists, self.Statement, []interface{}{self.Columns}, v)
+	var names []interface{}
+	for _, col := range t.Rename {
+		names = append(names, col.ColumnName)
+	}
+	err := dbi.SelectSQLContext(ctx, &lists, self.Statement, names, ARGS["bravo"])
 	return lists, err
 }
 
@@ -32,7 +30,7 @@ func TestModel(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, v := range model.Actions {
-		k := v.GetName()
+		k := v.GetActionName()
 		switch k {
 		case "topics":
 			topics := v.(*Topics)
@@ -46,8 +44,7 @@ func TestModel(t *testing.T) {
 			}
 		case "update":
 			update := v.(*Update)
-			if update.Columns[1] != "campaign_name" ||
-				update.Empties[0] != "created" {
+			if update.Empties[0] != "created" {
 				t.Errorf("%#v", update)
 			}
 		case "sql":
@@ -79,38 +76,28 @@ func TestModelRun(t *testing.T) {
     "table":"m_a",
     "pks":["id"],
     "idAuto":"id",
+    "rename": [
+{"columnName":"x", "label":"x", "typeName":"string", "notnull":true },
+{"columnName":"y", "label":"y", "typeName":"string", "notnull":true },
+{"columnName":"z", "label":"z", "typeName":"string" },
+{"columnName":"id", "label":"id", "typeName":"int", "auto":true }
+        ],
+		"uniques":["x","y"],
 	"actions": [
 	{
-		"actionName": "insert",
-		"musts":["x","y"],
-		"columns":["x","y","z"]
+		"actionName": "insert"
 	},
 	{
-		"actionName": "insupd",
-		"uniques":["x","y"],
-		"columns":["x","y","z"]
+		"actionName": "insupd"
 	},
 	{
-		"actionName": "delete",
-		"musts":["id"]
+		"actionName": "delete"
 	},
 	{
-		"actionName": "topics",
-        "rename": [
-            {"columnName":"x", "label":"x", "typeName":"string" },
-            {"columnName":"y", "label":"y", "typeName":"string" },
-            {"columnName":"z", "label":"z", "typeName":"string" },
-            {"columnName":"id", "label":"id", "typeName":"int" }
-        ]
+		"actionName": "topics"
 	},
 	{
-		"actionName": "edit",
-        "rename": [
-            {"columnName":"x", "label":"x", "typeName":"string" },
-            {"columnName":"y", "label":"y", "typeName":"string" },
-            {"columnName":"z", "label":"z", "typeName":"string" },
-            {"columnName":"id", "label":"id", "typeName":"int" }
-		]
+		"actionName": "edit"
 	}
 ]}`
 	model, err := NewModelJson([]byte(str))
@@ -218,38 +205,28 @@ func TestModelRunMultiple(t *testing.T) {
     "table":"m_a",
     "pks":["id"],
     "idAuto":"id",
+    "rename": [
+{"columnName":"x", "label":"x", "typeName":"string", "notnull":true },
+{"columnName":"y", "label":"y", "typeName":"string", "notnull":true },
+{"columnName":"z", "label":"z", "typeName":"string" },
+{"columnName":"id", "label":"id", "typeName":"int", "auto":true }
+        ],
+		"uniques":["x","y"],
 	"actions": [
 	{
-		"actionName": "insert",
-		"musts":["x","y"],
-		"columns":["x","y","z"]
+		"actionName": "insert"
 	},
 	{
-		"actionName": "insupd",
-		"uniques":["x","y"],
-		"columns":["x","y","z"]
+		"actionName": "insupd"
 	},
 	{
-		"actionName": "delete",
-		"musts":["id"]
+		"actionName": "delete"
 	},
 	{
-		"actionName": "topics",
-        "rename": [
-            {"columnName":"x", "label":"x", "typeName":"string" },
-            {"columnName":"y", "label":"y", "typeName":"string" },
-            {"columnName":"z", "label":"z", "typeName":"string" },
-            {"columnName":"id", "label":"id", "typeName":"int" }
-        ]
+		"actionName": "topics"
 	},
 	{
-		"actionName": "edit",
-        "rename": [
-            {"columnName":"x", "label":"x", "typeName":"string" },
-            {"columnName":"y", "label":"y", "typeName":"string" },
-            {"columnName":"z", "label":"z", "typeName":"string" },
-            {"columnName":"id", "label":"id", "typeName":"int" }
-		]
+		"actionName": "edit"
 	}
 ]}`
 	model, err := NewModelJson([]byte(str))
