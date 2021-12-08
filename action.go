@@ -16,7 +16,7 @@ type Capability interface {
 }
 
 type Action struct {
-	ActionName string     `json:"actionName,omitempty" hcl:"actionName,optional"`
+	ActionName string `json:"actionName,omitempty" hcl:"actionName,optional"`
 	Prepares  []*Connection `json:"Prepares,omitempty" hcl:"Prepares,block"`
 	Nextpages []*Connection `json:"nextpages,omitempty" hcl:"nextpages,block"`
 	Appendix  interface{} `json:"appendix,omitempty" hcl:"appendix,block"`
