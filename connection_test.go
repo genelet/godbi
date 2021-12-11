@@ -55,3 +55,22 @@ func TestConnection(t *testing.T) {
 		t.Errorf("%#v", aArgs)
 	}
 }
+
+func TestConnectionAppend(t *testing.T) {
+	args := map[string]interface {}{"id":1}
+	var extra map[string]interface {}
+	lists := []map[string]interface {}{map[string]interface {}{"child":"john", "tid":1}, map[string]interface {}{"child":"john2", "tid":2}}
+	newArgs := CloneArgs(args)
+	newExtra := CloneExtra(extra)
+	p := &Connection{TableName: "m_b", ActionName: "insert", RelateArgs: map[string]string{"tid": "tid"}}
+	for _, item := range lists {
+		newArgs = MergeArgs(newArgs, p.NextArgs(item))
+		newExtra = MergeExtra(newExtra, p.NextExtra(item))
+	}
+	if len(newArgs.(map[string]interface{})) != 2 {
+		t.Errorf("%#v", newArgs)
+	}
+	if newExtra != nil {
+		t.Errorf("%#v", newExtra)
+	}
+}

@@ -82,6 +82,8 @@ func Assertion(actions []interface{}, custom ...Capability) ([]Capability, error
 				tran = new(Topics)
 			case "delete":
 				tran = new(Delete)
+			case "delecs":
+				tran = new(Delecs)
 			default:
 				return nil, fmt.Errorf("action %s not defined", name)
 			}

@@ -12,6 +12,9 @@ type Capability interface {
 	GetPrepares()  []*Connection
 	GetNextpages() []*Connection
 	GetAppendix() interface{}
+	SetPrepares([]*Connection)
+	SetNextpages([]*Connection)
+	SetAppendix(interface{})
 	RunActionContext(context.Context, *sql.DB, *Table, map[string]interface{}, ...map[string]interface{}) ([]map[string]interface{}, error)
 }
 
@@ -36,4 +39,16 @@ func (self *Action) GetNextpages() []*Connection {
 
 func (self *Action) GetAppendix() interface{} {
 	return self.Appendix
+}
+
+func (self *Action) SetPrepares(x []*Connection) {
+	self.Prepares = x
+}
+
+func (self *Action) SetNextpages(x []*Connection) {
+	self.Nextpages = x
+}
+
+func (self *Action) SetAppendix(x interface{}) {
+	self.Appendix = x
 }

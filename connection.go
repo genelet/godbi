@@ -1,6 +1,8 @@
 package godbi
 
 // Connection describes linked page
+// 1) for Nextpages, it maps item in lists to next ARGS and next Extra
+// 2) for Prepares, it maps current ARGS to the next ARGS and next Extra
 //
 type Connection struct {
 	// TableName: the name of the table
@@ -27,22 +29,43 @@ func (self *Connection) NextArgs(item map[string]interface{}) map[string]interfa
 	return createNextmap(self.RelateArgs, item)
 }
 
-// MergeArg merges current item to the existing args
-//
-func (self *Connection) MergeArgs(args interface{}, item map[string]interface{}) interface{} {
-	return MergeArgs(args, self.NextArgs(item))
-}
-
 // NextExtra returns nextpage's extra by taking current item
 //
 func (self *Connection) NextExtra(item map[string]interface{}) map[string]interface{} {
 	return createNextmap(self.RelateExtra, item)
 }
 
-// MergeExtra merges current item to the existing extra
+// PrepareArg returns prepare's args by taking current args
 //
-func (self *Connection) MergeExtra(extra, item map[string]interface{}) map[string]interface{} {
-	return MergeExtra(extra, self.NextExtra(item))
+func (self *Connection) PrepareArgs(args interface{}) interface{} {
+	if args == nil {
+		return nil
+	}
+
+	switch t := args.(type) {
+	case map[string]interface{}:
+		return createNextmap(self.RelateArgs, t)
+	case []map[string]interface{}:
+		var outs []map[string]interface{}
+		for _, item := range t {
+			if x := createNextmap(self.RelateArgs, item); x != nil {
+				outs = append(outs, x)
+			}
+		}
+		return outs
+	}
+	return nil
+}
+
+// PrepareExtra returns prepare's extra by taking current args
+//
+func (self *Connection) PrepareExtra(args interface{}) map[string]interface{} {
+	switch t := args.(type) {
+	case map[string]interface{}:
+	return createNextmap(self.RelateExtra, t)
+	default:
+	}
+	return nil
 }
 
 func createNextmap(which map[string]string, item map[string]interface{}) map[string]interface{} {

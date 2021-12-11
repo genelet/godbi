@@ -75,7 +75,7 @@ func (self *Graph) GetModel(model string) Navigate {
 // The rest are specific data for each action starting with the current one.
 //
 func (self *Graph) RunContext(ctx context.Context, db *sql.DB, model, action string, rest ...interface{}) ([]map[string]interface{}, error) {
-log.Printf("1 model %s action %s rest %#v", model, action, rest)
+//log.Printf("1 model %s action %s rest %#v", model, action, rest)
 	var args interface{}
 	var extra map[string]interface{}
 	if rest != nil {
@@ -89,13 +89,13 @@ log.Printf("1 model %s action %s rest %#v", model, action, rest)
 		}
 	}
 
-log.Printf("2 args: %#v, extra: %#v", args, extra)
+//log.Printf("2 args: %#v, extra: %#v", args, extra)
 	modelObj := self.GetModel(model)
 	if modelObj == nil {
 		return nil, fmt.Errorf("model %s not found in graph", model)
 	}
 
-log.Printf("%#v", 3)
+//log.Printf("%#v", 3)
 	actionObj := modelObj.GetAction(action)
 	if actionObj == nil {
 		return nil, fmt.Errorf("action %s not found in graph", action)
@@ -106,31 +106,35 @@ log.Printf("%#v", 3)
 	newArgs := CloneArgs(args)
 	newExtra := CloneExtra(extra)
 
-log.Printf("%#v", 4)
-	// prepares only affect args, and no RelateArgs nor RelateExtra involed
+//log.Printf("%#v", 4)
+	// prepares receives filtered args and extra from current args
 	if prepares != nil {
 		for _, p := range prepares {
-			lists, err := self.RunContext(ctx, db, p.TableName, p.ActionName, rest...)
+log.Printf("401 %#v", p)
+			lists, err := self.RunContext(ctx, db, p.TableName, p.ActionName, p.PrepareArgs(args), p.PrepareExtra(args))
 			if err != nil { return nil, err }
+log.Printf("402 %#v", lists)
 			// only two types of prepares
 			// 1) one pre, with multiple outputs (when p.argsMap is multiple)
 			if hasValue(lists) && len(lists) > 0 {
 				newArgs = CloneArgs(args)
 				newExtra = CloneExtra(extra)
 				for _, item := range lists {
-					newArgs = p.MergeArgs(newArgs, item)
-					newExtra = p.MergeExtra(newExtra, item)
+					newArgs = MergeArgs(newArgs, p.NextArgs(item))
+					newExtra = MergeExtra(newExtra, p.NextExtra(item))
 				}
 				break
 			}
 			// 2) multiple pre, with one output each.
 			// when a multiple output is found, 1) will override
-			newArgs = p.MergeArgs(newArgs, lists[0])
-			newExtra = p.MergeExtra(newExtra, lists[0])
+			if hasValue(lists) && hasValue(lists[0]) {
+				newArgs = MergeArgs(newArgs, p.NextArgs(lists[0]))
+				newExtra = MergeExtra(newExtra, p.NextExtra(lists[0]))
+			}
 		}
 	}
 
-log.Printf("%#v", 5)
+//log.Printf("%#v", 5)
 	var data []map[string]interface{}
 	var err error
 
@@ -141,14 +145,14 @@ log.Printf("%#v", 5)
 		}
 	}
 
-log.Printf("%#v", 6)
+//log.Printf("%#v", 6)
 	var argsModelAction interface{}
 	if self.argsMap[model] != nil {
 		argsMap := self.argsMap[model].(map[string]interface{})
 		argsModelAction = argsMap[action]
 	}
 	if argsModelAction != nil {
-log.Printf("%#v", 7)
+log.Printf("7 current page %#v => %#v", model, action)
 		switch t := argsModelAction.(type) {
 		case map[string]interface{}:
 			data, err = modelObj.RunModelContext(ctx, db, action, MergeArgs(newArgs, t), newExtra)
@@ -163,27 +167,33 @@ log.Printf("%#v", 7)
 			return nil, fmt.Errorf("wrong input data type: %#v", t)
 		}
 	} else {
-log.Printf("%#v", 8)
+log.Printf("8 current page %s => %s: %v => %v", model, action, newArgs, newExtra)
 		data, err = modelObj.RunModelContext(ctx, db, action, newArgs, newExtra)
 		if err != nil { return nil, err }
 	}
 
 log.Printf("9 data: %#v", data)
-	if nextpages == nil { return data, nil }
+	if nextpages == nil {
+log.Printf("14 finish %s => %s", model, action)
+		return data, nil
+	}
 
-log.Printf("10 next page: %#v", nextpages)
+//log.Printf("10 next page: %#v", nextpages)
 	for _, p := range nextpages {
 log.Printf("101 next page: %#v", p)
 		for _, item := range data {
-log.Printf("11 %#v", item)
-log.Printf("12 %#v", p)
+log.Printf("102 %#v", item)
+log.Printf("111 %#v", p.NextArgs(item))
+log.Printf("112 %#v", p.NextExtra(item))
 			newLists, err := self.RunContext(ctx, db, p.TableName, p.ActionName, p.NextArgs(item), p.NextExtra(item))
 			if err != nil { return nil, err }
-log.Printf("13 sub list: %#v", newLists)
-			item[p.Subname()] = newLists
+//log.Printf("13 sub list: %#v", newLists)
+			if hasValue(newLists) {
+				item[p.Subname()] = newLists
+			}
 		}
 	}
 
-log.Printf("14")
+log.Printf("14 finish %s => %s", model, action)
 	return data, nil
 }
