@@ -124,7 +124,28 @@ func MergeExtra(extra, item map[string]interface{}) map[string]interface{} {
 
 // MergeArgs merges map to either an existing map, or slice of map in which each element will be merged
 //
-func MergeArgs(args interface{}, item map[string]interface{}) interface{} {
+func MergeArgs(args, items interface{}) interface{} {
+	if args == nil {
+		return items
+	} else if items == nil {
+		return args
+	}
+
+	switch t := items.(type) {
+	case map[string]interface{}:
+		return mergeMap(args, t)
+	case []map[string]interface{}:
+		var newArgs []map[string]interface{}
+		for _, item := range t {
+			newArgs = append(newArgs, mergeMap(args, item).(map[string]interface{}))
+		}
+		return newArgs
+	default:
+	}
+	return args
+}
+
+func mergeMap(args interface{}, item map[string]interface{}) interface{} {
 	if args == nil {
 		return item
 	} else if item == nil {

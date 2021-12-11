@@ -1,7 +1,6 @@
 package godbi
 
 import (
-"log"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -75,7 +74,6 @@ func (self *Graph) GetModel(model string) Navigate {
 // The rest are specific data for each action starting with the current one.
 //
 func (self *Graph) RunContext(ctx context.Context, db *sql.DB, model, action string, rest ...interface{}) ([]map[string]interface{}, error) {
-log.Printf("\n\n1 model %s action %s rest %#v", model, action, rest)
 	var args interface{}
 	var extra map[string]interface{}
 	if rest != nil {
@@ -89,7 +87,6 @@ log.Printf("\n\n1 model %s action %s rest %#v", model, action, rest)
 		}
 	}
 
-//log.Printf("2 args: %#v, extra: %#v", args, extra)
 	modelObj := self.GetModel(model)
 	if modelObj == nil {
 		return nil, fmt.Errorf("model %s not found in graph", model)
@@ -101,7 +98,14 @@ log.Printf("\n\n1 model %s action %s rest %#v", model, action, rest)
 		argsModelAction = argsMap[action]
 	}
 
-//log.Printf("%#v", 3)
+	var extraModelAction map[string]interface{}
+	if self.extraMap[model] != nil {
+		extraAction := self.extraMap[model].(map[string]interface{})
+		if extraAction[action] != nil {
+			extraModelAction = extraAction[action].(map[string]interface{})
+		}
+	}
+
 	actionObj := modelObj.GetAction(action)
 	if actionObj == nil {
 		return nil, fmt.Errorf("action %s not found in graph", action)
@@ -111,38 +115,30 @@ log.Printf("\n\n1 model %s action %s rest %#v", model, action, rest)
 
 	newArgs := CloneArgs(args)
 	newExtra := CloneExtra(extra)
-
-//log.Printf("%#v", 4)
 	// prepares receives filtered args and extra from current args
 	if prepares != nil {
 		for _, p := range prepares {
-log.Printf("401 %#v", p)
-			// !!! in case of prepare, we should use args to nextArgs/Extra
-			// to get next pages input and constrains
-			preArgs := CloneArgs(argsModelAction)
-			if args != nil {
-				switch t := args.(type) {
-				case map[string]interface{}:
-					preArgs = MergeArgs(preArgs, t)
-				default:
-				}
-			}
-log.Printf("preArgs %#v", preArgs)
+			// !!! in case of prepare, we should use args to get
+			// NextArgs and NextExtra as nextpage's input and constrains
+			preArgs := MergeArgs(argsModelAction, args)
 			lists, err := self.RunContext(ctx, db, p.TableName, p.ActionName, p.NextArgs(preArgs), p.NextExtra(preArgs))
 			if err != nil { return nil, err }
-log.Printf("402 %#v", lists)
 			// only two types of prepares
 			// 1) one pre, with multiple outputs (when p.argsMap is multiple)
 			if hasValue(lists) && len(lists) > 0 {
+				if args != nil {
+					if _, ok := args.(map[string]interface{}); !ok {
+						return nil, fmt.Errorf("for multiple returns in prepares, the initial args must be a map or nil: %T", args)
+					}
+				}
 				var tmp []map[string]interface{}
 				newExtra = CloneExtra(extra)
 				for _, item := range lists {
-					tmp = append(tmp, MergeArgs(args, p.NextArgs(item).(map[string]interface{})).(map[string]interface{}))
-log.Printf("403 %#v=>%#v", item, newArgs)
+					result := MergeArgs(args, p.NextArgs(item)).(map[string]interface{})
+					tmp = append(tmp, result)
 					newExtra = MergeExtra(newExtra, p.NextExtra(item))
 				}
 				newArgs = tmp
-log.Printf("404 %#v", newArgs)
 				break
 			}
 			// 2) multiple pre, with one output each.
@@ -154,77 +150,22 @@ log.Printf("404 %#v", newArgs)
 		}
 	}
 
-//log.Printf("%#v", 5)
-	var data []map[string]interface{}
-	var err error
+	data, err := modelObj.RunModelContext(ctx, db, action, MergeArgs(newArgs, argsModelAction), MergeExtra(newExtra, extraModelAction))
+	if err != nil { return nil, err }
 
-	if self.extraMap[model] != nil {
-		extraAction := self.extraMap[model].(map[string]interface{})
-		if extraAction[action] != nil {
-			newExtra = MergeExtra(newExtra, extraAction[action].(map[string]interface{}))
-		}
-	}
-
-	if newArgs != nil {
-log.Printf("6 current page %s=>%s, %#v => %#v, %T", model, action, newArgs, newExtra, newArgs)
-		switch t := newArgs.(type) {
-		case map[string]interface{}:
-log.Printf("66 %#v=>%#v=>%#v", argsModelAction, t, MergeArgs(argsModelAction, t))
-			data, err = modelObj.RunModelContext(ctx, db, action, MergeArgs(argsModelAction, t), newExtra)
-			if err != nil { return nil, err }
-		case []map[string]interface{}:
-			for _, each := range t {
-log.Printf("67 %#v=>%#v", argsModelAction, MergeArgs(argsModelAction, each))
-				lists, err := modelObj.RunModelContext(ctx, db, action, MergeArgs(argsModelAction, each), newExtra)
-				if err != nil { return nil, err }
-				data = append(data, lists...)
-			}
-		default:
-			return nil, fmt.Errorf("wrong input data type: %#v", t)
-		}
-	} else if argsModelAction != nil {
-log.Printf("7 current page %#v => %#v", model, action)
-		switch t := argsModelAction.(type) {
-		case map[string]interface{}:
-			data, err = modelObj.RunModelContext(ctx, db, action, MergeArgs(newArgs, t), newExtra)
-			if err != nil { return nil, err }
-		case []map[string]interface{}:
-			for _, each := range t {
-				lists, err := modelObj.RunModelContext(ctx, db, action, MergeArgs(newArgs, each), newExtra)
-				if err != nil { return nil, err }
-				data = append(data, lists...)
-			}
-		default:
-			return nil, fmt.Errorf("wrong input data type: %#v", t)
-		}
-	} else {
-log.Printf("8 current page %s => %s: %v => %v", model, action, newArgs, newExtra)
-		data, err = modelObj.RunModelContext(ctx, db, action, newArgs, newExtra)
-		if err != nil { return nil, err }
-	}
-
-log.Printf("9 data: %#v", data)
 	if nextpages == nil {
-log.Printf("14 finish %s => %s", model, action)
 		return data, nil
 	}
 
-//log.Printf("10 next page: %#v", nextpages)
 	for _, p := range nextpages {
-log.Printf("101 next page: %#v", p)
 		for _, item := range data {
-log.Printf("102 %#v", item)
-log.Printf("111 %#v", p.NextArgs(item))
-log.Printf("112 %#v", p.NextExtra(item))
 			newLists, err := self.RunContext(ctx, db, p.TableName, p.ActionName, p.NextArgs(item), p.NextExtra(item))
 			if err != nil { return nil, err }
-//log.Printf("13 sub list: %#v", newLists)
 			if hasValue(newLists) {
 				item[p.Subname()] = newLists
 			}
 		}
 	}
 
-log.Printf("14 finish %s => %s", model, action)
 	return data, nil
 }
