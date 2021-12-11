@@ -75,7 +75,7 @@ func (self *Graph) GetModel(model string) Navigate {
 // The rest are specific data for each action starting with the current one.
 //
 func (self *Graph) RunContext(ctx context.Context, db *sql.DB, model, action string, rest ...interface{}) ([]map[string]interface{}, error) {
-//log.Printf("1 model %s action %s rest %#v", model, action, rest)
+log.Printf("\n\n1 model %s action %s rest %#v", model, action, rest)
 	var args interface{}
 	var extra map[string]interface{}
 	if rest != nil {
@@ -95,6 +95,12 @@ func (self *Graph) RunContext(ctx context.Context, db *sql.DB, model, action str
 		return nil, fmt.Errorf("model %s not found in graph", model)
 	}
 
+	var argsModelAction interface{}
+	if self.argsMap[model] != nil {
+		argsMap := self.argsMap[model].(map[string]interface{})
+		argsModelAction = argsMap[action]
+	}
+
 //log.Printf("%#v", 3)
 	actionObj := modelObj.GetAction(action)
 	if actionObj == nil {
@@ -111,24 +117,38 @@ func (self *Graph) RunContext(ctx context.Context, db *sql.DB, model, action str
 	if prepares != nil {
 		for _, p := range prepares {
 log.Printf("401 %#v", p)
-			lists, err := self.RunContext(ctx, db, p.TableName, p.ActionName, p.PrepareArgs(args), p.PrepareExtra(args))
+			// !!! in case of prepare, we should use args to nextArgs/Extra
+			// to get next pages input and constrains
+			preArgs := CloneArgs(argsModelAction)
+			if args != nil {
+				switch t := args.(type) {
+				case map[string]interface{}:
+					preArgs = MergeArgs(preArgs, t)
+				default:
+				}
+			}
+log.Printf("preArgs %#v", preArgs)
+			lists, err := self.RunContext(ctx, db, p.TableName, p.ActionName, p.NextArgs(preArgs), p.NextExtra(preArgs))
 			if err != nil { return nil, err }
 log.Printf("402 %#v", lists)
 			// only two types of prepares
 			// 1) one pre, with multiple outputs (when p.argsMap is multiple)
 			if hasValue(lists) && len(lists) > 0 {
-				newArgs = CloneArgs(args)
+				var tmp []map[string]interface{}
 				newExtra = CloneExtra(extra)
 				for _, item := range lists {
-					newArgs = MergeArgs(newArgs, p.NextArgs(item))
+					tmp = append(tmp, MergeArgs(args, p.NextArgs(item).(map[string]interface{})).(map[string]interface{}))
+log.Printf("403 %#v=>%#v", item, newArgs)
 					newExtra = MergeExtra(newExtra, p.NextExtra(item))
 				}
+				newArgs = tmp
+log.Printf("404 %#v", newArgs)
 				break
 			}
 			// 2) multiple pre, with one output each.
 			// when a multiple output is found, 1) will override
 			if hasValue(lists) && hasValue(lists[0]) {
-				newArgs = MergeArgs(newArgs, p.NextArgs(lists[0]))
+				newArgs = MergeArgs(newArgs, p.NextArgs(lists[0]).(map[string]interface{}))
 				newExtra = MergeExtra(newExtra, p.NextExtra(lists[0]))
 			}
 		}
@@ -145,13 +165,24 @@ log.Printf("402 %#v", lists)
 		}
 	}
 
-//log.Printf("%#v", 6)
-	var argsModelAction interface{}
-	if self.argsMap[model] != nil {
-		argsMap := self.argsMap[model].(map[string]interface{})
-		argsModelAction = argsMap[action]
-	}
-	if argsModelAction != nil {
+	if newArgs != nil {
+log.Printf("6 current page %s=>%s, %#v => %#v, %T", model, action, newArgs, newExtra, newArgs)
+		switch t := newArgs.(type) {
+		case map[string]interface{}:
+log.Printf("66 %#v=>%#v=>%#v", argsModelAction, t, MergeArgs(argsModelAction, t))
+			data, err = modelObj.RunModelContext(ctx, db, action, MergeArgs(argsModelAction, t), newExtra)
+			if err != nil { return nil, err }
+		case []map[string]interface{}:
+			for _, each := range t {
+log.Printf("67 %#v=>%#v", argsModelAction, MergeArgs(argsModelAction, each))
+				lists, err := modelObj.RunModelContext(ctx, db, action, MergeArgs(argsModelAction, each), newExtra)
+				if err != nil { return nil, err }
+				data = append(data, lists...)
+			}
+		default:
+			return nil, fmt.Errorf("wrong input data type: %#v", t)
+		}
+	} else if argsModelAction != nil {
 log.Printf("7 current page %#v => %#v", model, action)
 		switch t := argsModelAction.(type) {
 		case map[string]interface{}:

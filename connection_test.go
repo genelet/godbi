@@ -14,7 +14,7 @@ func TestConnection(t *testing.T) {
 	}
 
 	item := map[string]interface{}{"x": "a", "campaign_id": 123}
-	nextArgs := page.NextArgs(item)
+	nextArgs := page.NextArgs(item).(map[string]interface{})
 	if nextArgs["firstname"] != "a" {
 		t.Errorf("%#v", nextArgs)
 	}
@@ -64,7 +64,7 @@ func TestConnectionAppend(t *testing.T) {
 	newExtra := CloneExtra(extra)
 	p := &Connection{TableName: "m_b", ActionName: "insert", RelateArgs: map[string]string{"tid": "tid"}}
 	for _, item := range lists {
-		newArgs = MergeArgs(newArgs, p.NextArgs(item))
+		newArgs = MergeArgs(newArgs, p.NextArgs(item).(map[string]interface{}))
 		newExtra = MergeExtra(newExtra, p.NextExtra(item))
 	}
 	if len(newArgs.(map[string]interface{})) != 2 {

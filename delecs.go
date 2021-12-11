@@ -3,6 +3,7 @@ package godbi
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"strings"
 )
 
@@ -16,6 +17,9 @@ func (self *Delecs) RunAction(db *sql.DB, t *Table, ARGS map[string]interface{},
 
 func (self *Delecs) RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
 	labels := t.Pks
+	if t.Fks==nil || len(t.Fks)<5 {
+		return nil, fmt.Errorf("fks not defined for table %s", t.TableName)
+	}
 	if t.IdAuto != t.Pks[0] {
 		labels = append(labels, t.IdAuto)
 	}

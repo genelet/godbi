@@ -23,32 +23,20 @@ func (self *Connection) Subname() string {
 	return self.TableName + "_" + self.ActionName
 }
 
-// NextArg returns nextpage's args by taking current item
+// NextArg returns nextpage's args using current args map
 //
-func (self *Connection) NextArgs(item map[string]interface{}) map[string]interface{} {
-	return createNextmap(self.RelateArgs, item)
-}
-
-// NextExtra returns nextpage's extra by taking current item
-//
-func (self *Connection) NextExtra(item map[string]interface{}) map[string]interface{} {
-	return createNextmap(self.RelateExtra, item)
-}
-
-// PrepareArg returns prepare's args by taking current args
-//
-func (self *Connection) PrepareArgs(args interface{}) interface{} {
-	if args == nil {
+func (self *Connection) NextArgs(item interface{}) interface{} {
+	if item == nil {
 		return nil
 	}
 
-	switch t := args.(type) {
+	switch t := item.(type) {
 	case map[string]interface{}:
 		return createNextmap(self.RelateArgs, t)
 	case []map[string]interface{}:
 		var outs []map[string]interface{}
-		for _, item := range t {
-			if x := createNextmap(self.RelateArgs, item); x != nil {
+		for _, hash := range t {
+			if x := createNextmap(self.RelateArgs, hash); x != nil {
 				outs = append(outs, x)
 			}
 		}
@@ -57,9 +45,9 @@ func (self *Connection) PrepareArgs(args interface{}) interface{} {
 	return nil
 }
 
-// PrepareExtra returns prepare's extra by taking current args
+// NextExtra returns nextpage's extra using current extra map
 //
-func (self *Connection) PrepareExtra(args interface{}) map[string]interface{} {
+func (self *Connection) NextExtra(args interface{}) map[string]interface{} {
 	switch t := args.(type) {
 	case map[string]interface{}:
 	return createNextmap(self.RelateExtra, t)

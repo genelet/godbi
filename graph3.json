@@ -17,7 +17,7 @@
 			"nextpages": [
 				{
 					"tableName": "m_ab",
-					"actionName": "insert",
+					"actionName": "insupd",
 					"relateArgs": { "id": "id" }
 				}
 			]
@@ -46,7 +46,7 @@
 			"actionName": "delete",
 			"prepares": [
 				{
-					"tableName": "m_b",
+					"tableName": "m_ab",
 					"actionName": "delecs",
 					"relateArgs": { "id": "id" }
 				}
@@ -69,6 +69,7 @@
 	"pks": [ "abid" ],
 	"fks": [ "m_a", "id", "id_md5", "id", "tid", "tid_md5"],
 	"idAuto": "abid",
+    "uniques":["id","tid"],
 	"columns": [
 {"columnName":"abid", "label":"abid", "typeName":"int", "notnull": true, "auto":true},
 {"columnName":"tid", "label":"tid", "typeName":"int", "notnull": true},
@@ -86,6 +87,16 @@
 			]
 		},
 		{
+			"actionName": "insupd",
+			"prepares": [
+				{
+					"tableName": "m_b",
+					"actionName": "insupd",
+					"relateArgs": { "tid": "tid" }
+				}
+			]
+		},
+		{
 			"actionName": "edit",
 			"nextpages": [
 				{
@@ -96,15 +107,22 @@
 			]
 		},
 		{
-			"actionName": "delete"
+			"actionName": "delete",
+			"prepares": [
+				{
+					"tableName": "m_b",
+					"actionName": "delecs",
+					"relateArgs": { "tid": "tid" }
+				}
+			]
 		},
 		{
 			"actionName": "delecs",
 			"nextpages": [
 				{
-					"tableName": "m_b",
+					"tableName": "m_ab",
 					"actionName": "delete",
-					"relateArgs": { "tid": "tid" }
+					"relateArgs": { "abid": "abid", "tid": "tid" }
 				}
 			]
 		},
@@ -124,6 +142,8 @@
 	"tableName": "m_b",
 	"pks": [ "tid" ],
 	"idAuto": "tid",
+	"fks": [ "m_ab", "tid", "tid_md5", "tid", "tid", "tid_md5"],
+    "uniques":["child"],
 	"columns": [
 {"columnName":"tid", "label":"tid", "typeName":"int", "notnull": true, "auto":true},
 {"columnName":"child", "label":"child", "typeName":"string"}
@@ -131,6 +151,9 @@
 	"actions": [
 		{
 			"actionName": "insert"
+		},
+		{
+			"actionName": "insupd"
 		},
 		{
 			"actionName": "edit"

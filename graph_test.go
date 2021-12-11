@@ -323,7 +323,7 @@ func TestGraphThreeTables(t *testing.T) {
     data2 := []map[string]interface{}{{"child": "john"}, {"child": "john2"}}
 	graph.Initialize(map[string]interface{}{
 		"m_a":map[string]interface{}{"insupd": args},
-		"m_b":map[string]interface{}{"insert": data2},
+		"m_b":map[string]interface{}{"insupd": data2},
 	}, nil)
 	if lists, err = graph.RunContext(ctx, db, "m_a", METHODS["PATCH"]); err != nil {
 		panic(err)
@@ -336,7 +336,7 @@ func TestGraphThreeTables(t *testing.T) {
     data:= map[string]interface{}{"child": "sam"}
 	graph.Initialize(map[string]interface{}{
 		"m_a":map[string]interface{}{"insupd": args},
-		"m_b":map[string]interface{}{"insert": data},
+		"m_b":map[string]interface{}{"insupd": data},
 	}, nil)
 	if lists, err = graph.RunContext(ctx, db, "m_a", METHODS["PATCH"]); err != nil {
 		panic(err)
@@ -372,65 +372,11 @@ func TestGraphThreeTables(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-/*
-[
-	map[
-		id:1
-		m_ab_topics:[
-			map[
-				abid:1
-				id:1
-				m_b_topics:[
-					map[child:john2 tid:2]
-				]
-				tid:2
-			]
-			map[
-				abid:2
-				id:1
-				m_b_topics:[
-					map[child:sam tid:3]
-				]
-				tid:3
-			]
-		]
-		x:a1234567
-		y:b1234567
-		z:zzzzz
-	]
-	map[
-		id:2
-		m_ab_topics:[
-			map[
-				abid:3
-				id:2
-				m_b_topics:[
-					map[child:mary tid:4]]
-				tid:4]
-			]
-		x:c1234567
-		y:d1234567
-		z:e1234]
-	map[
-		id:3
-		m_ab_topics:[
-			map[
-				abid:4
-				id:3
-				m_b_topics:[
-					map[child:marcus tid:5]]
-				tid:5]
-			]
-		x:e1234567
-		y:f1234567
-		z:e1234
-	]
-]
-*/
-		t.Errorf("%v", lists)
-	e1 := lists[0]["m_a_edit"].([]map[string]interface{})
-	e2 := e1[0]["m_b_topics"].([]map[string]interface{})
-	if e2[0]["child"].(string) != "john" || e2[1]["child"].(string) != "john2" {
+//	t.Errorf("%v", lists)
+	e1 := lists[0]["m_ab_topics"].([]map[string]interface{})
+	e21:= e1[0]["m_b_topics"].([]map[string]interface{})
+	e22:= e1[1]["m_b_topics"].([]map[string]interface{})
+	if e21[0]["child"].(string) != "john" || e22[0]["child"].(string) != "john2" {
 		t.Errorf("%v", lists)
 	}
 
@@ -440,8 +386,10 @@ func TestGraphThreeTables(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	e2 = lists[0]["m_b_topics"].([]map[string]interface{})
-	if e2[0]["child"].(string) != "john" || e2[1]["child"].(string) != "john2" {
+	e1 = lists[0]["m_ab_topics"].([]map[string]interface{})
+	e21 = e1[0]["m_b_topics"].([]map[string]interface{})
+	e22 = e1[1]["m_b_topics"].([]map[string]interface{})
+	if e21[0]["child"].(string) != "john" || e22[0]["child"].(string) != "john2" {
 		t.Errorf("%v", lists)
 	}
 	// [map[id:1 m_b_topics:[map[child:john id:1 tid:1] map[child:john2 id:1 tid:2] map[child:sam id:1 tid:3]] x:a1234567 y:b1234567 z:zzzzz]]
@@ -467,12 +415,12 @@ func TestGraphThreeTables(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	e1 = lists[0]["m_a_edit"].([]map[string]interface{})
-	e2 = e1[0]["m_b_topics"].([]map[string]interface{})
-	if e2[0]["child"].(string) != "mary" {
+	e1 = lists[0]["m_ab_topics"].([]map[string]interface{})
+	e21 = e1[0]["m_b_topics"].([]map[string]interface{})
+	if e21[0]["child"].(string) != "mary" {
 		t.Errorf("%v", lists)
 	}
-	// [map[id:2 m_a_edit:[map[id:2 m_b_topics:[map[child:mary id:2 tid:3]] x:c1234567 y:d1234567 z:e1234]] x:c1234567 y:d1234567 z:e1234] map[id:3 m_a_edit:[map[id:3 m_b_topics:[map[child:marcus id:3 tid:4]] x:e1234567 y:f1234567 z:e1234]] x:e1234567 y:f1234567 z:e1234]]
+	//[map[id:2 m_ab_topics:[map[abid:4 id:2 m_b_topics:[map[child:mary tid:4]] tid:4]] x:c1234567 y:d1234567 z:e1234] map[id:3 m_ab_topics:[map[abid:5 id:3 m_b_topics:[map[child:marcus tid:5]] tid:5]] x:e1234567 y:f1234567 z:e1234]]
 
 	// GET all m_b
 	args = map[string]interface{}{}
