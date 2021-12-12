@@ -128,7 +128,7 @@ func (self *Graph) RunContext(ctx context.Context, db *sql.DB, model, action str
 			if hasValue(lists) && len(lists) > 0 {
 				if args != nil {
 					if _, ok := args.(map[string]interface{}); !ok {
-						return nil, fmt.Errorf("for multiple returns in prepares, the initial args must be a map or nil: %T", args)
+						return nil, fmt.Errorf("for multiple returns in prepares, args must be a map: %T", args)
 					}
 				}
 				var tmp []map[string]interface{}

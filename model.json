@@ -1,5 +1,5 @@
 {
-	"fks":["","adv_id","","adv_id","campaign_id_md5"],
+	"fks": [ {"fkTable":"", "fkColumn":"adv_id", "column":"adv_id"} ],
 	"tableName":"adv_campaign",
 	"pks":["campaign_id"],
 	"idAuto":"campaign_id",

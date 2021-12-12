@@ -422,9 +422,18 @@ func TestGraphThreeTables(t *testing.T) {
 	}
 	//[map[id:2 m_ab_topics:[map[abid:4 id:2 m_b_topics:[map[child:mary tid:4]] tid:4]] x:c1234567 y:d1234567 z:e1234] map[id:3 m_ab_topics:[map[abid:5 id:3 m_b_topics:[map[child:marcus tid:5]] tid:5]] x:e1234567 y:f1234567 z:e1234]]
 
+	// GET all m_ab
+	lists, err = graph.RunContext(ctx, db, "m_ab", METHODS["LIST"])
+	if err != nil {
+		panic(err)
+	}
+	if len(lists) != 2 {
+		t.Errorf("%v", lists)
+	}
+
 	// GET all m_b
 	args = map[string]interface{}{}
-	lists, err = graph.RunContext(ctx, db, "m_b", METHODS["LIST"], args)
+	lists, err = graph.RunContext(ctx, db, "m_b", METHODS["LIST"])
 	if err != nil {
 		panic(err)
 	}

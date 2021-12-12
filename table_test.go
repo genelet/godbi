@@ -7,7 +7,7 @@ import (
 
 func TestTable(t *testing.T) {
 	str := `{
-    "fks":["","adv_id","","adv_id", "campaign_id", "campaign_md5"],
+    "fks":[{"fkColumn":"adv_id","column":"adv_id"}],
     "tableName":"adv_campaign",
     "pks":["campaign_id"],
     "idAuto":"campaign_id",
@@ -36,8 +36,7 @@ func TestTable(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if table.Fks[5] != "campaign_md5" ||
-		table.TableName != "adv_campaign" {
+	if table.TableName != "adv_campaign" {
 		t.Errorf("%v", table)
 	}
 	inCols := table.insertCols()

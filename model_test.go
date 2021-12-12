@@ -51,7 +51,6 @@ func TestModel(t *testing.T) {
 			sql := v.(*SQL)
 			if model.TableName != "adv_campaign" ||
 				model.Pks[0] != "campaign_id" ||
-				model.Fks[4] != "campaign_id_md5" ||
 				sql.Nextpages[0].ActionName != "topics" ||
 				sql.Statement != "SELECT x, y, z FROM a WHERE b=?" {
 				t.Errorf("%#v", sql)

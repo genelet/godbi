@@ -67,7 +67,7 @@
 {
 	"tableName": "m_b",
 	"pks": [ "tid" ],
-	"fks": [ "m_a", "id", "id_md5", "id", "tid", "tid_md5"],
+	"fks": [ {"fkTable":"m_a", "fkColumn":"id", "column":"id"} ],
 	"idAuto": "tid",
 	"columns": [
 {"columnName":"tid", "label":"tid", "typeName":"int", "notnull": true, "auto":true},

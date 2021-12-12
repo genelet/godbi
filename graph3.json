@@ -67,7 +67,10 @@
 {
 	"tableName": "m_ab",
 	"pks": [ "abid" ],
-	"fks": [ "m_a", "id", "id_md5", "id", "tid", "tid_md5"],
+	"fks": [
+		{"fkTable":"m_a", "fkColumn":"id",  "column":"id"},
+		{"fkTable":"m_b", "fkColumn":"tid", "column":"tid"}
+	],
 	"idAuto": "abid",
     "uniques":["id","tid"],
 	"columns": [
@@ -111,7 +114,7 @@
 			"prepares": [
 				{
 					"tableName": "m_b",
-					"actionName": "delecs",
+					"actionName": "delete",
 					"relateArgs": { "tid": "tid" }
 				}
 			]
@@ -142,7 +145,6 @@
 	"tableName": "m_b",
 	"pks": [ "tid" ],
 	"idAuto": "tid",
-	"fks": [ "m_ab", "tid", "tid_md5", "tid", "tid", "tid_md5"],
     "uniques":["child"],
 	"columns": [
 {"columnName":"tid", "label":"tid", "typeName":"int", "notnull": true, "auto":true},
@@ -160,16 +162,6 @@
 		},
 		{
 			"actionName": "delete"
-		},
-		{
-			"actionName": "delecs",
-			"nextpages": [
-				{
-					"tableName": "m_b",
-					"actionName": "delete",
-					"relateArgs": { "tid": "tid" }
-				}
-			]
 		},
 		{
 			"actionName": "topics"

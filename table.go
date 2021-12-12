@@ -9,24 +9,51 @@ import (
 )
 
 type Col struct {
-	ColumnName string `json:"columnName" hcl:"columnName"`
-	TypeName string   `json:"typeName" hcl:"typeName"`
-	Label string      `json:"label" hcl:"label"`
-	Notnull bool      `json:"notnull" hcl:"notnull"`
-	Auto bool         `json:"auto" hcl:"auto"`
+	ColumnName string  `json:"columnName" hcl:"columnName"`
+	TypeName string    `json:"typeName" hcl:"typeName"`
+	Label string       `json:"label" hcl:"label"`
+	Notnull bool       `json:"notnull" hcl:"notnull"`
+	Auto bool          `json:"auto" hcl:"auto"`
+}
+
+type Fk struct {
+	FKTable  string    `json:"fkTable" hcl:"fkTable"`
+	FKColumn string    `json:"fkColumn" hcl:"fkColumn"`
+	Column   string    `json:"column" hcl:"column"`
 }
 
 type Table struct {
 	TableName string   `json:"tableName" hcl:"tableName"`
-    Columns    []*Col  `json:"columns" hcl:"columns"`
+    Columns   []*Col   `json:"columns" hcl:"columns"`
 	Pks       []string `json:"pks,omitempty" hcl:"pks,optional"`
 	IdAuto    string   `json:"idAuto,omitempty" hcl:"idAuto,optional"`
-	Fks       []string `json:"fks,omitempty" hcl:"fks,optional"`
+	Fks       []*Fk    `json:"fks,omitempty" hcl:"fks,optional"`
 	Uniques   []string `json:"uniques,omitempty" hcl:"uniques,optional"`
 }
 
 func (self *Table) GetTableName() string {
 	return self.TableName
+}
+
+func (self *Table) getKeyColumns() []string {
+	labels := make(map[string]bool)
+	for _, pk := range self.Pks {
+		labels[pk] = true
+	}
+	if self.IdAuto != "" {
+		labels[self.IdAuto] = true
+	}
+	if self.Fks != nil {
+		for _, fk := range self.Fks {
+			labels[fk.Column] = true
+		}
+	}
+
+	var outs []string
+	for k := range labels {
+		outs = append(outs, k)
+	}
+	return outs
 }
 
 func (self *Table) getFv(ARGS map[string]interface{}) map[string]interface{} {
