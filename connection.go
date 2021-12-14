@@ -24,7 +24,12 @@ func (self *Connection) Subname() string {
 }
 
 func (self *Connection) FindExtra(item map[string]interface{}) map[string]interface{} {
-	if v, ok := item[self.TableName]; ok {
+	tableName := self.TableName
+	if v, ok := self.RelateArgs[self.TableName]; ok {
+		tableName = v
+	}
+
+	if v, ok := item[tableName]; ok {
 		switch t := v.(type) {
 		case map[string]interface{}:
 			return t
@@ -38,9 +43,15 @@ func (self *Connection) FindArgs(item interface{}) interface{} {
 	if item == nil {
 		return nil
 	}
+
+	tableName := self.TableName
+	if v, ok := self.RelateArgs[self.TableName]; ok {
+		tableName = v
+	}
+
 	switch t := item.(type) {
 	case map[string]interface{}:
-		if v, ok := t[self.TableName]; ok {
+		if v, ok := t[tableName]; ok {
 			switch s := v.(type) {
 			case map[string]interface{}, []map[string]interface{}:
 				return s
@@ -51,7 +62,7 @@ func (self *Connection) FindArgs(item interface{}) interface{} {
 	case []map[string]interface{}:
 		var outs []map[string]interface{}
 		for _, hash := range t {
-			if v, ok := hash[self.TableName]; ok {
+			if v, ok := hash[tableName]; ok {
 				switch s := v.(type) {
 				case map[string]interface{}: // only map allowed here
 					outs = append(outs, s)

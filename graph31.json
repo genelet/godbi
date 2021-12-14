@@ -85,7 +85,7 @@
 				{
 					"tableName": "m_b",
 					"actionName": "insert",
-					"relateArgs": { "tid": "tid" }
+					"relateArgs": { "tid": "tid", "child":"child" }
 				}
 			]
 		},
@@ -95,7 +95,7 @@
 				{
 					"tableName": "m_b",
 					"actionName": "insupd",
-					"relateArgs": { "tid": "tid" }
+					"relateArgs": { "tid": "tid", "child":"child" }
 				}
 			]
 		},

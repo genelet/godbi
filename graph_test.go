@@ -89,7 +89,7 @@ func TestGraphDelecs(t *testing.T) {
 }
 
 func TestGraphDelecs2(t *testing.T) {
-	graph, err := NewGraphJsonFile("graph21.json")
+	graph, err := NewGraphJsonFile("graph2.json")
 	if err != nil {
 		t.Fatal(err)
 	}

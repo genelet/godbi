@@ -87,25 +87,50 @@ func (self *Graph) RunContext(ctx context.Context, db *sql.DB, model, action str
 			}
 		}
 	}
+
+
+	if self.argsMap[model] != nil {
+		argsMap := self.argsMap[model].(map[string]interface{})
+		args = MergeArgs(args, argsMap[action])
+	}
+
+	if self.extraMap[model] != nil {
+		extraAction := self.extraMap[model].(map[string]interface{})
+		if extraAction[action] != nil {
+			extra = MergeExtra(extra, extraAction[action].(map[string]interface{}))
+		}
+	}
+
+	switch t := args.(type) {
+	case []map[string]interface{}:
+		var final []map[string]interface{}
+		for _, arg := range t {
+			lists, err := self.hashContext(ctx, db, model, action, arg, extra)
+			if err != nil { return nil, err }
+			final = append(final, lists...)
+		}
+		return final, nil
+	case map[string]interface{}:
+		return self.hashContext(ctx, db, model, action, t, extra)
+	default:
+	}
+
+	return self.hashContext(ctx, db, model, action, nil, extra)
+}
+
+// RunContext runs action by model and action string names.
+// It returns the searched data and optional error code.
+//
+// 'model' is the model name, and 'action' the action name.
+// The first extra is the input data, shared by all sub actions.
+// The rest are specific data for each action starting with the current one.
+//
+func (self *Graph) hashContext(ctx context.Context, db *sql.DB, model, action string, args, extra map[string]interface{}) ([]map[string]interface{}, error) {
 log.Printf("111 %s %s %v %v", model, action, args, extra)
 
 	modelObj := self.GetModel(model)
 	if modelObj == nil {
 		return nil, fmt.Errorf("model %s not found in graph", model)
-	}
-
-	var argsModelAction interface{}
-	if self.argsMap[model] != nil {
-		argsMap := self.argsMap[model].(map[string]interface{})
-		argsModelAction = argsMap[action]
-	}
-
-	var extraModelAction map[string]interface{}
-	if self.extraMap[model] != nil {
-		extraAction := self.extraMap[model].(map[string]interface{})
-		if extraAction[action] != nil {
-			extraModelAction = extraAction[action].(map[string]interface{})
-		}
 	}
 
 	actionObj := modelObj.GetAction(action)
@@ -122,12 +147,12 @@ log.Printf("111 %s %s %v %v", model, action, args, extra)
 		for _, p := range prepares {
 			// !!! in case of prepare, we should use args to get
 			// NextArgs and NextExtra as nextpage's input and constrains
-			preArgs := MergeArgs(argsModelAction, args)
-			preExtra := MergeExtra(extraModelAction, extra)
+			preArgs := CloneArgs(args)
+			preExtra := CloneExtra(extra)
 log.Printf("22222 %v=>%v=>%v", p, preArgs, preExtra)
 			if p.TableName != model {
-				preArgs = p.NextArgs(preArgs)
-				preExtra = p.NextExtra(preArgs)
+				preArgs = MergeArgs(p.FindArgs(preArgs), p.NextArgs(preArgs))
+				preExtra = MergeExtra(p.FindExtra(preExtra), p.NextExtra(preArgs))
 			}
 log.Printf("33333 %v=>%v", preArgs, preExtra)
 			lists, err := self.RunContext(ctx, db, p.TableName, p.ActionName, preArgs, preExtra)
@@ -135,11 +160,6 @@ log.Printf("33333 %v=>%v", preArgs, preExtra)
 			// only two types of prepares
 			// 1) one pre, with multiple outputs (when p.argsMap is multiple)
 			if hasValue(lists) && len(lists) > 0 {
-				if args != nil {
-					if _, ok := args.(map[string]interface{}); !ok {
-						return nil, fmt.Errorf("for multiple returns in prepares, args must be a map: %T", args)
-					}
-				}
 				var tmp []map[string]interface{}
 				newExtra = CloneExtra(extra)
 				for _, item := range lists {
@@ -159,8 +179,6 @@ log.Printf("33333 %v=>%v", preArgs, preExtra)
 		}
 	}
 
-	newArgs = MergeArgs(newArgs, argsModelAction)
-	newExtra = MergeExtra(newExtra, extraModelAction)
 	data, err := modelObj.RunModelContext(ctx, db, action, newArgs, newExtra)
 	if err != nil { return nil, err }
 
