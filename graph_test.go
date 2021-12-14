@@ -148,59 +148,13 @@ func TestGraphThreeTables(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	db, ctx, METHODS := local3Vars()
-	var lists []map[string]interface{}
-	// the 1st web requests is assumed to create id=1 to the m_a and m_b tables:
-	//
-	args := map[string]interface{}{"x": "a1234567", "y": "b1234567", "z": "temp", "child": "john"}
-    data2 := []map[string]interface{}{{"child": "john"}, {"child": "john2"}}
-	graph.Initialize(map[string]interface{}{
-		"m_a":map[string]interface{}{"insupd": args},
-		"m_b":map[string]interface{}{"insupd": data2},
-	}, nil)
-	if lists, err = graph.RunContext(ctx, db, "m_a", METHODS["PATCH"]); err != nil {
-		panic(err)
-	}
-	if len(lists) != 1 {
-		t.Errorf("%v", lists)
-	}
+	GraphThreeGeneral(graph, t)
+}
 
-	// the 2nd request just updates, becaues [x,y] is defined to the unique in ta.
-	// but create a new record to tb for id=1, since insupd triggers insert in tb
-	//
-	args = map[string]interface{}{"x": "a1234567", "y": "b1234567", "z": "zzzzz"}
-    data:= map[string]interface{}{"child": "sam"}
-	graph.Initialize(map[string]interface{}{
-		"m_a":map[string]interface{}{"insupd": args},
-		"m_b":map[string]interface{}{"insupd": data},
-	}, nil)
-	if lists, err = graph.RunContext(ctx, db, "m_a", METHODS["PATCH"]); err != nil {
-		panic(err)
+func TestGraphThreeTables2(t *testing.T) {
+	graph, err := NewGraphJsonFile("graph31.json")
+	if err != nil {
+		t.Fatal(err)
 	}
-
-	// the 3rd request creates id=2
-	//
-	args = map[string]interface{}{"x": "c1234567", "y": "d1234567", "z": "e1234"}
-    data = map[string]interface{}{"child": "mary"}
-	graph.Initialize(map[string]interface{}{
-		"m_a":map[string]interface{}{"insert": args},
-		"m_b":map[string]interface{}{"insert": data},
-	}, nil)
-	if lists, err = graph.RunContext(ctx, db, "m_a", METHODS["POST"]); err != nil {
-		panic(err)
-	}
-
-	// the 4th request creates id=3
-	//
-	args = map[string]interface{}{"x": "e1234567", "y": "f1234567", "z": "e1234"}
-    data = map[string]interface{}{"child": "marcus"}
-	graph.Initialize(map[string]interface{}{
-		"m_a":map[string]interface{}{"insert": args},
-		"m_b":map[string]interface{}{"insert": data},
-	}, nil)
-	if lists, err = graph.RunContext(ctx, db, "m_a", METHODS["POST"]); err != nil {
-		panic(err)
-	}
-
-	graph3Check(ctx, db, graph, METHODS, t)
+	GraphThreeGeneral(graph, t)
 }

@@ -77,12 +77,15 @@ func (self *Connection) FindArgs(item interface{}) interface{} {
 
 // NextArg returns nextpage's args using current args map
 //
-func (self *Connection) NextArgs(item interface{}) interface{} {
-	if item == nil {
+func (self *Connection) NextArgs(args interface{}) interface{} {
+	if args == nil {
 		return nil
 	}
+	if _, ok := self.RelateArgs["ALL"]; ok {
+		return args
+	}
 
-	switch t := item.(type) {
+	switch t := args.(type) {
 	case map[string]interface{}:
 		return createNextmap(self.RelateArgs, t)
 	case []map[string]interface{}:
@@ -100,6 +103,13 @@ func (self *Connection) NextArgs(item interface{}) interface{} {
 // NextExtra returns nextpage's extra using current extra map
 //
 func (self *Connection) NextExtra(args interface{}) map[string]interface{} {
+	if _, ok := self.RelateExtra["ALL"]; ok {
+		if v, ok := args.(map[string]interface{}); ok {
+			return v
+		}
+		return nil
+	}
+
 	switch t := args.(type) {
 	case map[string]interface{}:
 	return createNextmap(self.RelateExtra, t)
