@@ -60,7 +60,11 @@ func (self *Table) getFv(ARGS map[string]interface{}) map[string]interface{} {
     fieldValues := make(map[string]interface{})
     for _, f := range self.insertCols() {
         if v, ok := ARGS[f]; ok {
-            fieldValues[f] = v
+			switch t := v.(type) {
+			case []map[string]interface{}, map[string]interface{}:
+			default:
+				fieldValues[f] = t
+			}
         }
     }
     return fieldValues

@@ -1,6 +1,7 @@
 package godbi
 
 import (
+"log"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -86,6 +87,7 @@ func (self *Graph) RunContext(ctx context.Context, db *sql.DB, model, action str
 			}
 		}
 	}
+log.Printf("111 %s %s %v %v", model, action, args, extra)
 
 	modelObj := self.GetModel(model)
 	if modelObj == nil {
@@ -121,7 +123,14 @@ func (self *Graph) RunContext(ctx context.Context, db *sql.DB, model, action str
 			// !!! in case of prepare, we should use args to get
 			// NextArgs and NextExtra as nextpage's input and constrains
 			preArgs := MergeArgs(argsModelAction, args)
-			lists, err := self.RunContext(ctx, db, p.TableName, p.ActionName, p.NextArgs(preArgs), p.NextExtra(preArgs))
+			preExtra := MergeExtra(extraModelAction, extra)
+log.Printf("22222 %v=>%v=>%v", p, preArgs, preExtra)
+			if p.TableName != model {
+				preArgs = p.NextArgs(preArgs)
+				preExtra = p.NextExtra(preArgs)
+			}
+log.Printf("33333 %v=>%v", preArgs, preExtra)
+			lists, err := self.RunContext(ctx, db, p.TableName, p.ActionName, preArgs, preExtra)
 			if err != nil { return nil, err }
 			// only two types of prepares
 			// 1) one pre, with multiple outputs (when p.argsMap is multiple)
@@ -150,7 +159,9 @@ func (self *Graph) RunContext(ctx context.Context, db *sql.DB, model, action str
 		}
 	}
 
-	data, err := modelObj.RunModelContext(ctx, db, action, MergeArgs(newArgs, argsModelAction), MergeExtra(newExtra, extraModelAction))
+	newArgs = MergeArgs(newArgs, argsModelAction)
+	newExtra = MergeExtra(newExtra, extraModelAction)
+	data, err := modelObj.RunModelContext(ctx, db, action, newArgs, newExtra)
 	if err != nil { return nil, err }
 
 	if nextpages == nil {
@@ -159,7 +170,10 @@ func (self *Graph) RunContext(ctx context.Context, db *sql.DB, model, action str
 
 	for _, p := range nextpages {
 		for _, item := range data {
-			newLists, err := self.RunContext(ctx, db, p.TableName, p.ActionName, p.NextArgs(item), p.NextExtra(item))
+			nextArgs  := MergeArgs(p.NextArgs(item), p.FindArgs(newArgs))
+			nextExtra := MergeExtra(p.NextExtra(item), p.FindExtra(newExtra))
+log.Printf("99999 %v=>%#v=>%v=>%v", item, p, nextArgs, nextExtra)
+			newLists, err := self.RunContext(ctx, db, p.TableName, p.ActionName, nextArgs, nextExtra)
 			if err != nil { return nil, err }
 			if hasValue(newLists) {
 				item[p.Subname()] = newLists

@@ -23,6 +23,47 @@ func (self *Connection) Subname() string {
 	return self.TableName + "_" + self.ActionName
 }
 
+func (self *Connection) FindExtra(item map[string]interface{}) map[string]interface{} {
+	if v, ok := item[self.TableName]; ok {
+		switch t := v.(type) {
+		case map[string]interface{}:
+			return t
+		default:
+		}
+	}
+	return nil
+}
+
+func (self *Connection) FindArgs(item interface{}) interface{} {
+	if item == nil {
+		return nil
+	}
+	switch t := item.(type) {
+	case map[string]interface{}:
+		if v, ok := t[self.TableName]; ok {
+			switch s := v.(type) {
+			case map[string]interface{}, []map[string]interface{}:
+				return s
+			default:
+			}
+		}
+		return nil
+	case []map[string]interface{}:
+		var outs []map[string]interface{}
+		for _, hash := range t {
+			if v, ok := hash[self.TableName]; ok {
+				switch s := v.(type) {
+				case map[string]interface{}: // only map allowed here
+					outs = append(outs, s)
+				default:
+				}
+			}
+		}
+		return outs
+	}
+	return nil
+}
+
 // NextArg returns nextpage's args using current args map
 //
 func (self *Connection) NextArgs(item interface{}) interface{} {
@@ -65,9 +106,15 @@ func createNextmap(which map[string]string, item map[string]interface{}) map[str
 	for k, v := range which {
 		if u, ok := item[k]; ok {
 			if args == nil {
-				args = map[string]interface{}{v: u}
-			} else {
-				args[v] = u
+				args = make(map[string]interface{})
+			}
+			switch t := u.(type) {
+			case map[string]interface{}:
+				for key, value := range t {
+					args[key] = value
+				}
+			default:
+				args[v] = t
 			}
 		}
 	}
