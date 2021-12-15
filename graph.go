@@ -1,7 +1,7 @@
 package godbi
 
 import (
-"log"
+//"log"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -126,11 +126,13 @@ func (self *Graph) RunContext(ctx context.Context, db *sql.DB, model, action str
 // The rest are specific data for each action starting with the current one.
 //
 func (self *Graph) hashContext(ctx context.Context, db *sql.DB, model, action string, args, extra map[string]interface{}) ([]map[string]interface{}, error) {
-log.Printf("111 %s %s %v %v", model, action, args, extra)
-
+//log.Printf("\n\n111 %s %s %v %v", model, action, args, extra)
 	modelObj := self.GetModel(model)
 	if modelObj == nil {
 		return nil, fmt.Errorf("model %s not found in graph", model)
+	}
+	if args != nil {
+		// args = modelObj.RefreshArgs(args).(map[string]interface{})
 	}
 
 	actionObj := modelObj.GetAction(action)
@@ -149,12 +151,12 @@ log.Printf("111 %s %s %v %v", model, action, args, extra)
 			// NextArgs and NextExtra as nextpage's input and constrains
 			preArgs := CloneArgs(args)
 			preExtra := CloneExtra(extra)
-log.Printf("22222 %v=>%v=>%v", p, preArgs, preExtra)
+//log.Printf("22222 %v=>%v=>%v", p, preArgs, preExtra)
 			if p.TableName != model {
 				preArgs = MergeArgs(p.FindArgs(preArgs), p.NextArgs(preArgs))
 				preExtra = MergeExtra(p.FindExtra(preExtra), p.NextExtra(preArgs))
 			}
-log.Printf("33333 %v=>%v", preArgs, preExtra)
+//log.Printf("33333 %v=>%v", preArgs, preExtra)
 			lists, err := self.RunContext(ctx, db, p.TableName, p.ActionName, preArgs, preExtra)
 			if err != nil { return nil, err }
 			// only two types of prepares
@@ -190,7 +192,7 @@ log.Printf("33333 %v=>%v", preArgs, preExtra)
 		for _, item := range data {
 			nextArgs  := MergeArgs(p.NextArgs(item), p.FindArgs(newArgs))
 			nextExtra := MergeExtra(p.NextExtra(item), p.FindExtra(newExtra))
-log.Printf("99999 %v=>%#v=>%v=>%v", item, p, nextArgs, nextExtra)
+//log.Printf("99999 %v=>%#v=>%v=>%v", item, p, nextArgs, nextExtra)
 			newLists, err := self.RunContext(ctx, db, p.TableName, p.ActionName, nextArgs, nextExtra)
 			if err != nil { return nil, err }
 			if hasValue(newLists) {

@@ -11,9 +11,9 @@ func local2Vars() (*sql.DB, context.Context, map[string]string) {
 	if err != nil {
 		panic(err)
 	}
+	db.Exec(`drop table if exists m_b`)
 	db.Exec(`drop table if exists m_a`)
 	db.Exec(`CREATE TABLE m_a (id int auto_increment not null primary key, x varchar(8), y varchar(8), z varchar(8))`)
-	db.Exec(`drop table if exists m_b`)
 	db.Exec(`CREATE TABLE m_b (tid int auto_increment not null primary key, child varchar(8), id int)`)
 	return db, context.Background(), map[string]string{"LIST": "topics", "GET": "edit", "POST": "insert", "PUT": "update", "PATCH": "insupd", "DELETE": "delete"}
 }

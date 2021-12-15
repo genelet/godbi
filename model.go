@@ -12,6 +12,7 @@ import (
 //
 type Navigate interface {
 	GetTableName() string
+	RefreshArgs(interface{}) interface{}
 	GetAction(string) Capability
 	RunModelContext(context.Context, *sql.DB, string, interface{}, ...map[string]interface{}) ([]map[string]interface{}, error)
 }
@@ -94,6 +95,35 @@ func Assertion(actions []interface{}, custom ...Capability) ([]Capability, error
 		trans = append(trans, tran)
 	}
 	return trans, nil
+}
+
+func (self *Model) RefreshArgs(args interface{}) interface{} {
+	if args == nil { return args }
+
+	cut := func(item map[string]interface{}) map[string]interface{} {
+		for _, col := range self.Table.Columns {
+			if _, ok := item[col.ColumnName]; !ok {
+				if v, ok := item[col.Label]; ok {
+					item[col.ColumnName] = v
+//					delete(item, col.Label)
+				}
+			}
+		}
+		return item
+	}
+
+	switch t := args.(type) {
+	case []map[string]interface{}:
+		var lists []map[string]interface{}
+		for _, item := range t {
+			lists = append(lists, cut(item))
+		}
+	case map[string]interface{}:
+		return cut(t)
+	default:
+	}
+
+	return nil
 }
 
 func (self *Model) GetAction(action string) Capability {

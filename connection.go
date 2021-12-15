@@ -1,5 +1,9 @@
 package godbi
 
+import (
+//	"log"
+)
+
 // Connection describes linked page
 // 1) for Nextpages, it maps item in lists to next ARGS and next Extra
 // 2) for Prepares, it maps current ARGS to the next ARGS and next Extra
@@ -39,8 +43,11 @@ func (self *Connection) FindExtra(item map[string]interface{}) map[string]interf
 	return nil
 }
 
-func (self *Connection) FindArgs(item interface{}) interface{} {
-	if item == nil {
+// FindArgs returns the value if the input args contains 
+// the current table name as key.
+//
+func (self *Connection) FindArgs(args interface{}) interface{} {
+	if args == nil {
 		return nil
 	}
 
@@ -48,20 +55,42 @@ func (self *Connection) FindArgs(item interface{}) interface{} {
 	if v, ok := self.RelateArgs[self.TableName]; ok {
 		tableName = v
 	}
+//log.Printf("\n\nconnection ...%s\n", tableName)
+//log.Printf("%#v\n", args)
 
-	switch t := item.(type) {
+	switch t := args.(type) {
 	case map[string]interface{}:
+//log.Printf("connection 2 .... %s=>%v\n", tableName, args)
 		if v, ok := t[tableName]; ok {
+//log.Printf("connection 20... %T=>%#v\n", v, v)
 			switch s := v.(type) {
 			case map[string]interface{}, []map[string]interface{}:
+//log.Printf("connection 21 .... %s=>%v\n", tableName, s)
 				return s
+			case []interface{}:
+				var outs []map[string]interface{}
+//log.Printf("connection 22: %d\n", len(s))
+				for _, inter := range s {
+//log.Printf("connection 23: %#v\n", inter)
+					switch x := inter.(type) {
+					case map[string]interface{}: // only map allowed here
+						outs = append(outs, x)
+					default:
+						outs = append(outs, map[string]interface{}{tableName:x})
+					}
+				}
+//log.Printf("connection 24 %v\n", outs)
+				return outs
 			default:
+//log.Printf("connection 25 .... %T=>%v\n", v, v)
 			}
 		}
 		return nil
 	case []map[string]interface{}:
+//log.Printf("connection 3 %#v\n", t)
 		var outs []map[string]interface{}
 		for _, hash := range t {
+//log.Printf("connection 4\n")
 			if v, ok := hash[tableName]; ok {
 				switch s := v.(type) {
 				case map[string]interface{}: // only map allowed here
@@ -69,13 +98,17 @@ func (self *Connection) FindArgs(item interface{}) interface{} {
 				default:
 				}
 			}
+//log.Printf("connection 5\n")
 		}
+//log.Printf("connection 6 .... %s=>%v\n", tableName, outs)
 		return outs
+	default:
+//log.Printf("connection waht!!!! %s=>%v\n", tableName, t)
 	}
 	return nil
 }
 
-// NextArg returns nextpage's args using current args map
+// NextArg returns nextpage's args as the value of key  current args map
 //
 func (self *Connection) NextArgs(args interface{}) interface{} {
 	if args == nil {
