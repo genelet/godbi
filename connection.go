@@ -1,9 +1,5 @@
 package godbi
 
-import (
-//	"log"
-)
-
 // Connection describes linked page
 // 1) for Nextpages, it maps item in lists to next ARGS and next Extra
 // 2) for Prepares, it maps current ARGS to the next ARGS and next Extra
@@ -27,6 +23,9 @@ func (self *Connection) Subname() string {
 	return self.TableName + "_" + self.ActionName
 }
 
+// FindExtra returns the value if the input i.e. item contains 
+// the current table name as key.
+//
 func (self *Connection) FindExtra(item map[string]interface{}) map[string]interface{} {
 	tableName := self.TableName
 	if v, ok := self.RelateArgs[self.TableName]; ok {
@@ -43,7 +42,7 @@ func (self *Connection) FindExtra(item map[string]interface{}) map[string]interf
 	return nil
 }
 
-// FindArgs returns the value if the input args contains 
+// FindArgs returns the value if the input i.e. args contains 
 // the current table name as key.
 //
 func (self *Connection) FindArgs(args interface{}) interface{} {
@@ -55,42 +54,31 @@ func (self *Connection) FindArgs(args interface{}) interface{} {
 	if v, ok := self.RelateArgs[self.TableName]; ok {
 		tableName = v
 	}
-//log.Printf("\n\nconnection ...%s\n", tableName)
-//log.Printf("%#v\n", args)
 
 	switch t := args.(type) {
-	case map[string]interface{}:
-//log.Printf("connection 2 .... %s=>%v\n", tableName, args)
+	case map[string]interface{}: // in practice, only this data type exists
 		if v, ok := t[tableName]; ok {
-//log.Printf("connection 20... %T=>%#v\n", v, v)
 			switch s := v.(type) {
 			case map[string]interface{}, []map[string]interface{}:
-//log.Printf("connection 21 .... %s=>%v\n", tableName, s)
 				return s
 			case []interface{}:
 				var outs []map[string]interface{}
-//log.Printf("connection 22: %d\n", len(s))
-				for _, inter := range s {
-//log.Printf("connection 23: %#v\n", inter)
-					switch x := inter.(type) {
-					case map[string]interface{}: // only map allowed here
+				for _, item := range s {
+					switch x := item.(type) {
+					case map[string]interface{}:
 						outs = append(outs, x)
-					default:
+					default: // native types
 						outs = append(outs, map[string]interface{}{tableName:x})
 					}
 				}
-//log.Printf("connection 24 %v\n", outs)
 				return outs
 			default:
-//log.Printf("connection 25 .... %T=>%v\n", v, v)
 			}
 		}
 		return nil
 	case []map[string]interface{}:
-//log.Printf("connection 3 %#v\n", t)
 		var outs []map[string]interface{}
 		for _, hash := range t {
-//log.Printf("connection 4\n")
 			if v, ok := hash[tableName]; ok {
 				switch s := v.(type) {
 				case map[string]interface{}: // only map allowed here
@@ -98,12 +86,9 @@ func (self *Connection) FindArgs(args interface{}) interface{} {
 				default:
 				}
 			}
-//log.Printf("connection 5\n")
 		}
-//log.Printf("connection 6 .... %s=>%v\n", tableName, outs)
 		return outs
 	default:
-//log.Printf("connection waht!!!! %s=>%v\n", tableName, t)
 	}
 	return nil
 }

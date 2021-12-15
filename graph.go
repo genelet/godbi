@@ -1,7 +1,6 @@
 package godbi
 
 import (
-//"log"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -132,7 +131,7 @@ func (self *Graph) hashContext(ctx context.Context, db *sql.DB, model, action st
 		return nil, fmt.Errorf("model %s not found in graph", model)
 	}
 	if args != nil {
-		// args = modelObj.RefreshArgs(args).(map[string]interface{})
+		args = modelObj.RefreshArgs(args).(map[string]interface{})
 	}
 
 	actionObj := modelObj.GetAction(action)
