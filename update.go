@@ -26,7 +26,7 @@ func (self *Update) RunActionContext(ctx context.Context, db *sql.DB, t *Table, 
 		return nil, fmt.Errorf("pk value not found")
 	}
 
-	fieldValues := t.getFv(ARGS)
+	fieldValues := t.GetFv(ARGS)
 	if !hasValue(fieldValues) {
 		return nil, fmt.Errorf("no data to update")
 	} else if len(fieldValues) == 1 && fieldValues[t.Pks[0]] != nil {

@@ -1,6 +1,7 @@
 package godbi
 
 import (
+"log"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -58,7 +59,7 @@ func (self *Graph) Initialize(args map[string]interface{}, extra map[string]inte
 func (self *Graph) GetModel(model string) Navigate {
 	if self.Models != nil {
 		for _, item := range self.Models {
-			if item.GetTableName() == model {
+			if item.GetTable().GetTableName() == model {
 				return item
 			}
 		}
@@ -101,6 +102,8 @@ func (self *Graph) RunContext(ctx context.Context, db *sql.DB, model, action str
 	}
 
 	switch t := args.(type) {
+	case map[string]interface{}:
+		return self.hashContext(ctx, db, model, action, t, extra)
 	case []map[string]interface{}:
 		var final []map[string]interface{}
 		for _, arg := range t {
@@ -109,8 +112,16 @@ func (self *Graph) RunContext(ctx context.Context, db *sql.DB, model, action str
 			final = append(final, lists...)
 		}
 		return final, nil
-	case map[string]interface{}:
-		return self.hashContext(ctx, db, model, action, t, extra)
+	case []interface{}:
+		var final []map[string]interface{}
+		for _, arg := range t {
+			if v, ok := arg.(map[string]interface{}); ok {
+				lists, err := self.hashContext(ctx, db, model, action, v, extra)
+				if err != nil { return nil, err }
+				final = append(final, lists...)
+			}
+		}
+		return final, nil
 	default:
 	}
 
@@ -125,13 +136,13 @@ func (self *Graph) RunContext(ctx context.Context, db *sql.DB, model, action str
 // The rest are specific data for each action starting with the current one.
 //
 func (self *Graph) hashContext(ctx context.Context, db *sql.DB, model, action string, args, extra map[string]interface{}) ([]map[string]interface{}, error) {
-//log.Printf("\n\n111 %s %s %v %v", model, action, args, extra)
+log.Printf("\n\n111 %s, %s, %#v, %#v\n", model, action, args, extra)
 	modelObj := self.GetModel(model)
 	if modelObj == nil {
 		return nil, fmt.Errorf("model %s not found in graph", model)
 	}
 	if args != nil {
-		args = modelObj.RefreshArgs(args).(map[string]interface{})
+		args = modelObj.GetTable().RefreshArgs(args).(map[string]interface{})
 	}
 
 	actionObj := modelObj.GetAction(action)
@@ -146,21 +157,28 @@ func (self *Graph) hashContext(ctx context.Context, db *sql.DB, model, action st
 	// prepares receives filtered args and extra from current args
 	if prepares != nil {
 		for _, p := range prepares {
-			// !!! in case of prepare, we should use args to get
+			// in case of prepare, we use args to get
 			// NextArgs and NextExtra as nextpage's input and constrains
 			preArgs := CloneArgs(args)
 			preExtra := CloneExtra(extra)
-//log.Printf("22222 %v=>%v=>%v", p, preArgs, preExtra)
+log.Printf("\n22222 %s, %s\n%#v\n", p.TableName, p.ActionName, preArgs)
 			if p.TableName != model {
-				preArgs = MergeArgs(p.FindArgs(preArgs), p.NextArgs(preArgs))
-				preExtra = MergeExtra(p.FindExtra(preExtra), p.NextExtra(preArgs))
+				v, ok := p.FindArgs(preArgs)
+log.Printf("\n28888 %v=>%#v\n", ok, v)
+				if (p.ActionName=="insert" || p.ActionName=="insupd" || p.ActionName=="update") && ok && v==nil {
+					log.Printf("\n29999 continue\n")
+					continue
+				}
+				preArgs = MergeArgs(p.NextArgs(preArgs), v)
+				preExtra = MergeExtra(p.NextExtra(preArgs), p.FindExtra(preExtra))
 			}
-//log.Printf("33333 %v=>%v", preArgs, preExtra)
+log.Printf("\n33333 %s, %s\n%#v\n", p.TableName, p.ActionName, preArgs)
 			lists, err := self.RunContext(ctx, db, p.TableName, p.ActionName, preArgs, preExtra)
+log.Printf("\n39999 %#v, %v\n", lists, err)
 			if err != nil { return nil, err }
 			// only two types of prepares
 			// 1) one pre, with multiple outputs (when p.argsMap is multiple)
-			if hasValue(lists) && len(lists) > 0 {
+			if hasValue(lists) && len(lists) > 1 {
 				var tmp []map[string]interface{}
 				newExtra = CloneExtra(extra)
 				for _, item := range lists {
@@ -169,6 +187,7 @@ func (self *Graph) hashContext(ctx context.Context, db *sql.DB, model, action st
 					newExtra = MergeExtra(newExtra, p.NextExtra(item))
 				}
 				newArgs = tmp
+log.Printf("\n44444 %v", newArgs)
 				break
 			}
 			// 2) multiple pre, with one output each.
@@ -176,10 +195,12 @@ func (self *Graph) hashContext(ctx context.Context, db *sql.DB, model, action st
 			if hasValue(lists) && hasValue(lists[0]) {
 				newArgs = MergeArgs(newArgs, p.NextArgs(lists[0]).(map[string]interface{}))
 				newExtra = MergeExtra(newExtra, p.NextExtra(lists[0]))
+log.Printf("\n55555 %v", newArgs)
 			}
 		}
 	}
 
+log.Printf("\n\n112 %s, %s\n%#v\n", action, model, newArgs)
 	data, err := modelObj.RunModelContext(ctx, db, action, newArgs, newExtra)
 	if err != nil { return nil, err }
 
@@ -189,9 +210,10 @@ func (self *Graph) hashContext(ctx context.Context, db *sql.DB, model, action st
 
 	for _, p := range nextpages {
 		for _, item := range data {
-			nextArgs  := MergeArgs(p.NextArgs(item), p.FindArgs(newArgs))
+			v, _ := p.FindArgs(newArgs)
+			nextArgs  := MergeArgs(p.NextArgs(item), v)
 			nextExtra := MergeExtra(p.NextExtra(item), p.FindExtra(newExtra))
-//log.Printf("99999 %v=>%#v=>%v=>%v", item, p, nextArgs, nextExtra)
+log.Printf("\n99999 %s, %s\n%#v\n", p.TableName, p.ActionName, nextArgs)
 			newLists, err := self.RunContext(ctx, db, p.TableName, p.ActionName, nextArgs, nextExtra)
 			if err != nil { return nil, err }
 			if hasValue(newLists) {

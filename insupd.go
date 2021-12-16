@@ -20,7 +20,7 @@ func (self *Insupd) RunActionContext(ctx context.Context, db *sql.DB, t *Table, 
 		return nil, err
 	}
 
-	fieldValues := t.getFv(ARGS)
+	fieldValues := t.GetFv(ARGS)
 	if hasValue(extra) && hasValue(extra[0]) {
 		for key, value := range extra[0] {
 			for _, col := range t.Columns {

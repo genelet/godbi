@@ -17,8 +17,8 @@ type Col struct {
 }
 
 type Fk struct {
-	FKTable  string    `json:"fkTable" hcl:"fkTable"`
-	FKColumn string    `json:"fkColumn" hcl:"fkColumn"`
+	FkTable  string    `json:"fkTable" hcl:"fkTable"`
+	FkColumn string    `json:"fkColumn" hcl:"fkColumn"`
 	Column   string    `json:"column" hcl:"column"`
 }
 
@@ -33,6 +33,35 @@ type Table struct {
 
 func (self *Table) GetTableName() string {
 	return self.TableName
+}
+
+func (self *Table) RefreshArgs(args interface{}) interface{} {
+	if args == nil { return args }
+
+	cut := func(item map[string]interface{}) map[string]interface{} {
+		for _, col := range self.Columns {
+			if _, ok := item[col.ColumnName]; !ok {
+				if v, ok := item[col.Label]; ok {
+					item[col.ColumnName] = v
+//					delete(item, col.Label)
+				}
+			}
+		}
+		return item
+	}
+
+	switch t := args.(type) {
+	case []map[string]interface{}:
+		var lists []map[string]interface{}
+		for _, item := range t {
+			lists = append(lists, cut(item))
+		}
+	case map[string]interface{}:
+		return cut(t)
+	default:
+	}
+
+	return nil
 }
 
 func (self *Table) getKeyColumns() []string {
@@ -56,7 +85,7 @@ func (self *Table) getKeyColumns() []string {
 	return outs
 }
 
-func (self *Table) getFv(ARGS map[string]interface{}) map[string]interface{} {
+func (self *Table) GetFv(ARGS map[string]interface{}) map[string]interface{} {
     fieldValues := make(map[string]interface{})
     for _, f := range self.insertCols() {
         if v, ok := ARGS[f]; ok {

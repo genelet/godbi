@@ -1,5 +1,5 @@
 package godbi
-
+//import ("log")
 // Connection describes linked page
 // 1) for Nextpages, it maps item in lists to next ARGS and next Extra
 // 2) for Prepares, it maps current ARGS to the next ARGS and next Extra
@@ -45,23 +45,29 @@ func (self *Connection) FindExtra(item map[string]interface{}) map[string]interf
 // FindArgs returns the value if the input i.e. args contains 
 // the current table name as key.
 //
-func (self *Connection) FindArgs(args interface{}) interface{} {
+func (self *Connection) FindArgs(args interface{}) (interface{}, bool) {
 	if args == nil {
-		return nil
+		return nil, true
 	}
-
+//log.Printf("100")
+//	topFound := false
 	tableName := self.TableName
 	if v, ok := self.RelateArgs[self.TableName]; ok {
 		tableName = v
+//		topFound = true
 	}
 
 	switch t := args.(type) {
 	case map[string]interface{}: // in practice, only this data type exists
+//log.Printf("200 %s=>%#v", tableName, t)
 		if v, ok := t[tableName]; ok {
+//log.Printf("201")
 			switch s := v.(type) {
 			case map[string]interface{}, []map[string]interface{}:
-				return s
+//log.Printf("202")
+				return s, true
 			case []interface{}:
+//log.Printf("203")
 				var outs []map[string]interface{}
 				for _, item := range s {
 					switch x := item.(type) {
@@ -71,15 +77,22 @@ func (self *Connection) FindArgs(args interface{}) interface{} {
 						outs = append(outs, map[string]interface{}{tableName:x})
 					}
 				}
-				return outs
+				return outs, true
 			default:
+//log.Printf("204")
 			}
+			return nil, true
 		}
-		return nil
+//log.Printf("205")
+		//return nil, topFound
+		return nil, false
 	case []map[string]interface{}:
+//log.Printf("300")
 		var outs []map[string]interface{}
+		found := false
 		for _, hash := range t {
 			if v, ok := hash[tableName]; ok {
+				found = true
 				switch s := v.(type) {
 				case map[string]interface{}: // only map allowed here
 					outs = append(outs, s)
@@ -87,10 +100,11 @@ func (self *Connection) FindArgs(args interface{}) interface{} {
 				}
 			}
 		}
-		return outs
+		return outs, found
 	default:
+//log.Printf("400")
 	}
-	return nil
+	return nil, false
 }
 
 // NextArg returns nextpage's args as the value of key  current args map
@@ -114,6 +128,7 @@ func (self *Connection) NextArgs(args interface{}) interface{} {
 			}
 		}
 		return outs
+	default:
 	}
 	return nil
 }
