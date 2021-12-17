@@ -1,21 +1,22 @@
 package godbi
-//import ("log")
+
 // Connection describes linked page
 // 1) for Nextpages, it maps item in lists to next ARGS and next Extra
 // 2) for Prepares, it maps current ARGS to the next ARGS and next Extra
 //
 type Connection struct {
 	// TableName: the name of the table
-	TableName  string            `json:"tableName" hcl:"tableName,label"`
+	TableName  string             `json:"tableName" hcl:"tableName,label"`
 
 	// ActionName: the action on the model
-	ActionName string            `json:"actionName" hcl:"actionName,label"`
+	ActionName string             `json:"actionName" hcl:"actionName,label"`
 
 	// RelateArgs: map current page's columns to nextpage's columns as input
-	RelateArgs map[string]string `json:"relateArgs,omitempty" hcl:"relateArgs"`
+	RelateArgs map[string]string  `json:"relateArgs,omitempty" hcl:"relateArgs"`
 
 	// RelateExtra: map current page's columns to nextpage's columns (for Nextpages), or prepared page's columns to current page's columns (for Prepares) as constrains.
 	RelateExtra map[string]string `json:"relateExtra,omitempty" hcl:"relateExtra"`
+	IsMapEntry bool               `json:"isMapEntry,omitempty" hcl:"isMapEntry,label"`
 }
 
 // Subname is the marker string used to store the output
@@ -49,25 +50,30 @@ func (self *Connection) FindArgs(args interface{}) (interface{}, bool) {
 	if args == nil {
 		return nil, true
 	}
-//log.Printf("100")
-//	topFound := false
+
+	topFound := false
 	tableName := self.TableName
 	if v, ok := self.RelateArgs[self.TableName]; ok {
 		tableName = v
-//		topFound = true
+		topFound = true
 	}
 
 	switch t := args.(type) {
 	case map[string]interface{}: // in practice, only this data type exists
-//log.Printf("200 %s=>%#v", tableName, t)
 		if v, ok := t[tableName]; ok {
-//log.Printf("201")
 			switch s := v.(type) {
-			case map[string]interface{}, []map[string]interface{}:
-//log.Printf("202")
+			case map[string]interface{}:
+				if self.IsMapEntry {
+					var outs []map[string]interface{}
+					for key, value := range s {
+						outs = append(outs, map[string]interface{}{"key":key, "value":value})
+					}
+					return outs, true
+				}
+				return s, true
+			case []map[string]interface{}:
 				return s, true
 			case []interface{}:
-//log.Printf("203")
 				var outs []map[string]interface{}
 				for _, item := range s {
 					switch x := item.(type) {
@@ -79,15 +85,11 @@ func (self *Connection) FindArgs(args interface{}) (interface{}, bool) {
 				}
 				return outs, true
 			default:
-//log.Printf("204")
 			}
 			return nil, true
 		}
-//log.Printf("205")
-		//return nil, topFound
-		return nil, false
+		return nil, topFound
 	case []map[string]interface{}:
-//log.Printf("300")
 		var outs []map[string]interface{}
 		found := false
 		for _, hash := range t {
@@ -102,7 +104,6 @@ func (self *Connection) FindArgs(args interface{}) (interface{}, bool) {
 		}
 		return outs, found
 	default:
-//log.Printf("400")
 	}
 	return nil, false
 }

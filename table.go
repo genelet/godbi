@@ -85,7 +85,7 @@ func (self *Table) getKeyColumns() []string {
 	return outs
 }
 
-func (self *Table) GetFv(ARGS map[string]interface{}) map[string]interface{} {
+func (self *Table) getFv(ARGS map[string]interface{}) map[string]interface{} {
     fieldValues := make(map[string]interface{})
     for _, f := range self.insertCols() {
         if v, ok := ARGS[f]; ok {

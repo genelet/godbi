@@ -1,7 +1,6 @@
 package godbi
 
 import (
-"log"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -136,19 +135,20 @@ func (self *Graph) RunContext(ctx context.Context, db *sql.DB, model, action str
 // The rest are specific data for each action starting with the current one.
 //
 func (self *Graph) hashContext(ctx context.Context, db *sql.DB, model, action string, args, extra map[string]interface{}) ([]map[string]interface{}, error) {
-log.Printf("\n\n111 %s, %s, %#v, %#v\n", model, action, args, extra)
 	modelObj := self.GetModel(model)
 	if modelObj == nil {
 		return nil, fmt.Errorf("model %s not found in graph", model)
-	}
-	if args != nil {
-		args = modelObj.GetTable().RefreshArgs(args).(map[string]interface{})
 	}
 
 	actionObj := modelObj.GetAction(action)
 	if actionObj == nil {
 		return nil, fmt.Errorf("action %s not found in graph", action)
 	}
+
+	if args != nil && actionObj.GetIsDo() {
+		args = modelObj.GetTable().RefreshArgs(args).(map[string]interface{})
+	}
+
 	prepares := actionObj.GetPrepares()
 	nextpages := actionObj.GetNextpages()
 
@@ -161,20 +161,16 @@ log.Printf("\n\n111 %s, %s, %#v, %#v\n", model, action, args, extra)
 			// NextArgs and NextExtra as nextpage's input and constrains
 			preArgs := CloneArgs(args)
 			preExtra := CloneExtra(extra)
-log.Printf("\n22222 %s, %s\n%#v\n", p.TableName, p.ActionName, preArgs)
 			if p.TableName != model {
 				v, ok := p.FindArgs(preArgs)
-log.Printf("\n28888 %v=>%#v\n", ok, v)
-				if (p.ActionName=="insert" || p.ActionName=="insupd" || p.ActionName=="update") && ok && v==nil {
-					log.Printf("\n29999 continue\n")
+				pAction := self.GetModel(p.TableName).GetAction(p.ActionName)
+				if pAction.GetIsDo() && ok && !hasValue(v) {
 					continue
 				}
 				preArgs = MergeArgs(p.NextArgs(preArgs), v)
 				preExtra = MergeExtra(p.NextExtra(preArgs), p.FindExtra(preExtra))
 			}
-log.Printf("\n33333 %s, %s\n%#v\n", p.TableName, p.ActionName, preArgs)
 			lists, err := self.RunContext(ctx, db, p.TableName, p.ActionName, preArgs, preExtra)
-log.Printf("\n39999 %#v, %v\n", lists, err)
 			if err != nil { return nil, err }
 			// only two types of prepares
 			// 1) one pre, with multiple outputs (when p.argsMap is multiple)
@@ -187,7 +183,6 @@ log.Printf("\n39999 %#v, %v\n", lists, err)
 					newExtra = MergeExtra(newExtra, p.NextExtra(item))
 				}
 				newArgs = tmp
-log.Printf("\n44444 %v", newArgs)
 				break
 			}
 			// 2) multiple pre, with one output each.
@@ -195,12 +190,10 @@ log.Printf("\n44444 %v", newArgs)
 			if hasValue(lists) && hasValue(lists[0]) {
 				newArgs = MergeArgs(newArgs, p.NextArgs(lists[0]).(map[string]interface{}))
 				newExtra = MergeExtra(newExtra, p.NextExtra(lists[0]))
-log.Printf("\n55555 %v", newArgs)
 			}
 		}
 	}
 
-log.Printf("\n\n112 %s, %s\n%#v\n", action, model, newArgs)
 	data, err := modelObj.RunModelContext(ctx, db, action, newArgs, newExtra)
 	if err != nil { return nil, err }
 
@@ -210,10 +203,14 @@ log.Printf("\n\n112 %s, %s\n%#v\n", action, model, newArgs)
 
 	for _, p := range nextpages {
 		for _, item := range data {
-			v, _ := p.FindArgs(newArgs)
+			v, ok := p.FindArgs(newArgs)
+			pAction := self.GetModel(p.TableName).GetAction(p.ActionName)
+			// is a do-action, needs input from the table, but not found
+			if pAction.GetIsDo() && ok && !hasValue(v) {
+				continue
+			}
 			nextArgs  := MergeArgs(p.NextArgs(item), v)
 			nextExtra := MergeExtra(p.NextExtra(item), p.FindExtra(newExtra))
-log.Printf("\n99999 %s, %s\n%#v\n", p.TableName, p.ActionName, nextArgs)
 			newLists, err := self.RunContext(ctx, db, p.TableName, p.ActionName, nextArgs, nextExtra)
 			if err != nil { return nil, err }
 			if hasValue(newLists) {

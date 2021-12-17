@@ -35,7 +35,9 @@ func TestAction(t *testing.T) {
 	}
 
 	insert := new(Insert)
+	insert.IsDo = true
 	insupd := new(Insupd)
+	insupd.IsDo = true
 	topics := new(Topics)
 	edit := new(Edit)
 	dele := new(Delete)

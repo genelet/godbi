@@ -71,11 +71,11 @@ func Assertion(actions []interface{}, custom ...Capability) ([]Capability, error
 		if !found {
 			switch name {
 			case "insert":
-				tran = new(Insert)
+				tran = &Insert{Action:Action{IsDo:true}}
 			case "update":
-				tran = new(Update)
+				tran = &Update{Action:Action{IsDo:true}}
 			case "insupd":
-				tran = new(Insupd)
+				tran = &Insupd{Action:Action{IsDo:true}}
 			case "edit":
 				tran = new(Edit)
 			case "topics":

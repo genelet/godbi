@@ -84,9 +84,11 @@ func TestModelRun(t *testing.T) {
 	"uniques":["x","y"],
 	"actions": [
 	{
+		"isDo":true,
 		"actionName": "insert"
 	},
 	{
+		"isDo":true,
 		"actionName": "insupd"
 	},
 	{

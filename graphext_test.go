@@ -348,6 +348,7 @@ func GraphThreeGeneral(graph *Graph, t *testing.T) {
 		t.Errorf("%v", lists)
 	}
 
-	db.Exec(`drop table if exists m_a`)
 	db.Exec(`drop table if exists m_b`)
+	db.Exec(`drop table if exists m_ab`)
+	db.Exec(`drop table if exists m_a`)
 }

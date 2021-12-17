@@ -11,6 +11,7 @@ type Capability interface {
 	GetActionName() string
 	GetPrepares()  []*Connection
 	GetNextpages() []*Connection
+	GetIsDo() bool
 	GetAppendix() interface{}
 	SetPrepares([]*Connection)
 	SetNextpages([]*Connection)
@@ -22,7 +23,8 @@ type Action struct {
 	ActionName string `json:"actionName,omitempty" hcl:"actionName,optional"`
 	Prepares  []*Connection `json:"Prepares,omitempty" hcl:"Prepares,block"`
 	Nextpages []*Connection `json:"nextpages,omitempty" hcl:"nextpages,block"`
-	Appendix  interface{} `json:"appendix,omitempty" hcl:"appendix,block"`
+	IsDo      bool          `json:"isDo,omitempty" hcl:"isDo,optional"`
+	Appendix  interface{}   `json:"appendix,omitempty" hcl:"appendix,block"`
 }
 
 func (self *Action) GetActionName() string {
@@ -35,6 +37,10 @@ func (self *Action) GetPrepares() []*Connection {
 
 func (self *Action) GetNextpages() []*Connection {
 	return self.Nextpages
+}
+
+func (self *Action) GetIsDo() bool {
+	return self.IsDo
 }
 
 func (self *Action) GetAppendix() interface{} {
