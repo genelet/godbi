@@ -11,8 +11,8 @@ type SQL struct {
 	Statement string   `json:"statement"`
 }
 
-func (self *SQL) RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
-	lists := make([]map[string]interface{}, 0)
+func (self *SQL) RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]interface{}, error) {
+	lists := make([]interface{}, 0)
 	dbi := &DBI{DB: db}
 	var names []interface{}
 	for _, col := range t.Columns {
@@ -106,7 +106,7 @@ func TestModelRun(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var lists []map[string]interface{}
+	var lists []interface{}
 	// the 1st web requests is assumed to create id=1 to the m_a table
 	//
 	args := map[string]interface{}{"x": "a1234567", "y": "b1234567", "z": "temp", "child": "john"}
@@ -146,8 +146,8 @@ func TestModelRun(t *testing.T) {
 		t.Fatal(err)
 	}
 	// []map[string]interface {}{map[string]interface {}{"id":1, "x":"a1234567", "y":"b1234567", "z":"zzzzz"}, map[string]interface {}{"id":2, "x":"c1234567", "y":"d1234567", "z":"e1234"}, map[string]interface {}{"id":3, "x":"e1234567", "y":"f1234567", "z":"e1234"}}
-	e1 := lists[0]
-	e2 := lists[2]
+	e1 := lists[0].(map[string]interface{})
+	e2 := lists[2].(map[string]interface{})
 	if len(lists) != 3 ||
 		e1["id"].(int) != 1 ||
 		e1["z"].(string) != "zzzzz" ||
@@ -161,7 +161,7 @@ func TestModelRun(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	e1 = lists[0]
+	e1 = lists[0].(map[string]interface{})
 	if len(lists) != 1 ||
 		e1["id"].(int) != 1 ||
 		e1["z"].(string) != "zzzzz" {
@@ -235,14 +235,14 @@ func TestModelRunMultiple(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var lists []map[string]interface{}
+	var lists []interface{}
 	// the 1st web requests is assumed to create id=1 to the m_a table
 	argss := []map[string]interface{}{{"x": "a1234567", "y": "b1234567", "z": "temp", "child": "john"}}
 	lists, err = model.RunModel(db, "insert", argss)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(lists) != 1 || lists[0]["id"].(int64) != 1 {
+	if len(lists) != 1 || lists[0].(map[string]interface{})["id"].(int64) != 1 {
 		t.Errorf("%#v", lists)
 	}
 
@@ -255,7 +255,7 @@ func TestModelRunMultiple(t *testing.T) {
 		t.Fatal(err)
 	}
 	// []map[string]interface {}{map[string]interface {}{"id":1, "x":"a1234567", "y":"b1234567", "z":"zzzzz"}, map[string]interface {}{"id":2, "x":"c1234567", "y":"d1234567", "z":"e1234"}, map[string]interface {}{"id":3, "x":"e1234567", "y":"f1234567", "z":"e1234"}}
-	if len(lists) != 3 || lists[0]["id"].(int64) != 1 || lists[1]["id"].(int64) != 2 || lists[2]["id"].(int64) != 3 || lists[2]["y"] != "f1234567" {
+	if len(lists) != 3 || lists[0].(map[string]interface{})["id"].(int64) != 1 || lists[1].(map[string]interface{})["id"].(int64) != 2 || lists[2].(map[string]interface{})["id"].(int64) != 3 || lists[2].(map[string]interface{})["y"] != "f1234567" {
 		t.Errorf("%#v", lists)
 	}
 
@@ -266,8 +266,8 @@ func TestModelRunMultiple(t *testing.T) {
 		t.Fatal(err)
 	}
 	// []map[string]interface {}{map[string]interface {}{"id":1, "x":"a1234567", "y":"b1234567", "z":"zzzzz"}, map[string]interface {}{"id":2, "x":"c1234567", "y":"d1234567", "z":"e1234"}, map[string]interface {}{"id":3, "x":"e1234567", "y":"f1234567", "z":"e1234"}}
-	e1 := lists[0]
-	e2 := lists[2]
+	e1 := lists[0].(map[string]interface{})
+	e2 := lists[2].(map[string]interface{})
 	if len(lists) != 3 ||
 		e1["id"].(int) != 1 ||
 		e1["z"].(string) != "zzzzz" ||
@@ -281,7 +281,7 @@ func TestModelRunMultiple(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	e1 = lists[0]
+	e1 = lists[0].(map[string]interface{})
 	if len(lists) != 1 ||
 		e1["id"].(int) != 1 ||
 		e1["z"].(string) != "zzzzz" {

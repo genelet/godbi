@@ -16,7 +16,7 @@ type Capability interface {
 	SetPrepares([]*Connection)
 	SetNextpages([]*Connection)
 	SetAppendix(interface{})
-	RunActionContext(context.Context, *sql.DB, *Table, map[string]interface{}, ...map[string]interface{}) ([]map[string]interface{}, error)
+	RunActionContext(context.Context, *sql.DB, *Table, map[string]interface{}, ...map[string]interface{}) ([]interface{}, error)
 }
 
 type Action struct {

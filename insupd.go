@@ -10,11 +10,11 @@ type Insupd struct {
 	Action
 }
 
-func (self *Insupd) RunAction(db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
+func (self *Insupd) RunAction(db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]interface{}, error) {
 	return self.RunActionContext(context.Background(), db, t, ARGS, extra...)
 }
 
-func (self *Insupd) RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
+func (self *Insupd) RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]interface{}, error) {
 	if self.IsDo {
 		if err := t.checkNull(ARGS, extra...); err != nil {
 			return nil, err

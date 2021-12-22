@@ -26,9 +26,9 @@ func graph2Check(ctx context.Context, db *sql.DB, graph *Graph, METHODS map[stri
         panic(err)
     }
     // [map[id:1 m_a_edit:[map[id:1 m_b_topics:[map[child:john id:1 tid:1] map[child:sam id:1 tid:2]] x:a1234567 y:b1234567 z:zzzzz]] x:a1234567 y:b1234567 z:zzzzz] map[id:2 m_a_edit:[map[id:2 m_b_topics:[map[child:mary id:2 tid:3]] x:c1234567 y:d1234567 z:e1234]] x:c1234567 y:d1234567 z:e1234] map[id:3 m_a_edit:[map[id:3 m_b_topics:[map[child:marcus id:3 tid:4]] x:e1234567 y:f1234567 z:e1234]] x:e1234567 y:f1234567 z:e1234]]
-    e1 := lists[0]["m_a_edit"].([]map[string]interface{})
-    e2 := e1[0]["m_b_topics"].([]map[string]interface{})
-    if e2[0]["child"].(string) != "john" || e2[1]["child"].(string) != "john2" {
+    e1 := lists[0].(map[string]interface{})["m_a_edit"].([]interface{})
+    e2 := e1[0].(map[string]interface{})["m_b_topics"].([]interface{})
+    if e2[0].(map[string]interface{})["child"].(string) != "john" || e2[1].(map[string]interface{})["child"].(string) != "john2" {
         t.Errorf("%v", lists)
     }
 
@@ -38,8 +38,8 @@ func graph2Check(ctx context.Context, db *sql.DB, graph *Graph, METHODS map[stri
     if err != nil {
         panic(err)
     }
-    e2 = lists[0]["m_b_topics"].([]map[string]interface{})
-    if e2[0]["child"].(string) != "john" || e2[1]["child"].(string) != "john2" {
+    e2 = lists[0].(map[string]interface{})["m_b_topics"].([]interface{})
+    if e2[0].(map[string]interface{})["child"].(string) != "john" || e2[1].(map[string]interface{})["child"].(string) != "john2" {
         t.Errorf("%v", lists)
     }
     // [map[id:1 m_b_topics:[map[child:john id:1 tid:1] map[child:john2 id:1 tid:2] map[child:sam id:1 tid:3]] x:a1234567 y:b1234567 z:zzzzz]]
@@ -65,9 +65,9 @@ func graph2Check(ctx context.Context, db *sql.DB, graph *Graph, METHODS map[stri
     if err != nil {
         panic(err)
     }
-    e1 = lists[0]["m_a_edit"].([]map[string]interface{})
-    e2 = e1[0]["m_b_topics"].([]map[string]interface{})
-    if e2[0]["child"].(string) != "mary" {
+    e1 = lists[0].(map[string]interface{})["m_a_edit"].([]interface{})
+    e2 = e1[0].(map[string]interface{})["m_b_topics"].([]interface{})
+    if e2[0].(map[string]interface{})["child"].(string) != "mary" {
         t.Errorf("%v", lists)
     }
     // [map[id:2 m_a_edit:[map[id:2 m_b_topics:[map[child:mary id:2 tid:3]] x:c1234567 y:d1234567 z:e1234]] x:c1234567 y:d1234567 z:e1234] map[id:3 m_a_edit:[map[id:3 m_b_topics:[map[child:marcus id:3 tid:4]] x:e1234567 y:f1234567 z:e1234]] x:e1234567 y:f1234567 z:e1234]]
@@ -88,7 +88,7 @@ func graph2Check(ctx context.Context, db *sql.DB, graph *Graph, METHODS map[stri
 
 func GraphGeneral(t *testing.T, graph *Graph) {
 	db, ctx, METHODS := local2Vars()
-	var lists []map[string]interface{}
+	var lists []interface{}
 
 	// the 1st web requests is assumed to create id=1 to the m_a and m_b tables:
 	//
@@ -139,9 +139,9 @@ func GraphGeneral(t *testing.T, graph *Graph) {
 		panic(err)
 	}
 	// [map[id:1 m_a_edit:[map[id:1 m_b_topics:[map[child:john id:1 tid:1] map[child:sam id:1 tid:2]] x:a1234567 y:b1234567 z:zzzzz]] x:a1234567 y:b1234567 z:zzzzz] map[id:2 m_a_edit:[map[id:2 m_b_topics:[map[child:mary id:2 tid:3]] x:c1234567 y:d1234567 z:e1234]] x:c1234567 y:d1234567 z:e1234] map[id:3 m_a_edit:[map[id:3 m_b_topics:[map[child:marcus id:3 tid:4]] x:e1234567 y:f1234567 z:e1234]] x:e1234567 y:f1234567 z:e1234]]
-	e1 := lists[0]["m_a_edit"].([]map[string]interface{})
-	e2 := e1[0]["m_b_topics"].([]map[string]interface{})
-	if e2[0]["child"].(string) != "john" {
+	e1 := lists[0].(map[string]interface{})["m_a_edit"].([]interface{})
+	e2 := e1[0].(map[string]interface{})["m_b_topics"].([]interface{})
+	if e2[0].(map[string]interface{})["child"].(string) != "john" {
 		t.Errorf("%v", lists)
 	}
 
@@ -151,8 +151,8 @@ func GraphGeneral(t *testing.T, graph *Graph) {
 	if err != nil {
 		panic(err)
 	}
-	e2 = lists[0]["m_b_topics"].([]map[string]interface{})
-	if e2[0]["child"].(string) != "john" {
+	e2 = lists[0].(map[string]interface{})["m_b_topics"].([]interface{})
+	if e2[0].(map[string]interface{})["child"].(string) != "john" {
 		t.Errorf("%v", lists)
 	}
 	// [map[id:1 m_b_topics:[map[child:john id:1 tid:1] map[child:sam id:1 tid:2]] x:a1234567 y:b1234567 z:zzzzz]]
@@ -185,9 +185,9 @@ func GraphGeneral(t *testing.T, graph *Graph) {
 	if err != nil {
 		panic(err)
 	}
-	e1 = lists[0]["m_a_edit"].([]map[string]interface{})
-	e2 = e1[0]["m_b_topics"].([]map[string]interface{})
-	if e2[0]["child"].(string) != "mary" {
+	e1 = lists[0].(map[string]interface{})["m_a_edit"].([]interface{})
+	e2 = e1[0].(map[string]interface{})["m_b_topics"].([]interface{})
+	if e2[0].(map[string]interface{})["child"].(string) != "mary" {
 		t.Errorf("%v", lists)
 	}
 	// [map[id:2 m_a_edit:[map[id:2 m_b_topics:[map[child:mary id:2 tid:3]] x:c1234567 y:d1234567 z:e1234]] x:c1234567 y:d1234567 z:e1234] map[id:3 m_a_edit:[map[id:3 m_b_topics:[map[child:marcus id:3 tid:4]] x:e1234567 y:f1234567 z:e1234]] x:e1234567 y:f1234567 z:e1234]]
@@ -220,7 +220,7 @@ func GraphThreeGeneral(graph *Graph, t *testing.T) {
     ctx := context.Background()
 	METHODS := map[string]string{"LIST": "topics", "GET": "edit", "POST": "insert", "PUT": "update", "PATCH": "insupd", "DELETE": "delete"}
 
-	var lists []map[string]interface{}
+	var lists []interface{}
 	// the 1st web requests is assumed to create id=1 to the m_a and m_b tables:
 	//
 	args := map[string]interface{}{"x": "a1234567", "y": "b1234567", "z": "temp", "child": "john"}
@@ -280,10 +280,10 @@ func GraphThreeGeneral(graph *Graph, t *testing.T) {
 		panic(err)
 	}
 //	t.Errorf("%v", lists)
-	e1 := lists[0]["m_ab_topics"].([]map[string]interface{})
-	e21:= e1[0]["m_b_topics"].([]map[string]interface{})
-	e22:= e1[1]["m_b_topics"].([]map[string]interface{})
-	if e21[0]["child"].(string) != "john" || e22[0]["child"].(string) != "john2" {
+	e1 := lists[0].(map[string]interface{})["m_ab_topics"].([]interface{})
+	e21:= e1[0].(map[string]interface{})["m_b_topics"].([]interface{})
+	e22:= e1[1].(map[string]interface{})["m_b_topics"].([]interface{})
+	if e21[0].(map[string]interface{})["child"].(string) != "john" || e22[0].(map[string]interface{})["child"].(string) != "john2" {
 		t.Errorf("%v", lists)
 	}
 
@@ -293,10 +293,10 @@ func GraphThreeGeneral(graph *Graph, t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	e1 = lists[0]["m_ab_topics"].([]map[string]interface{})
-	e21 = e1[0]["m_b_topics"].([]map[string]interface{})
-	e22 = e1[1]["m_b_topics"].([]map[string]interface{})
-	if e21[0]["child"].(string) != "john" || e22[0]["child"].(string) != "john2" {
+	e1 = lists[0].(map[string]interface{})["m_ab_topics"].([]interface{})
+	e21 = e1[0].(map[string]interface{})["m_b_topics"].([]interface{})
+	e22 = e1[1].(map[string]interface{})["m_b_topics"].([]interface{})
+	if e21[0].(map[string]interface{})["child"].(string) != "john" || e22[0].(map[string]interface{})["child"].(string) != "john2" {
 		t.Errorf("%v", lists)
 	}
 	// [map[id:1 m_b_topics:[map[child:john id:1 tid:1] map[child:john2 id:1 tid:2] map[child:sam id:1 tid:3]] x:a1234567 y:b1234567 z:zzzzz]]
@@ -322,9 +322,9 @@ func GraphThreeGeneral(graph *Graph, t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	e1 = lists[0]["m_ab_topics"].([]map[string]interface{})
-	e21 = e1[0]["m_b_topics"].([]map[string]interface{})
-	if e21[0]["child"].(string) != "mary" {
+	e1 = lists[0].(map[string]interface{})["m_ab_topics"].([]interface{})
+	e21 = e1[0].(map[string]interface{})["m_b_topics"].([]interface{})
+	if e21[0].(map[string]interface{})["child"].(string) != "mary" {
 		t.Errorf("%v", lists)
 	}
 	//[map[id:2 m_ab_topics:[map[abid:4 id:2 m_b_topics:[map[child:mary tid:4]] tid:4]] x:c1234567 y:d1234567 z:e1234] map[id:3 m_ab_topics:[map[abid:5 id:3 m_b_topics:[map[child:marcus tid:5]] tid:5]] x:e1234567 y:f1234567 z:e1234]]

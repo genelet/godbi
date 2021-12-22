@@ -122,10 +122,20 @@ func (self *Connection) NextArgs(args interface{}) interface{} {
 	case map[string]interface{}:
 		return createNextmap(self.RelateArgs, t)
 	case []map[string]interface{}:
-		var outs []map[string]interface{}
+		var outs []interface{}
 		for _, hash := range t {
 			if x := createNextmap(self.RelateArgs, hash); x != nil {
 				outs = append(outs, x)
+			}
+		}
+		return outs
+	case []interface{}:
+		var outs []interface{}
+		for _, hash := range t {
+			if item, ok := hash.(map[string]interface{}); ok {
+				if x := createNextmap(self.RelateArgs, item); x != nil {
+					outs = append(outs, x)
+				}
 			}
 		}
 		return outs
@@ -146,7 +156,7 @@ func (self *Connection) NextExtra(args interface{}) map[string]interface{} {
 
 	switch t := args.(type) {
 	case map[string]interface{}:
-	return createNextmap(self.RelateExtra, t)
+		return createNextmap(self.RelateExtra, t)
 	default:
 	}
 	return nil
@@ -199,9 +209,17 @@ func CloneArgs(args interface{}) interface{} {
 	case map[string]interface{}:
 		return CloneExtra(t)
 	case []map[string]interface{}:
-		var newArgs []map[string]interface{}
+		var newArgs []interface{}
 		for _, each := range t {
 			newArgs = append(newArgs, CloneExtra(each))
+		}
+		return newArgs
+	case []interface{}:
+		var newArgs []interface{}
+		for _, each := range t {
+			if item, ok := each.(map[string]interface{}); ok {
+				newArgs = append(newArgs, CloneExtra(item))
+			}
 		}
 		return newArgs
 	default:
@@ -237,9 +255,17 @@ func MergeArgs(args, items interface{}) interface{} {
 	case map[string]interface{}:
 		return mergeMap(args, t)
 	case []map[string]interface{}:
-		var newArgs []map[string]interface{}
+		var newArgs []interface{}
 		for _, item := range t {
 			newArgs = append(newArgs, mergeMap(args, item).(map[string]interface{}))
+		}
+		return newArgs
+	case []interface{}:
+		var newArgs []interface{}
+		for _, each := range t {
+			if item, ok := each.(map[string]interface{}); ok {
+				newArgs = append(newArgs, mergeMap(args, item).(map[string]interface{}))
+			}
 		}
 		return newArgs
 	default:
@@ -257,11 +283,20 @@ func mergeMap(args interface{}, item map[string]interface{}) interface{} {
 	case map[string]interface{}:
 		return MergeExtra(t, item)
 	case []map[string]interface{}:
-		var newArgs []map[string]interface{}
+		var newArgs []interface{}
 		for _, each := range t {
 			newArgs = append(newArgs, MergeExtra(each, item))
 		}
 		return newArgs
+	case []interface{}:
+		var newArgs []interface{}
+		for _, each := range t {
+			if single, ok := each.(map[string]interface{}); ok {
+				newArgs = append(newArgs, MergeExtra(single, item))
+			}
+		}
+		return newArgs
+	default:
 	}
 	return nil
 }

@@ -73,7 +73,7 @@ func (self *Graph) GetModel(model string) Navigate {
 // The first extra is the input data, shared by all sub actions.
 // The rest are specific data for each action starting with the current one.
 //
-func (self *Graph) RunContext(ctx context.Context, db *sql.DB, model, action string, rest ...interface{}) ([]map[string]interface{}, error) {
+func (self *Graph) RunContext(ctx context.Context, db *sql.DB, model, action string, rest ...interface{}) ([]interface{}, error) {
 	var args interface{}
 	var extra map[string]interface{}
 	if rest != nil {
@@ -104,7 +104,7 @@ func (self *Graph) RunContext(ctx context.Context, db *sql.DB, model, action str
 	case map[string]interface{}:
 		return self.hashContext(ctx, db, model, action, t, extra)
 	case []map[string]interface{}:
-		var final []map[string]interface{}
+		var final []interface{}
 		for _, arg := range t {
 			lists, err := self.hashContext(ctx, db, model, action, arg, extra)
 			if err != nil { return nil, err }
@@ -112,7 +112,7 @@ func (self *Graph) RunContext(ctx context.Context, db *sql.DB, model, action str
 		}
 		return final, nil
 	case []interface{}:
-		var final []map[string]interface{}
+		var final []interface{}
 		for _, arg := range t {
 			if v, ok := arg.(map[string]interface{}); ok {
 				lists, err := self.hashContext(ctx, db, model, action, v, extra)
@@ -134,7 +134,7 @@ func (self *Graph) RunContext(ctx context.Context, db *sql.DB, model, action str
 // The first extra is the input data, shared by all sub actions.
 // The rest are specific data for each action starting with the current one.
 //
-func (self *Graph) hashContext(ctx context.Context, db *sql.DB, model, action string, args, extra map[string]interface{}) ([]map[string]interface{}, error) {
+func (self *Graph) hashContext(ctx context.Context, db *sql.DB, model, action string, args, extra map[string]interface{}) ([]interface{}, error) {
 	modelObj := self.GetModel(model)
 	if modelObj == nil {
 		return nil, fmt.Errorf("model %s not found in graph", model)
@@ -214,7 +214,7 @@ func (self *Graph) hashContext(ctx context.Context, db *sql.DB, model, action st
 			newLists, err := self.RunContext(ctx, db, p.TableName, p.ActionName, nextArgs, nextExtra)
 			if err != nil { return nil, err }
 			if hasValue(newLists) {
-				item[p.Subname()] = newLists
+				item.(map[string]interface{})[p.Subname()] = newLists
 			}
 		}
 	}

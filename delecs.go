@@ -11,13 +11,13 @@ type Delecs struct {
 	Action
 }
 
-func (self *Delecs) RunAction(db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
+func (self *Delecs) RunAction(db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]interface{}, error) {
 	return self.RunActionContext(context.Background(), db, t, ARGS, extra...)
 }
 
-func (self *Delecs) RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
+func (self *Delecs) RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]interface{}, error) {
 	dbi := &DBI{DB: db}
-	lists := make([]map[string]interface{}, 0)
+	lists := make([]interface{}, 0)
 	if t.Fks == nil {
 		return nil, fmt.Errorf("fks not define in %s", t.TableName)
 	}

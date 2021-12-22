@@ -121,14 +121,14 @@ func (self *DBI) DoSQLsContext(ctx context.Context, query string, args ...[]inte
 // Select returns queried data 'list' as a slice of maps,
 // whose data types are determined dynamically by the generic handle.
 //
-func (self *DBI) Select(lists *[]map[string]interface{}, query string, args ...interface{}) error {
+func (self *DBI) Select(lists *[]interface{}, query string, args ...interface{}) error {
 	return self.SelectContext(context.Background(), lists, query, args...)
 }
 
 // SelectContext returns queried data 'lists' as a slice of maps,
 // whose data types are determined dynamically by the generic handle.
 //
-func (self *DBI) SelectContext(ctx context.Context, lists *[]map[string]interface{}, query string, args ...interface{}) error {
+func (self *DBI) SelectContext(ctx context.Context, lists *[]interface{}, query string, args ...interface{}) error {
 	return self.SelectSQLContext(ctx, lists, query, nil, args...)
 }
 
@@ -165,7 +165,7 @@ func getLabels(labels []interface{}) ([]string, []string) {
 // 2) when an interface is a 2-string slice, the first element is the key
 //    and the second the data type in "int64", "int", "string" etc.
 //
-func (self *DBI) SelectSQL(lists *[]map[string]interface{}, query string, labels []interface{}, args ...interface{}) error {
+func (self *DBI) SelectSQL(lists *[]interface{}, query string, labels []interface{}, args ...interface{}) error {
 	return self.SelectSQLContext(context.Background(), lists, query, labels, args...)
 }
 
@@ -177,7 +177,7 @@ func (self *DBI) SelectSQL(lists *[]map[string]interface{}, query string, labels
 // 2) when an interface is a 2-string slice, the first element is the key
 //    and the second the data type in "int64", "int", "string" etc.
 //
-func (self *DBI) SelectSQLContext(ctx context.Context, lists *[]map[string]interface{}, query string, labels []interface{}, args ...interface{}) error {
+func (self *DBI) SelectSQLContext(ctx context.Context, lists *[]interface{}, query string, labels []interface{}, args ...interface{}) error {
 	rows, err := self.DB.QueryContext(ctx, query, args...)
 	if err != nil {
 		return err
@@ -187,7 +187,7 @@ func (self *DBI) SelectSQLContext(ctx context.Context, lists *[]map[string]inter
 	return self.pickup(rows, lists, labels, query)
 }
 
-func (self *DBI) pickup(rows *sql.Rows, lists *[]map[string]interface{}, labels []interface{}, query string) error {
+func (self *DBI) pickup(rows *sql.Rows, lists *[]interface{}, labels []interface{}, query string) error {
 	selectLabels, typeLabels := getLabels(labels)
 
 	var err error
@@ -318,12 +318,12 @@ func (self *DBI) GetSQL(res map[string]interface{}, query string, labels []inter
 // GetSQLContext returns single row 'res'.
 //
 func (self *DBI) GetSQLContext(ctx context.Context, res map[string]interface{}, query string, labels []interface{}, args ...interface{}) error {
-	lists := make([]map[string]interface{}, 0)
+	lists := make([]interface{}, 0)
 	if err := self.SelectSQLContext(ctx, &lists, query, labels, args...); err != nil {
 		return err
 	}
 	if len(lists) >= 1 {
-		for k, v := range lists[0] {
+		for k, v := range lists[0].(map[string]interface{}) {
 			if v != nil {
 				res[k] = v
 			}
@@ -383,7 +383,7 @@ func (self *DBI) txProcContext(ctx context.Context, res map[string]interface{}, 
 // The result, 'lists', is received as slice of map whose key
 // names and data types are defined in 'labels'.
 //
-func (self *DBI) selectProc(lists *[]map[string]interface{}, procName string, labels []interface{}, args ...interface{}) error {
+func (self *DBI) selectProc(lists *[]interface{}, procName string, labels []interface{}, args ...interface{}) error {
 	return self.selectProcContext(context.Background(), lists, procName, labels, args...)
 }
 
@@ -391,7 +391,7 @@ func (self *DBI) selectProc(lists *[]map[string]interface{}, procName string, la
 // The result, 'lists', is received as slice of map whose key
 // names and data types are defined in 'labels'.
 //
-func (self *DBI) selectProcContext(ctx context.Context, lists *[]map[string]interface{}, procName string, labels []interface{}, args ...interface{}) error {
+func (self *DBI) selectProcContext(ctx context.Context, lists *[]interface{}, procName string, labels []interface{}, args ...interface{}) error {
 	return self.selectDoProcContext(ctx, lists, nil, nil, procName, labels, args...)
 }
 
@@ -404,12 +404,12 @@ func (self *DBI) getProc(res map[string]interface{}, procName string, labels []i
 // GetProcContext returns single row from stored procedure into 'res'.
 //
 func (self *DBI) getProcContext(ctx context.Context, res map[string]interface{}, procName string, labels []interface{}, args ...interface{}) error {
-	lists := make([]map[string]interface{}, 0)
+	lists := make([]interface{}, 0)
 	if err := self.selectProcContext(ctx, &lists, procName, labels, args...); err != nil {
 		return err
 	}
 	if len(lists) >= 1 {
-		for k, v := range lists[0] {
+		for k, v := range lists[0].(map[string]interface{}) {
 			if v != nil {
 				res[k] = v
 			}
@@ -423,7 +423,7 @@ func (self *DBI) getProcContext(ctx context.Context, res map[string]interface{},
 // types are defined in 'labels'. The OUT data, 'hash', is received as map
 // whose keys are in 'names'.
 //
-func (self *DBI) selectDoProc(lists *[]map[string]interface{}, hash map[string]interface{}, names []interface{}, procName string, labels []interface{}, args ...interface{}) error {
+func (self *DBI) selectDoProc(lists *[]interface{}, hash map[string]interface{}, names []interface{}, procName string, labels []interface{}, args ...interface{}) error {
 	return self.selectDoProcContext(context.Background(), lists, hash, names, procName, labels, args...)
 }
 
@@ -432,7 +432,7 @@ func (self *DBI) selectDoProc(lists *[]map[string]interface{}, hash map[string]i
 // types are defined in 'labels'. The OUT data, 'hash', is received as map
 // whose keys are in 'names'.
 //
-func (self *DBI) selectDoProcContext(ctx context.Context, lists *[]map[string]interface{}, hash map[string]interface{}, names []interface{}, procName string, labels []interface{}, args ...interface{}) error {
+func (self *DBI) selectDoProcContext(ctx context.Context, lists *[]interface{}, hash map[string]interface{}, names []interface{}, procName string, labels []interface{}, args ...interface{}) error {
 	str, strN := sp(procName, names, len(args))
 	if err := self.SelectSQLContext(ctx, lists, str, labels, args...); err != nil {
 		return err

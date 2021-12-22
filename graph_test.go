@@ -31,7 +31,7 @@ func TestGraphDelecs(t *testing.T) {
 		t.Fatal(err)
 	}
 	db, ctx, METHODS := local2Vars()
-	var lists []map[string]interface{}
+	var lists []interface{}
 
 	// the 1st web requests is assumed to create id=1 to the m_a and m_b tables:
 	//
@@ -94,7 +94,7 @@ func TestGraphDelecs2(t *testing.T) {
 		t.Fatal(err)
 	}
 	db, ctx, METHODS := local2Vars()
-	var lists []map[string]interface{}
+	var lists []interface{}
 
 	// the 1st web requests is assumed to create id=1 to the m_a and m_b tables:
 	//

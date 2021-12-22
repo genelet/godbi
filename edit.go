@@ -19,11 +19,11 @@ func (self *Edit) setDefaultElementNames() []string {
 	return []string{self.FIELDS}
 }
 
-func (self *Edit) RunAction(db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
+func (self *Edit) RunAction(db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]interface{}, error) {
 	return self.RunActionContext(context.Background(), db, t, ARGS, extra...)
 }
 
-func (self *Edit) RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
+func (self *Edit) RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]interface{}, error) {
 	self.setDefaultElementNames()
 	sql, labels, table := t.filterPars(ARGS, self.FIELDS, self.Joints)
 
@@ -37,7 +37,7 @@ func (self *Edit) RunActionContext(ctx context.Context, db *sql.DB, t *Table, AR
 		sql += "\nWHERE " + where
 	}
 
-	lists := make([]map[string]interface{}, 0)
+	lists := make([]interface{}, 0)
 	dbi := &DBI{DB: db}
 	err := dbi.SelectSQLContext(ctx, &lists, sql, labels, extraValues...)
 	return lists, err

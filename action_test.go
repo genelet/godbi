@@ -42,7 +42,7 @@ func TestAction(t *testing.T) {
 	edit := new(Edit)
 	dele := new(Delete)
 
-	var lists []map[string]interface{}
+	var lists []interface{}
 	// the 1st web requests is assumed to create id=1 to the m_a table
 	//
 	args := map[string]interface{}{"x": "a1234567", "y": "b1234567", "z": "temp", "child": "john"}
@@ -82,8 +82,8 @@ func TestAction(t *testing.T) {
 		t.Fatal(err)
 	}
 	// []map[string]interface {}{map[string]interface {}{"id":1, "x":"a1234567", "y":"b1234567", "z":"zzzzz"}, map[string]interface {}{"id":2, "x":"c1234567", "y":"d1234567", "z":"e1234"}, map[string]interface {}{"id":3, "x":"e1234567", "y":"f1234567", "z":"e1234"}}
-	e1 := lists[0]
-	e2 := lists[2]
+	e1 := lists[0].(map[string]interface{})
+	e2 := lists[2].(map[string]interface{})
 	if len(lists) != 3 ||
 		e1["id"].(int) != 1 ||
 		e1["z"].(string) != "zzzzz" ||
@@ -97,7 +97,7 @@ func TestAction(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	e1 = lists[0]
+	e1 = lists[0].(map[string]interface{})
 	if len(lists) != 1 ||
 		e1["id"].(int) != 1 ||
 		e1["z"].(string) != "zzzzz" {

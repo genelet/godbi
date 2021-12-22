@@ -44,14 +44,14 @@ func TestConnection(t *testing.T) {
 
 	args:= []map[string]interface{}{{"y": "b", "asset": "what"},
 {"y": "bb", "asset": "whatwhat", "size_id":777}}
-	cArgs := CloneArgs(args).([]map[string]interface{})
-	aArgs := MergeArgs(args, item).([]map[string]interface{})
+	cArgs := CloneArgs(args).([]interface{})
+	aArgs := MergeArgs(args, item).([]interface{})
     //[]map[string]interface {}{map[string]interface {}{"asset":"what", "y":"b"}, map[string]interface {}{"asset":"whatwhat", "size_id":777, "y":"bb"}}
-	if len(cArgs)!=2 || cArgs[0]["y"]!="b" || cArgs[1]["asset"]!="whatwhat" {
+	if len(cArgs)!=2 || cArgs[0].(map[string]interface{})["y"]!="b" || cArgs[1].(map[string]interface{})["asset"]!="whatwhat" {
 		t.Errorf("%#v", cArgs)
 	}
     //[]map[string]interface {}{map[string]interface {}{"asset":"what", "item_id":123, "x":"a", "y":"b"}, map[string]interface {}{"asset":"whatwhat", "item_id":123, "size_id":777, "x":"a", "y":"bb"}}
-	if len(aArgs)!=2 || len(aArgs[0])!=4 || aArgs[0]["item_id"]!=123 || len(aArgs[1])!=5 || aArgs[1]["item_id"]!=123 || aArgs[1]["size_id"]!=777 {
+	if len(aArgs)!=2 || len(aArgs[0].(map[string]interface{}))!=4 || aArgs[0].(map[string]interface{})["item_id"].(int)!=123 || len(aArgs[1].(map[string]interface{}))!=5 || aArgs[1].(map[string]interface{})["item_id"].(int)!=123 || aArgs[1].(map[string]interface{})["size_id"].(int)!=777 {
 		t.Errorf("%#v", aArgs)
 	}
 }

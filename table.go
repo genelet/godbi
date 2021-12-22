@@ -203,7 +203,7 @@ func (self *Table) insupdTableContext(ctx context.Context, db *sql.DB, args map[
 		}
 	}
 
-	lists := make([]map[string]interface{}, 0)
+	lists := make([]interface{}, 0)
 	dbi := &DBI{DB: db}
 	err := dbi.SelectContext(ctx, &lists, s, v...)
 	if err != nil {
@@ -216,7 +216,7 @@ func (self *Table) insupdTableContext(ctx context.Context, db *sql.DB, args map[
 	if len(lists) == 1 {
 		ids := make([]interface{}, 0)
 		for _, k := range self.Pks {
-			ids = append(ids, lists[0][k])
+			ids = append(ids, lists[0].(map[string]interface{})[k])
 		}
 		err = self.updateHashNullsContext(ctx, db, args, ids, nil)
 		if err == nil && self.IdAuto != "" {
@@ -409,6 +409,6 @@ func (self *Table) filterPars(ARGS map[string]interface{}, fieldsName string, jo
 	return sql, labels, table
 }
 
-func fromFv(fv map[string]interface{}) []map[string]interface{} {
-	return []map[string]interface{}{fv}
+func fromFv(fv map[string]interface{}) []interface{} {
+	return []interface{}{fv}
 }

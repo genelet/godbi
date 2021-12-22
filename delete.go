@@ -10,11 +10,11 @@ type Delete struct {
 	Action
 }
 
-func (self *Delete) RunAction(db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
+func (self *Delete) RunAction(db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]interface{}, error) {
 	return self.RunActionContext(context.Background(), db, t, ARGS, extra...)
 }
 
-func (self *Delete) RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
+func (self *Delete) RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]interface{}, error) {
 	ids := t.getIdVal(ARGS, extra...)
 	if !hasValue(ids) {
 		return nil, fmt.Errorf("pk value not provided")

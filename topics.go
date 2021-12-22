@@ -158,11 +158,11 @@ func (self *Topics) pagination(ctx context.Context, db *sql.DB, t *Table, ARGS m
 	return nil
 }
 
-func (self *Topics) RunAction(db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
+func (self *Topics) RunAction(db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]interface{}, error) {
 	return self.RunActionContext(context.Background(), db, t, ARGS, extra...)
 }
 
-func (self *Topics) RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]map[string]interface{}, error) {
+func (self *Topics) RunActionContext(ctx context.Context, db *sql.DB, t *Table, ARGS map[string]interface{}, extra ...map[string]interface{}) ([]interface{}, error) {
 	self.setDefaultElementNames()
 	sql, labels, table := t.filterPars(ARGS, self.FIELDS, self.Joints)
 	err := self.pagination(ctx, db, t, ARGS, extra...)
@@ -172,7 +172,7 @@ func (self *Topics) RunActionContext(ctx context.Context, db *sql.DB, t *Table, 
 	order := self.orderString(t, ARGS)
 
 	dbi := &DBI{DB: db}
-	lists := make([]map[string]interface{}, 0)
+	lists := make([]interface{}, 0)
 	if hasValue(extra) && hasValue(extra[0]) {
 		where, values := selectCondition(extra[0], table)
 		if where != "" {
