@@ -6,21 +6,26 @@ package godbi
 //
 type Connection struct {
 	// TableName: the name of the table
-	TableName  string             `json:"tableName" hcl:"tableName,label"`
+	TableName   string            `json:"tableName" hcl:"tableName,label"`
 
 	// ActionName: the action on the model
-	ActionName string             `json:"actionName" hcl:"actionName,label"`
+	ActionName  string            `json:"actionName" hcl:"actionName,label"`
 
 	// RelateArgs: map current page's columns to nextpage's columns as input
-	RelateArgs map[string]string  `json:"relateArgs,omitempty" hcl:"relateArgs"`
+	RelateArgs  map[string]string `json:"relateArgs,omitempty" hcl:"relateArgs"`
 
 	// RelateExtra: map current page's columns to nextpage's columns (for Nextpages), or prepared page's columns to current page's columns (for Prepares) as constrains.
 	RelateExtra map[string]string `json:"relateExtra,omitempty" hcl:"relateExtra"`
-	IsMapEntry bool               `json:"isMapEntry,omitempty" hcl:"isMapEntry,label"`
+	IsMapEntry  bool              `json:"isMapEntry,omitempty" hcl:"isMapEntry,label"`
+	IsOneEntry  bool              `json:"isOneEntry,omitempty" hcl:"isOneEntry,label"`
+	Marker      string            `json:"marker,omitempty" hcl:"marker,label"`
 }
 
 // Subname is the marker string used to store the output
 func (self *Connection) Subname() string {
+	if self.Marker != "" {
+		return self.Marker
+	}
 	return self.TableName + "_" + self.ActionName
 }
 

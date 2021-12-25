@@ -214,7 +214,11 @@ func (self *Graph) hashContext(ctx context.Context, db *sql.DB, model, action st
 			newLists, err := self.RunContext(ctx, db, p.TableName, p.ActionName, nextArgs, nextExtra)
 			if err != nil { return nil, err }
 			if hasValue(newLists) {
-				item.(map[string]interface{})[p.Subname()] = newLists
+				if p.IsOneEntry {
+					item.(map[string]interface{})[p.Subname()] = newLists[0]
+				} else {
+					item.(map[string]interface{})[p.Subname()] = newLists
+				}
 			}
 		}
 	}

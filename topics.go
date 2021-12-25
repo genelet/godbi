@@ -11,7 +11,7 @@ import (
 
 type Topics struct {
 	Action
-	Joints []*Joint    `json:"joins,omitempty" hcl:"join,block"`
+	Joints []*Joint    `json:"joints,omitempty" hcl:"joints,block"`
 	FIELDS string      `json:"fields,omitempty" hcl:"fields"`
 
 	TotalForce  int    `json:"total_force,omitempty" hcl:"total_force,optional"`
