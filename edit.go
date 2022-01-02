@@ -39,6 +39,7 @@ func (self *Edit) RunActionContext(ctx context.Context, db *sql.DB, t *Table, AR
 
 	lists := make([]map[string]interface{}, 0)
 	dbi := &DBI{DB: db}
+	if t.questionNumber == Postgres { sql = questionMarkerNumber(sql) }
 	err := dbi.SelectSQLContext(ctx, &lists, sql, labels, extraValues...)
 	return lists, err
 }

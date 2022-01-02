@@ -1,8 +1,21 @@
 package godbi
 
 import (
+	"regexp"
 	"strings"
+	"strconv"
 )
+
+func questionMarkerNumber(query string) string {
+	re := regexp.MustCompile(`\?`)
+	i := 1
+	repl := func(in string) string {
+		x := `$` + strconv.Itoa(i)
+		i++
+		return x
+	}
+	return re.ReplaceAllStringFunc(query, repl)
+}
 
 func hasValue(extra interface{}) bool {
 	if extra == nil {

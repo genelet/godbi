@@ -55,15 +55,35 @@ func (self *DBI) TxSQLContext(ctx context.Context, query string, args ...interfa
 	return nil
 }
 
-// DoSQL executes a SQL the same as DB's Exec, only save the last inserted ID
+// InsertSerial insert a SQL row into Postgres table with Serail , only save the last inserted ID
 //
-func (self *DBI) DoSQL(query string, args ...interface{}) error {
-	return self.DoSQLContext(context.Background(), query, args...)
+func (self *DBI) InsertSerial(query string, args ...interface{}) error {
+	return self.InsertSerialContext(context.Background(), query, args...)
 }
 
-// DoSQLContext executes a SQL the same as DB's Exec, only save the last inserted ID
+// InsertSerialContext insert a SQL into Postgres table with Serial, only save the last inserted ID
 //
-func (self *DBI) DoSQLContext(ctx context.Context, query string, args ...interface{}) error {
+func (self *DBI) InsertSerialContext(ctx context.Context, query string, args ...interface{}) error {
+	stmt, err := self.DB.PrepareContext(ctx, query)
+	if err != nil { return err }
+	defer stmt.Close()
+	var lastID int64
+	err = stmt.QueryRowContext(ctx, args...).Scan(&lastID)
+	if err != nil { return err }
+	self.LastID = lastID
+
+	return nil
+}
+
+// InsertID executes a SQL the same as DB's Exec, only save the last inserted ID
+//
+func (self *DBI) InsertID(query string, args ...interface{}) error {
+	return self.InsertIDContext(context.Background(), query, args...)
+}
+
+// InsertIDContext executes a SQL the same as DB's Exec, only save the last inserted ID
+//
+func (self *DBI) InsertIDContext(ctx context.Context, query string, args ...interface{}) error {
 	res, err := self.DB.ExecContext(ctx, query, args...)
 	if err != nil {
 		return err
@@ -76,6 +96,19 @@ func (self *DBI) DoSQLContext(ctx context.Context, query string, args ...interfa
 	self.LastID = lastID
 
 	return nil
+}
+
+// DoSQL executes a SQL the same as DB's Exec, only save the last inserted ID
+//
+func (self *DBI) DoSQL(query string, args ...interface{}) error {
+	return self.DoSQLContext(context.Background(), query, args...)
+}
+
+// DoSQLContext executes a SQL the same as DB's Exec, only save the last inserted ID
+//
+func (self *DBI) DoSQLContext(ctx context.Context, query string, args ...interface{}) error {
+	_, err := self.DB.ExecContext(ctx, query, args...)
+	return err
 }
 
 // DoSQLs executes multiple rows using the same prepared statement,
@@ -137,8 +170,8 @@ func getLabels(labels []interface{}) ([]string, []string) {
 		return nil, nil
 	}
 
-	selectLabels := make([]string, 0)
-	typeLabels := make([]string, 0)
+	var selectLabels []string
+	var typeLabels []string
 	for _, vs := range labels {
 		switch v := vs.(type) {
 		case [2]string:
@@ -182,7 +215,6 @@ func (self *DBI) SelectSQLContext(ctx context.Context, lists *[]map[string]inter
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
 
 	return self.pickup(rows, lists, labels, query)
 }
@@ -208,7 +240,9 @@ func (self *DBI) pickup(rows *sql.Rows, lists *[]map[string]interface{}, labels 
 			x[i] = new(sql.NullFloat64)
 		case "bool":
 			x[i] = new(sql.NullBool)
-		case "string":
+		case "time":
+			x[i] = new(sql.NullTime)
+		case "string", "[]byte":
 			x[i] = new(sql.NullString)
 		default:
 			x[i] = &names[i]
@@ -282,7 +316,12 @@ func (self *DBI) pickup(rows *sql.Rows, lists *[]map[string]interface{}, labels 
 				if x.Valid {
 					res[v] = x.Bool
 				}
-			case "string":
+			case "time":
+				x := x[j].(*sql.NullTime)
+				if x.Valid {
+					res[v] = x.Time
+				}
+			case "string", "[]byte":
 				x := x[j].(*sql.NullString)
 				if x.Valid {
 					res[v] = strings.TrimSpace(x.String)
@@ -303,6 +342,7 @@ func (self *DBI) pickup(rows *sql.Rows, lists *[]map[string]interface{}, labels 
 		}
 		*lists = append(*lists, res)
 	}
+	rows.Close()
 	if err := rows.Err(); err != nil && err != sql.ErrNoRows {
 		return err
 	}

@@ -34,6 +34,7 @@ func (self *Delecs) RunActionContext(ctx context.Context, db *sql.DB, t *Table, 
 	if values == nil {
 		return nil, fmt.Errorf("fks valeus not found in %s", t.TableName)
 	}
+	if t.questionNumber == Postgres { str = questionMarkerNumber(str) }
 	err := dbi.SelectContext(ctx, &lists, `SELECT ` + strings.Join(t.getKeyColumns(), ", ") + ` FROM ` + t.TableName + ` WHERE ` + str, values...)
 	return lists, err
 }

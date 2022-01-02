@@ -4,8 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"io/ioutil"
 	"fmt"
+	"io/ioutil"
 )
 
 // Graph describes all models and actions in a database schema
@@ -14,6 +14,7 @@ type Graph struct {
 	Models []Navigate `json:"models" hcl:"models"`
 	argsMap map[string]interface{}
 	extraMap map[string]interface{}
+	questionNumber DBType
 }
 
 func NewGraphJsonFile(fn string, cmap ...map[string][]Capability) (*Graph, error) {
@@ -50,6 +51,10 @@ func NewGraphJson(dat json.RawMessage, cmap ...map[string][]Capability) (*Graph,
 	return &Graph{Models:models}, nil
 }
 
+func (self *Graph) SetQuestionNumber(is DBType) {
+    self.questionNumber = is
+}
+
 func (self *Graph) Initialize(args map[string]interface{}, extra map[string]interface{}) {
 	self.argsMap = args
     self.extraMap = extra
@@ -58,7 +63,9 @@ func (self *Graph) Initialize(args map[string]interface{}, extra map[string]inte
 func (self *Graph) GetModel(model string) Navigate {
 	if self.Models != nil {
 		for _, item := range self.Models {
-			if item.GetTable().GetTableName() == model {
+			tableObj := item.GetTable()
+			if tableObj.GetTableName() == model {
+				tableObj.SetQuestionNumber(self.questionNumber)
 				return item
 			}
 		}
@@ -135,6 +142,7 @@ func (self *Graph) RunContext(ctx context.Context, db *sql.DB, model, action str
 // The rest are specific data for each action starting with the current one.
 //
 func (self *Graph) hashContext(ctx context.Context, db *sql.DB, model, action string, args, extra map[string]interface{}) ([]map[string]interface{}, error) {
+//fmt.Printf("\n\n1111 %s=>%s\nargs: %#v\n", model, action, args)
 	modelObj := self.GetModel(model)
 	if modelObj == nil {
 		return nil, fmt.Errorf("model %s not found in graph", model)
@@ -170,6 +178,7 @@ func (self *Graph) hashContext(ctx context.Context, db *sql.DB, model, action st
 				preArgs = MergeArgs(p.NextArgs(preArgs), v)
 				preExtra = MergeExtra(p.NextExtra(preArgs), p.FindExtra(preExtra))
 			}
+//fmt.Printf("22222 %d %s=>%s\n%#v\n", k, p.TableName, p.ActionName, preArgs)
 			lists, err := self.RunContext(ctx, db, p.TableName, p.ActionName, preArgs, preExtra)
 			if err != nil { return nil, err }
 			// only two types of prepares
@@ -194,6 +203,7 @@ func (self *Graph) hashContext(ctx context.Context, db *sql.DB, model, action st
 		}
 	}
 
+//fmt.Printf("33333 %s=>%s\n%#v\n", model, action, newArgs)
 	data, err := modelObj.RunModelContext(ctx, db, action, newArgs, newExtra)
 	if err != nil { return nil, err }
 
@@ -211,10 +221,12 @@ func (self *Graph) hashContext(ctx context.Context, db *sql.DB, model, action st
 			}
 			nextArgs  := MergeArgs(p.NextArgs(item), v)
 			nextExtra := MergeExtra(p.NextExtra(item), p.FindExtra(newExtra))
+//fmt.Printf("9999 %v\nnext args: %#v\nnext extra: %#v\n", p, nextArgs, nextExtra)
 			newLists, err := self.RunContext(ctx, db, p.TableName, p.ActionName, nextArgs, nextExtra)
 			if err != nil { return nil, err }
 			if hasValue(newLists) {
-				item[p.Subname()] = newLists
+//fmt.Printf("10000 %#v:%d\n%#v\n\n", p, len(newLists), newLists)
+				item[p.Subname()] =  p.Shorten(newLists)
 			}
 		}
 	}

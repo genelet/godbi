@@ -6,6 +6,19 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
+)
+
+type DBType int64
+
+const (
+	SQLDefault DBType = iota
+	SQLRaw
+	SQLite
+	MySQL
+	Postgres
+	TSMillisecond
+	TSMicrosecond
 )
 
 type Col struct {
@@ -29,10 +42,15 @@ type Table struct {
 	IdAuto    string   `json:"idAuto,omitempty" hcl:"idAuto,optional"`
 	Fks       []*Fk    `json:"fks,omitempty" hcl:"fks,optional"`
 	Uniques   []string `json:"uniques,omitempty" hcl:"uniques,optional"`
+	questionNumber DBType
 }
 
 func (self *Table) GetTableName() string {
 	return self.TableName
+}
+
+func (self *Table) SetQuestionNumber(is DBType) {
+	self.questionNumber = is
 }
 
 func (self *Table) RefreshArgs(args interface{}) interface{} {
@@ -87,14 +105,33 @@ func (self *Table) getKeyColumns() []string {
 
 func (self *Table) getFv(ARGS map[string]interface{}) map[string]interface{} {
     fieldValues := make(map[string]interface{})
-    for _, f := range self.insertCols() {
-        if v, ok := ARGS[f]; ok {
+    for f, l := range self.insertCols() {
+        v, ok := ARGS[f]
+		if !ok {
+			v, ok = ARGS[l]
+		}
+		if ok {
 			switch t := v.(type) {
 			case []map[string]interface{}, map[string]interface{}:
+			case bool:
+				switch self.questionNumber {
+				case SQLite, TSMillisecond, TSMicrosecond:
+					if t {
+						fieldValues[f] = 1
+					} else {
+						fieldValues[f] = 0
+					}
+				default:
+					if t {
+						fieldValues[f] = "true"
+					} else {
+						fieldValues[f] = "false"
+					}
+				}
 			default:
 				fieldValues[f] = t
 			}
-        }
+		}
     }
     return fieldValues
 }
@@ -118,27 +155,50 @@ func (self *Table) checkNull(ARGS map[string]interface{}, extra ...map[string]in
 	return nil
 }
 
-func (self *Table) insertCols() []string {
-	var cols []string
+func (self *Table) insertCols() map[string]string {
+	cols := make(map[string]string)
 	for _, col := range self.Columns {
 		if col.Auto { continue }
-		cols = append(cols, col.ColumnName)
+		cols[col.ColumnName] = col.Label
 	}
 	return cols
 }
 
 func (self *Table) insertHashContext(ctx context.Context, db *sql.DB, args map[string]interface{}) (int64, error) {
-	fields := make([]string, 0)
-	values := make([]interface{}, 0)
+	var fields []string
+	var values []interface{}
+	if self.IdAuto != "" && self.questionNumber == TSMillisecond {
+		fields = append(fields, self.IdAuto)
+		values = append(values, time.Now().UnixNano()/int64(time.Millisecond))
+	} else if self.IdAuto != "" && self.questionNumber == TSMicrosecond {
+		fields = append(fields, self.IdAuto)
+		values = append(values, time.Now().UnixNano()/int64(time.Microsecond))
+	}
 	for k, v := range args {
 		if v != nil {
 			fields = append(fields, k)
 			values = append(values, v)
 		}
 	}
+
 	sql := "INSERT INTO " + self.TableName + " (" + strings.Join(fields, ", ") + ") VALUES (" + strings.Join(strings.Split(strings.Repeat("?", len(fields)), ""), ",") + ")"
+
 	dbi := &DBI{DB: db}
-	err := dbi.DoSQLContext(ctx, sql, values...)
+	var err error
+	switch self.questionNumber {
+	case Postgres:
+		sql = questionMarkerNumber(sql)
+		if self.IdAuto != "" {
+			sql += " RETURNING " + self.IdAuto
+			err = dbi.InsertSerialContext(ctx, sql, values...)
+		} else {
+			err = dbi.DoSQLContext(ctx, sql, values...)
+		}
+	case SQLRaw, TSMillisecond, TSMicrosecond:
+		err = dbi.DoSQLContext(ctx, sql, values...)
+	default:
+		err = dbi.InsertIDContext(ctx, sql, values...)
+	}
 	if err != nil {
 		return 0, err
 	}
@@ -146,8 +206,8 @@ func (self *Table) insertHashContext(ctx context.Context, db *sql.DB, args map[s
 }
 
 func (self *Table) updateHashNullsContext(ctx context.Context, db *sql.DB, args map[string]interface{}, ids []interface{}, empties []string, extra ...map[string]interface{}) error {
-	if empties == nil {
-		empties = make([]string, 0)
+	if !hasValue(args) {
+		return fmt.Errorf("no input data")
 	}
 	for _, k := range self.Pks {
 		if grep(empties, k) {
@@ -155,9 +215,9 @@ func (self *Table) updateHashNullsContext(ctx context.Context, db *sql.DB, args 
 		}
 	}
 
-	fields := make([]string, 0)
-	field0 := make([]string, 0)
-	values := make([]interface{}, 0)
+	var fields []string
+	var field0 []string
+	var values []interface{}
 	for k, v := range args {
 		fields = append(fields, k)
 		field0 = append(field0, k+"=?")
@@ -181,13 +241,14 @@ func (self *Table) updateHashNullsContext(ctx context.Context, db *sql.DB, args 
 	}
 
 	dbi := &DBI{DB: db}
+	if self.questionNumber == Postgres { sql = questionMarkerNumber(sql) }
 	return dbi.DoSQLContext(ctx, sql, values...)
 }
 
 func (self *Table) insupdTableContext(ctx context.Context, db *sql.DB, args map[string]interface{}) (int64, error) {
 	changed := int64(0)
 	s := "SELECT " + strings.Join(self.Pks, ", ") + " FROM " + self.TableName + "\nWHERE "
-	v := make([]interface{}, 0)
+	var v []interface{}
 	if self.Uniques == nil {
 		return changed, fmt.Errorf("unique key not defined")
 	}
@@ -205,6 +266,7 @@ func (self *Table) insupdTableContext(ctx context.Context, db *sql.DB, args map[
 
 	lists := make([]map[string]interface{}, 0)
 	dbi := &DBI{DB: db}
+	if self.questionNumber == Postgres { s = questionMarkerNumber(s) }
 	err := dbi.SelectContext(ctx, &lists, s, v...)
 	if err != nil {
 		return changed, err
@@ -221,7 +283,9 @@ func (self *Table) insupdTableContext(ctx context.Context, db *sql.DB, args map[
 		err = self.updateHashNullsContext(ctx, db, args, ids, nil)
 		if err == nil && self.IdAuto != "" {
 			res := make(map[string]interface{})
-			if err = dbi.GetSQLContext(ctx, res, "SELECT " + self.IdAuto + " FROM " + self.TableName + "\nWHERE " + strings.Join(self.Pks, "=? AND ") + "=?", nil, ids...); err == nil {
+			sql := "SELECT " + self.IdAuto + " FROM " + self.TableName + "\nWHERE " + strings.Join(self.Pks, "=? AND ") + "=?"
+			if self.questionNumber == Postgres { sql = questionMarkerNumber(sql) }
+			if err = dbi.GetSQLContext(ctx, res, sql, nil, ids...); err == nil {
 				changed = res[self.IdAuto].(int64)
 			}
 		}
@@ -233,17 +297,18 @@ func (self *Table) insupdTableContext(ctx context.Context, db *sql.DB, args map[
 }
 
 func (self *Table) totalHashContext(ctx context.Context, db *sql.DB, v interface{}, extra ...map[string]interface{}) error {
-	str := "SELECT COUNT(*) FROM " + self.TableName
+	sql := "SELECT COUNT(*) FROM " + self.TableName
 
 	if hasValue(extra) {
 		where, values := selectCondition(extra[0], "")
 		if where != "" {
-			str += "\nWHERE " + where
+			sql += "\nWHERE " + where
 		}
-		return db.QueryRowContext(ctx, str, values...).Scan(v)
+		if self.questionNumber == Postgres { sql = questionMarkerNumber(sql) }
+		return db.QueryRowContext(ctx, sql, values...).Scan(v)
 	}
 
-	return db.QueryRowContext(ctx, str).Scan(v)
+	return db.QueryRowContext(ctx, sql).Scan(v)
 }
 
 func (self *Table) getIdVal(ARGS map[string]interface{}, extra ...map[string]interface{}) []interface{} {
@@ -256,7 +321,7 @@ func (self *Table) getIdVal(ARGS map[string]interface{}, extra ...map[string]int
 func (self *Table) singleCondition(ids []interface{}, table string, extra ...map[string]interface{}) (string, []interface{}) {
 	keys := self.Pks
 	sql := ""
-	extraValues := make([]interface{}, 0)
+	var extraValues []interface{}
 
 	for i, item := range keys {
 		val := ids[i]
@@ -329,7 +394,7 @@ func properValuesHash(vs []string, ARGS map[string]interface{}, extra map[string
 
 func selectCondition(extra map[string]interface{}, table string) (string, []interface{}) {
 	sql := ""
-	values := make([]interface{}, 0)
+	var values []interface{}
 	i := 0
 
 	for field, valueInterface := range extra {
@@ -388,8 +453,8 @@ func (self *Table) filterPars(ARGS map[string]interface{}, fieldsName string, jo
 		fields = v.([]string)
 	}
 
-	keys := make([]string, 0)
-	labels := make([]interface{}, 0)
+	var keys []string
+	var labels []interface{}
 	for _, col := range self.Columns {
 		if fields==nil || grep (fields, col.ColumnName) {
 			keys = append(keys, col.ColumnName)

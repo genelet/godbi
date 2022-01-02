@@ -28,5 +28,6 @@ func (self *Delete) RunActionContext(ctx context.Context, db *sql.DB, t *Table, 
 		return nil, fmt.Errorf("delete whole table is not supported")
 	}
 	dbi := &DBI{DB: db}
+	if t.questionNumber == Postgres { sql = questionMarkerNumber(sql) }
 	return nil, dbi.DoSQLContext(ctx, sql, values...)
 }
