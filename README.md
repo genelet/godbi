@@ -1,5 +1,9 @@
 # godbi
 
+This project is DEPRECATED. Please check the new package [molecule](https://github.com/genelet/molecule)
+
+The following document is kept for backup only. Please use [molecule](https://github.com/genelet/molecule) .
+
 _godbi_ adds a set of high-level functions to the generic SQL handle in GO. Check *godoc* for definitions:
 [![GoDoc](https://godoc.org/github.com/genelet/godbi?status.svg)](https://godoc.org/github.com/genelet/godbi)
 
