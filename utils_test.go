@@ -36,4 +36,10 @@ func TestUtils(t *testing.T) {
 	if hasValue(x4) {
 		t.Errorf("%v", x4)
 	}
+
+	query := "INSERT INTO x (col1, col2) VALUE (?, ?), (?, ?)"
+	marked := questionMarkerNumber(query)
+	if marked != "INSERT INTO x (col1, col2) VALUE ($1, $2), ($3, $4)" {
+		t.Errorf("%s=>%s", query, marked)
+	}
 }

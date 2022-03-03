@@ -40,7 +40,7 @@ func TestTable(t *testing.T) {
 		t.Errorf("%v", table)
 	}
 	inCols := table.insertCols()
-	if inCols[0] != "adv_id" || inCols[1] != "campaign_name" {
+	if inCols["adv_id"] != "adv_id" || inCols["campaign_name"] != "campaign_name" {
 		t.Errorf("%v", table)
 	}
 }

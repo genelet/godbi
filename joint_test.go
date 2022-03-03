@@ -7,9 +7,9 @@ import (
 
 func TestJoint(t *testing.T) {
 	str := `[
-    {"name":"user_project", "alias":"j", "sortby":"c.componentid"},
-    {"name":"user_component", "alias":"c", "type":"INNER", "using":"projectid"},
-    {"name":"user_table", "alias":"t", "type":"LEFT", "using":"tableid"}]`
+    {"tableName":"user_project", "alias":"j", "sortby":"c.componentid"},
+    {"tableName":"user_component", "alias":"c", "type":"INNER", "using":"projectid"},
+    {"tableName":"user_table", "alias":"t", "type":"LEFT", "using":"tableid"}]`
 	joints := make([]*Joint, 0)
 	err := json.Unmarshal([]byte(str), &joints)
 	if err != nil {

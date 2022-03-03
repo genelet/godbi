@@ -11,7 +11,7 @@ import (
 
 type Topics struct {
 	Action
-	Joints []*Joint    `json:"joins,omitempty" hcl:"join,block"`
+	Joints []*Joint    `json:"joints,omitempty" hcl:"joints,block"`
 	FIELDS string      `json:"fields,omitempty" hcl:"fields"`
 
 	TotalForce  int    `json:"total_force,omitempty" hcl:"total_force,optional"`
@@ -63,7 +63,7 @@ func (self *Topics) orderString(t *Table, ARGS map[string]interface{}) string {
 		if table.Sortby != "" {
 			column = table.Sortby
 		} else {
-			name := table.Name
+			name := table.TableName
 			if table.Alias != "" {
 				name = table.Alias
 			}
@@ -181,6 +181,7 @@ func (self *Topics) RunActionContext(ctx context.Context, db *sql.DB, t *Table, 
 		if order != "" {
 			sql += "\n" + order
 		}
+		if t.questionNumber == Postgres { sql = questionMarkerNumber(sql) }
 		err := dbi.SelectSQLContext(ctx, &lists, sql, labels, values...)
 		if err != nil {
 			return nil, err
@@ -192,6 +193,7 @@ func (self *Topics) RunActionContext(ctx context.Context, db *sql.DB, t *Table, 
 		sql += "\n" + order
 	}
 
+	if t.questionNumber == Postgres { sql = questionMarkerNumber(sql) }
 	err = dbi.SelectSQLContext(ctx, &lists, sql, labels)
 	return lists, err
 }

@@ -14,6 +14,7 @@
 	"actions": [
 		{
 			"actionName": "insupd",
+			"isDo":true,
 			"nextpages": [
 				{
 					"tableName": "m_ab",
@@ -24,6 +25,7 @@
 		},
 		{
 			"actionName": "insert",
+			"isDo":true,
 			"nextpages": [
 				{
 					"tableName": "m_ab",
@@ -81,6 +83,7 @@
 	"actions": [
 		{
 			"actionName": "insert",
+			"isDo":true,
 			"prepares": [
 				{
 					"tableName": "m_b",
@@ -91,6 +94,7 @@
 		},
 		{
 			"actionName": "insupd",
+			"isDo":true,
 			"prepares": [
 				{
 					"tableName": "m_b",
@@ -152,9 +156,11 @@
 	],
 	"actions": [
 		{
+			"isDo":true,
 			"actionName": "insert"
 		},
 		{
+			"isDo":true,
 			"actionName": "insupd"
 		},
 		{

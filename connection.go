@@ -1,5 +1,14 @@
 package godbi
 
+type ConnectType int
+const (
+	CONNECTDefault ConnectType = iota
+	CONNECTOne
+	CONNECTArray
+	CONNECTMap
+	CONNECTMany
+)
+
 // Connection describes linked page
 // 1) for Nextpages, it maps item in lists to next ARGS and next Extra
 // 2) for Prepares, it maps current ARGS to the next ARGS and next Extra
@@ -16,11 +25,15 @@ type Connection struct {
 
 	// RelateExtra: map current page's columns to nextpage's columns (for Nextpages), or prepared page's columns to current page's columns (for Prepares) as constrains.
 	RelateExtra map[string]string `json:"relateExtra,omitempty" hcl:"relateExtra"`
-	IsMapEntry bool               `json:"isMapEntry,omitempty" hcl:"isMapEntry,label"`
+	Dimension  ConnectType        `json:"dimension,omitempty" hcl:"dimension,label"`
+	Marker     string             `json:"marker,omitempty" hcl:"marker,label"`
 }
 
 // Subname is the marker string used to store the output
 func (self *Connection) Subname() string {
+	if self.Marker != "" {
+		return self.Marker
+	}
 	return self.TableName + "_" + self.ActionName
 }
 
@@ -28,12 +41,10 @@ func (self *Connection) Subname() string {
 // the current table name as key.
 //
 func (self *Connection) FindExtra(item map[string]interface{}) map[string]interface{} {
-	tableName := self.TableName
-	if v, ok := self.RelateArgs[self.TableName]; ok {
-		tableName = v
-	}
+	marker := self.Marker
+	if marker == "" { return nil }
 
-	if v, ok := item[tableName]; ok {
+	if v, ok := item[marker]; ok {
 		switch t := v.(type) {
 		case map[string]interface{}:
 			return t
@@ -51,19 +62,15 @@ func (self *Connection) FindArgs(args interface{}) (interface{}, bool) {
 		return nil, true
 	}
 
-	topFound := false
-	tableName := self.TableName
-	if v, ok := self.RelateArgs[self.TableName]; ok {
-		tableName = v
-		topFound = true
-	}
+	marker := self.Marker
+	if marker == "" { return nil, false }
 
 	switch t := args.(type) {
 	case map[string]interface{}: // in practice, only this data type exists
-		if v, ok := t[tableName]; ok {
+		if v, ok := t[marker]; ok {
 			switch s := v.(type) {
 			case map[string]interface{}:
-				if self.IsMapEntry {
+				if self.Dimension==CONNECTMap {
 					var outs []map[string]interface{}
 					for key, value := range s {
 						outs = append(outs, map[string]interface{}{"key":key, "value":value})
@@ -80,7 +87,7 @@ func (self *Connection) FindArgs(args interface{}) (interface{}, bool) {
 					case map[string]interface{}:
 						outs = append(outs, x)
 					default: // native types
-						outs = append(outs, map[string]interface{}{tableName:x})
+						outs = append(outs, map[string]interface{}{marker:x})
 					}
 				}
 				return outs, true
@@ -88,24 +95,10 @@ func (self *Connection) FindArgs(args interface{}) (interface{}, bool) {
 			}
 			return nil, true
 		}
-		return nil, topFound
-	case []map[string]interface{}:
-		var outs []map[string]interface{}
-		found := false
-		for _, hash := range t {
-			if v, ok := hash[tableName]; ok {
-				found = true
-				switch s := v.(type) {
-				case map[string]interface{}: // only map allowed here
-					outs = append(outs, s)
-				default:
-				}
-			}
-		}
-		return outs, found
 	default:
 	}
-	return nil, false
+
+	return nil, true
 }
 
 // NextArg returns nextpage's args as the value of key  current args map
@@ -264,4 +257,116 @@ func mergeMap(args interface{}, item map[string]interface{}) interface{} {
 		return newArgs
 	}
 	return nil
+}
+
+func (self *Connection) Shorten(lists []map[string]interface{}) interface{} {
+	if self.Dimension == CONNECTDefault || self.Marker == "" {
+		return lists
+	}
+
+	switch self.Dimension {
+	case CONNECTMap:
+		output := make(map[string]interface{})
+		for _, single := range lists {
+			key, value := mapEntryToPair(single)
+			if key != "" {
+				output[key] = value
+			}
+		}
+		return output
+	case CONNECTMany:
+		var output []interface{}
+		for _, single := range lists {
+			output = append(output, manyEntry(self.Marker, single))
+		}
+		return output
+	case CONNECTArray:
+		var output []interface{}
+		for _, single := range lists {
+			output = append(output, single[self.Marker])
+		}
+		return output
+	case CONNECTOne:
+		return lists[0]
+	default:
+	}
+	return lists
+}
+
+func mapEntryToPair(single map[string]interface{}) (string, interface{}) {
+	var key string
+	var value interface{}
+	var object map[string]interface{}
+
+	for _, a := range single {
+		var c map[string]interface{}
+		switch b := a.(type) {
+		case []interface{}:
+			c = b[0].(map[string]interface{})
+		case []map[string]interface{}:
+			c = b[0]
+		default:
+			continue
+		}
+
+		for d, e := range c {
+			if d == "key" {
+				key = e.(string)
+				continue
+			}
+			if d == "value" {
+				value = e
+				continue
+			}
+			switch f := e.(type) {
+			case []interface{}:
+				object = f[0].(map[string]interface{})
+			case []map[string]interface{}:
+				object = f[0]
+			default:
+			}
+		}
+	}
+
+	if value != nil {
+		return key, value
+	}
+	return key, object
+}
+
+func manyEntry(leader string, single map[string]interface{}) map[string]interface{} {
+	output := make(map[string]interface{})
+	var higher map[string]interface{}
+
+	for key, value := range single {
+		if key == leader {
+			higher = make(map[string]interface{})
+			switch t := value.(type) {
+			case []interface{}:
+				for k, v := range t[0].(map[string]interface{}) {
+					higher[k] = v
+				}
+			case []map[string]interface{}:
+				for k, v := range t[0] {
+					higher[k] = v
+				}
+			case map[string]interface{}:
+				for k, v := range t {
+					higher[k] = v
+				}
+			default:
+				higher[key] = value
+			}
+		} else {
+			output[key] = value
+		}
+	}
+
+	if higher != nil {
+		for k, v := range higher {
+			output[k] = v
+		}
+	}
+
+	return output
 }
